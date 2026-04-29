@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -28,6 +28,7 @@ public class StandardSettingsFactory : ISettingsFactory
                         SwitchComparisonNext = new KeyOrButton(Keys.NumPad6),
                         PauseKey = null,
                         ToggleGlobalHotkeys = null,
+                        ToggleVideoDebugOverlay = null,
                         GlobalHotkeysEnabled = false,
                         DeactivateHotkeysForOtherPrograms = false,
                         DoubleTapPrevention = true,
@@ -42,12 +43,15 @@ public class StandardSettingsFactory : ISettingsFactory
             AgreedToSRLRules = false,
             SimpleSumOfBest = false,
             RaceProvider = ComponentManager.RaceProviderFactories.Values.ToList().Select(x => x.CreateSettings()).ToList(),
-            RefreshRate = 40,
+            RefreshRate = 60,
+            VideoBackgroundPaintFps = 30,
             ServerPort = 16834,
             ServerStartup = ServerStartupType.Off,
             ServerState = ServerStateType.Off,
             EnableDPIAwareness = false,
             UILanguage = string.Empty,
+            AppTheme = AppTheme.Light,
+            AllowDialogPanelResizing = false,
             ComparisonGeneratorStates = new Dictionary<string, bool>()
             {
                 { BestSegmentsComparisonGenerator.ComparisonName, true },

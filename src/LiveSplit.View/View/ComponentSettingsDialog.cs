@@ -20,6 +20,7 @@ public partial class ComponentSettingsDialog : Form
         Component = component;
         AddComponent(component);
         UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
+        WinFormsTheme.Apply(this);
     }
 
     private void btnOK_Click(object sender, EventArgs e)
@@ -44,8 +45,23 @@ public partial class ComponentSettingsDialog : Form
 
     protected void AddControl(string name, Control control)
     {
-        control.Location = new Point(0, 0);
+        panel.Padding = new Padding(3, 3, SystemInformation.VerticalScrollBarWidth + 8, 8);
+        control.Location = new Point(panel.Padding.Left, panel.Padding.Top);
+        control.Dock = DockStyle.Top;
+        control.Margin = new Padding(0, 0, 0, 8);
+        if (control is Panel panelControl)
+        {
+            panelControl.AutoSize = true;
+            panelControl.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        }
+
         panel.Controls.Add(control);
+        panel.Layout += (_, _) =>
+        {
+            int availableWidth = Math.Max(0, panel.ClientSize.Width - panel.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth);
+            Size preferredSize = control.GetPreferredSize(new Size(availableWidth, 0));
+            panel.AutoScrollMinSize = new Size(preferredSize.Width + panel.Padding.Horizontal, preferredSize.Height + panel.Padding.Vertical + control.Margin.Bottom);
+        };
         Name = name + " Settings";
     }
 }

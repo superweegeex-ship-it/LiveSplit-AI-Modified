@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "Zq4ruuhOQ6I=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\WinForms Color Picker\\WinFormsColor\\WinFormsColor.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\xskil\\.nuget\\packages\\polysharp\\1.14.1\\polysharp.1.14.1.nupkg.sha512",
+    "C:\\Users\\xskil\\.nuget\\packages\\system.buffers\\4.5.1\\system.buffers.4.5.1.nupkg.sha512",
+    "C:\\Users\\xskil\\.nuget\\packages\\system.memory\\4.5.4\\system.memory.4.5.4.nupkg.sha512",
+    "C:\\Users\\xskil\\.nuget\\packages\\system.numerics.vectors\\4.5.0\\system.numerics.vectors.4.5.0.nupkg.sha512",
+    "C:\\Users\\xskil\\.nuget\\packages\\system.resources.extensions\\6.0.0\\system.resources.extensions.6.0.0.nupkg.sha512",
+    "C:\\Users\\xskil\\.nuget\\packages\\system.runtime.compilerservices.unsafe\\4.5.3\\system.runtime.compilerservices.unsafe.4.5.3.nupkg.sha512"
+  ],
+  "logs": []
+}

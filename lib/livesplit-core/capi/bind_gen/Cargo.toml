@@ -1,0 +1,10 @@
+[package]
+authors = ["Christopher Serr <christopher.serr@gmail.com>"]
+name = "bindings"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+heck = "0.4.0"
+clap = { version = "4.0.2", features = ["derive"] }
+syn = { version = "2.0.0", default-features = false, features = ["parsing", "full", "printing"] }

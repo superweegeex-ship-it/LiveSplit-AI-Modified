@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -8,13 +8,74 @@ using LiveSplit.UI;
 
 namespace LiveSplit.View;
 
+/// <summary>How aggressively to sync the running video player when layout settings change mid-dialog.</summary>
+public enum BackgroundVideoLiveApplyScope
+{
+    /// <summary>Full <c>UpdateBackgroundVideoControl</c> (file, backend, placement, etc.).</summary>
+    FullLayoutVideo = 0,
+
+    /// <summary>Only push loop-file (and drift-sync timer eligibility) — no load, no timer-phase storm.</summary>
+    MpvLoopOnly = 1,
+
+    /// <summary>Timer-start sync flags + timer phase handler only.</summary>
+    TimerStartSyncOnly = 2,
+
+    /// <summary>Push mute + volume to mpv only (e.g. audio volume slider while dialog open).</summary>
+    MpvVolumeOnly = 3,
+
+    /// <summary>Push visual-only video effects such as opacity/dimming and blur without reloading media.</summary>
+    VideoVisualEffectsOnly = 4,
+}
+
+public sealed class BackgroundVideoLiveApplyEventArgs : EventArgs
+{
+    public BackgroundVideoLiveApplyScope Scope { get; }
+
+    public BackgroundVideoLiveApplyEventArgs(BackgroundVideoLiveApplyScope scope)
+    {
+        Scope = scope;
+    }
+}
+
 public partial class LayoutSettingsControl : UserControl
 {
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
 
+    /// <summary>
+    /// Raised when a background/video option changes and the main timer window should sync immediately.
+    /// Use <see cref="BackgroundVideoLiveApplyEventArgs.Scope"/> to avoid full mpv refresh for loop / timer sync.
+    /// </summary>
+    public event EventHandler<BackgroundVideoLiveApplyEventArgs> LiveApplyRequested;
+
+    private bool suppressVideoPanZoomEvents;
+    private bool suppressBackgroundVideoBackendEvents;
+    private bool suppressVideoTimerSyncUiEvents;
+    private bool updatingBackgroundSettingsUi;
+    private bool liveApplyHooksReady;
+    private Label lblBackgroundVideoBackend = null;
+    private ComboBox cmbBackgroundVideoBackend = null;
+    private Label lblThinSeparatorThickness;
+    private NumericUpDown numThinSeparatorThickness;
+    private Label lblSeparatorThickness;
+    private NumericUpDown numSeparatorThickness;
+    private GroupBox grpVideoBlur;
+    private TableLayoutPanel tableVideoBlur;
+    private Label lblVideoBlurType;
+    private ComboBox cmbVideoBlurType;
+    private Label lblVideoBlurScale;
+    private TrackBar trkVideoBlurScale;
+    private Label lblVideoBlurDegrees;
+    private NumericUpDown numVideoBlurDegrees;
+    private CheckBox chkObsWindowCaptureCompatibilityMode;
+    private readonly ToolTip backgroundVideoToolTip = new ToolTip();
+
     public LayoutSettingsControl()
     {
         InitializeComponent();
+        ConfigureAutoSizing();
+        EnsureBackgroundVideoBackendCombo();
+        EnsureVideoBlurControls();
+        EnsureObsWindowCaptureCompatibilityControl();
     }
 
     public Options.LayoutSettings Settings { get; set; }
@@ -28,11 +89,45 @@ public partial class LayoutSettingsControl : UserControl
 
     public float Opacity { get => Settings.Opacity * 100f; set => Settings.Opacity = value / 100f; }
     public float ImageOpacity { get => Settings.ImageOpacity * 100f; set => Settings.ImageOpacity = value / 100f; }
+    public float VideoOpacity { get => Settings.VideoOpacity * 100f; set => Settings.VideoOpacity = value / 100f; }
     public float ImageBlur { get => Settings.ImageBlur * 100f; set => Settings.ImageBlur = value / 100f; }
+    public float VideoBlurScale { get => Settings.VideoBlurScale * 100f; set => Settings.VideoBlurScale = value / 100f; }
+    public float VideoAudioVolume { get => Settings.VideoAudioVolume * 100f; set => Settings.VideoAudioVolume = value / 100f; }
+
+    public decimal VideoStartOffsetDecimal
+    {
+        get => (decimal)Settings.VideoStartOffsetSeconds;
+        set => Settings.VideoStartOffsetSeconds = (float)value;
+    }
+
+    public decimal VideoVolumeReductionPercentDecimal
+    {
+        get => Math.Max(0m, Math.Min(100m, (decimal)Settings.VideoVolumeReductionPercentWhenRunCompletes));
+        set => Settings.VideoVolumeReductionPercentWhenRunCompletes = (float)Math.Max(0m, Math.Min(100m, value));
+    }
+
+    public decimal VideoBlurDegreesDecimal
+    {
+        get => Math.Max(0m, Math.Min(360m, (decimal)Settings.VideoBlurDegrees));
+        set => Settings.VideoBlurDegrees = (float)Math.Max(0m, Math.Min(360m, value));
+    }
+
+    public decimal ThinSeparatorThicknessDecimal
+    {
+        get => (decimal)Math.Max(0.1f, Settings.ThinSeparatorThickness);
+        set => Settings.ThinSeparatorThickness = (float)value;
+    }
+
+    public decimal SeparatorThicknessDecimal
+    {
+        get => (decimal)Math.Max(0.1f, Settings.SeparatorThickness);
+        set => Settings.SeparatorThickness = (float)value;
+    }
 
     public LayoutSettingsControl(Options.LayoutSettings settings, ILayout layout)
     {
         InitializeComponent();
+        ConfigureAutoSizing();
         Settings = settings;
         Layout = layout;
         chkBestSegments.DataBindings.Add("Checked", Settings, "ShowBestSegments", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -62,11 +157,579 @@ public partial class LayoutSettingsControl : UserControl
         chkMousePassThroughWhileRunning.DataBindings.Add("Checked", Settings, "MousePassThroughWhileRunning", false, DataSourceUpdateMode.OnPropertyChanged);
         chkAllowResizing.DataBindings.Add("Checked", Settings, "AllowResizing", false, DataSourceUpdateMode.OnPropertyChanged);
         chkAllowMoving.DataBindings.Add("Checked", Settings, "AllowMoving", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkUseHardwareVideoDecoding.DataBindings.Add("Checked", Settings, "UseHardwareVideoDecoding", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkLoopVideo.DataBindings.Add("Checked", Settings, "LoopVideo", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkPlayVideoAudio.DataBindings.Add("Checked", Settings, "PlayVideoAudio", false, DataSourceUpdateMode.OnPropertyChanged);
+        EnsureObsWindowCaptureCompatibilityControl();
+        chkObsWindowCaptureCompatibilityMode.DataBindings.Add("Checked", Settings, "ObsWindowCaptureCompatibilityMode", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkVideoStartWithTimer.DataBindings.Add("Checked", Settings, "VideoStartWithTimer", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkVideoKeepPlaybackAcrossTimerResets.DataBindings.Add("Checked", Settings, "VideoKeepPlaybackAcrossTimerResets", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkVideoPauseWhenRunCompletes.DataBindings.Add("Checked", Settings, "VideoPauseWhenRunCompletes", false, DataSourceUpdateMode.OnPropertyChanged);
+        numVideoStartOffsetSeconds.DataBindings.Add("Value", this, nameof(VideoStartOffsetDecimal), true, DataSourceUpdateMode.OnPropertyChanged);
+        numVideoVolumeReductionAfterRunCompletes.DataBindings.Add("Value", this, nameof(VideoVolumeReductionPercentDecimal), true, DataSourceUpdateMode.OnPropertyChanged);
+        chkVideoStartWithTimer.CheckedChanged += VideoTimerSyncOptions_Changed;
+        chkVideoKeepPlaybackAcrossTimerResets.CheckedChanged += VideoTimerSyncOptions_Changed;
+        chkVideoPauseWhenRunCompletes.CheckedChanged += VideoTimerSyncOptions_Changed;
+        numVideoStartOffsetSeconds.ValueChanged += VideoStartOffsetNud_LiveApply;
+        numVideoVolumeReductionAfterRunCompletes.ValueChanged += VideoVolumeReductionAfterRun_LiveApply;
+        chkLoopVideo.CheckedChanged += VideoLoopOption_LiveApply;
+        chkPlayVideoAudio.CheckedChanged += VideoOrBackgroundLiveOption_Changed;
+        chkObsWindowCaptureCompatibilityMode.CheckedChanged += VideoOrBackgroundLiveOption_Changed;
+        chkUseHardwareVideoDecoding.CheckedChanged += VideoOrBackgroundLiveOption_Changed;
+        trkImageOpacity.ValueChanged += VideoOpacityTrack_LiveApply;
+        trkBlur.Scroll += TrkBlur_VideoVolumeLiveApply;
+        trkBlur.ValueChanged += TrkBlur_VideoVolumeLiveApply;
+        EnsureSeparatorThicknessControls();
+        EnsureVideoBlurControls();
+        trkVideoBlurScale.DataBindings.Add("Value", this, nameof(VideoBlurScale), false, DataSourceUpdateMode.OnPropertyChanged);
+        numVideoBlurDegrees.DataBindings.Add("Value", this, nameof(VideoBlurDegreesDecimal), true, DataSourceUpdateMode.OnPropertyChanged);
+        cmbVideoBlurType.SelectedIndexChanged += VideoBlurControls_LiveApply;
+        trkVideoBlurScale.ValueChanged += VideoBlurControls_LiveApply;
+        numVideoBlurDegrees.ValueChanged += VideoBlurControls_LiveApply;
+        numThinSeparatorThickness.DataBindings.Add("Value", this, nameof(ThinSeparatorThicknessDecimal), true, DataSourceUpdateMode.OnPropertyChanged);
+        numSeparatorThickness.DataBindings.Add("Value", this, nameof(SeparatorThicknessDecimal), true, DataSourceUpdateMode.OnPropertyChanged);
         trkImageOpacity.DataBindings.Add("Value", this, "ImageOpacity", false, DataSourceUpdateMode.OnPropertyChanged);
-        trkBlur.DataBindings.Add("Value", this, "ImageBlur", false, DataSourceUpdateMode.OnPropertyChanged);
+        trkVideoPanX.ValueChanged += VideoPanZoomTrackbars_ValueChanged;
+        trkVideoPanY.ValueChanged += VideoPanZoomTrackbars_ValueChanged;
+        trkVideoZoom.ValueChanged += VideoPanZoomTrackbars_ValueChanged;
 
         cmbBackgroundType.SelectedItem = GetBackgroundTypeString(Settings.BackgroundType);
         originalBackgroundImage = Settings.BackgroundImage;
+        EnsureBackgroundVideoBackendCombo();
+        cmbGradientType_SelectedIndexChanged(null, EventArgs.Empty);
+        liveApplyHooksReady = true;
+    }
+
+    private void ConfigureAutoSizing()
+    {
+        AutoSize = true;
+        AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        Padding = new Padding(7);
+        tableLayoutPanel5.AutoSize = true;
+        tableLayoutPanel5.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        tableLayoutPanel5.Dock = DockStyle.Top;
+    }
+
+    private void NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope scope = BackgroundVideoLiveApplyScope.FullLayoutVideo)
+    {
+        if (!liveApplyHooksReady)
+        {
+            return;
+        }
+
+        LiveApplyRequested?.Invoke(this, new BackgroundVideoLiveApplyEventArgs(scope));
+    }
+
+    /// <summary>
+    /// Queues work after the current message so WinForms can finish writing bound controls into
+    /// <see cref="Settings"/>. Uses <see cref="Form"/> marshaling when this <see cref="UserControl"/>
+    /// has no handle yet (BeginInvoke on self throws).
+    /// </summary>
+    private void DeferAfterDataBindingCommit(Action action)
+    {
+        if (IsDisposed)
+        {
+            return;
+        }
+
+        void Run()
+        {
+            if (IsDisposed)
+            {
+                return;
+            }
+
+            action();
+        }
+
+        Control root = FindForm();
+        if (root == null || !root.IsHandleCreated)
+        {
+            root = this;
+        }
+
+        if (root.IsHandleCreated)
+        {
+            try
+            {
+                root.BeginInvoke(new Action(Run));
+            }
+            catch (InvalidOperationException)
+            {
+                Run();
+            }
+
+            return;
+        }
+
+        void OnHostHandleCreated(object sender, EventArgs e)
+        {
+            root.HandleCreated -= OnHostHandleCreated;
+            if (root.IsDisposed)
+            {
+                return;
+            }
+
+            try
+            {
+                if (root.IsHandleCreated)
+                {
+                    root.BeginInvoke(new Action(Run));
+                }
+                else
+                {
+                    Run();
+                }
+            }
+            catch (InvalidOperationException)
+            {
+                Run();
+            }
+        }
+
+        root.HandleCreated += OnHostHandleCreated;
+    }
+
+    private void VideoLoopOption_LiveApply(object sender, EventArgs e)
+    {
+        if (updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        // CheckedChanged can run before WinForms writes the checkbox into Layout.Settings; defer so
+        // TimerForm reads the committed LoopVideo value (fixes loop still active at EOF while dialog open).
+        DeferAfterDataBindingCommit(() =>
+        {
+            if (IsDisposed || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+            {
+                return;
+            }
+
+            NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.MpvLoopOnly);
+        });
+    }
+
+    private void VideoVolumeReductionAfterRun_LiveApply(object sender, EventArgs e)
+    {
+        if (suppressVideoTimerSyncUiEvents || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        if (cmbBackgroundType.SelectedItem?.ToString() != "Video")
+        {
+            return;
+        }
+
+        DeferAfterDataBindingCommit(() =>
+        {
+            if (IsDisposed || suppressVideoTimerSyncUiEvents || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+            {
+                return;
+            }
+
+            if (cmbBackgroundType.SelectedItem?.ToString() != "Video")
+            {
+                return;
+            }
+
+            NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.TimerStartSyncOnly);
+        });
+    }
+
+    private void VideoStartOffsetNud_LiveApply(object sender, EventArgs e)
+    {
+        if (suppressVideoTimerSyncUiEvents || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        if (cmbBackgroundType.SelectedItem?.ToString() != "Video")
+        {
+            return;
+        }
+
+        DeferAfterDataBindingCommit(() =>
+        {
+            if (IsDisposed || suppressVideoTimerSyncUiEvents || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+            {
+                return;
+            }
+
+            if (cmbBackgroundType.SelectedItem?.ToString() != "Video")
+            {
+                return;
+            }
+
+            NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.TimerStartSyncOnly);
+        });
+    }
+
+    private void VideoOrBackgroundLiveOption_Changed(object sender, EventArgs e)
+    {
+        if (updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        // Defer full apply so CheckBox → Settings binding has committed (same handle issue as loop).
+        DeferAfterDataBindingCommit(() =>
+        {
+            if (IsDisposed || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+            {
+                return;
+            }
+
+            NotifyLiveApplyRequested();
+        });
+    }
+
+    private void VideoOpacityTrack_LiveApply(object sender, EventArgs e)
+    {
+        if (updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        if (cmbBackgroundType.SelectedItem?.ToString() == "Video")
+        {
+            try
+            {
+                foreach (Binding b in trkImageOpacity.DataBindings)
+                {
+                    b.WriteValue();
+                }
+            }
+            catch
+            {
+            }
+
+            Settings.VideoOpacity = Math.Max(0f, Math.Min(1f, trkImageOpacity.Value / 100f));
+            NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.VideoVisualEffectsOnly);
+        }
+    }
+
+    private void TrkBlur_VideoVolumeLiveApply(object sender, EventArgs e)
+    {
+        if (updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        if (cmbBackgroundType.SelectedItem?.ToString() != "Video")
+        {
+            return;
+        }
+
+        // TrackBar (int) → wrapper property → Settings often does not commit to the datasource on
+        // every tick; WinForms may defer writes until validation or dialog OK. Flush the binding and
+        // set Settings explicitly so TimerForm reads the real slider value while dragging.
+        try
+        {
+            foreach (Binding b in trkBlur.DataBindings)
+            {
+                b.WriteValue();
+            }
+        }
+        catch
+        {
+            // Binding may be mid-refresh when switching background type; fall through to direct write.
+        }
+
+        Settings.VideoAudioVolume = Math.Max(0f, Math.Min(1f, trkBlur.Value / 100f));
+        NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.MpvVolumeOnly);
+    }
+
+    private void VideoBlurControls_LiveApply(object sender, EventArgs e)
+    {
+        if (updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        if (cmbBackgroundType.SelectedItem?.ToString() != "Video")
+        {
+            return;
+        }
+
+        Settings.VideoBlurScale = Math.Max(0f, Math.Min(1f, trkVideoBlurScale.Value / 100f));
+        Settings.VideoBlurType = cmbVideoBlurType.SelectedIndex switch
+        {
+            1 => BackgroundVideoBlurType.Directional,
+            2 => BackgroundVideoBlurType.Box,
+            3 => BackgroundVideoBlurType.Rotational,
+            _ => BackgroundVideoBlurType.Gaussian,
+        };
+        Settings.VideoBlurDegrees = (float)Math.Max(0m, Math.Min(360m, numVideoBlurDegrees.Value));
+        UpdateVideoBlurDegreeControlsEnabled();
+        NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.VideoVisualEffectsOnly);
+    }
+
+    private void EnsureBackgroundVideoBackendCombo()
+    {
+        if (lblBackgroundVideoBackend != null)
+        {
+            return;
+        }
+    }
+
+    private void SyncBackgroundVideoBackendComboFromSettings()
+    {
+        if (cmbBackgroundVideoBackend == null || Settings == null)
+        {
+            return;
+        }
+
+        suppressBackgroundVideoBackendEvents = true;
+        try
+        {
+            cmbBackgroundVideoBackend.SelectedIndex = 0;
+        }
+        finally
+        {
+            suppressBackgroundVideoBackendEvents = false;
+        }
+    }
+
+    private void BackgroundVideoBackendCombo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (suppressBackgroundVideoBackendEvents || Settings == null || cmbBackgroundVideoBackend == null)
+        {
+            return;
+        }
+
+        int idx = cmbBackgroundVideoBackend.SelectedIndex;
+        if (idx < 0)
+        {
+            return;
+        }
+
+        UpdateLayoutOpacityControlsEnabled();
+        NotifyLiveApplyRequested();
+    }
+
+    private void UpdateLayoutOpacityControlsEnabled()
+    {
+        bool embeddedVideo = cmbBackgroundType?.SelectedItem?.ToString() == "Video"
+            && Settings != null
+            && Settings.BackgroundVideoBackend == BackgroundVideoBackend.MpvWindowEmbed;
+        bool enabled = !embeddedVideo;
+        label13.Enabled = enabled;
+        trkOpacity.Enabled = enabled;
+        label13.Visible = enabled;
+        trkOpacity.Visible = enabled;
+    }
+
+    private void EnsureSeparatorThicknessControls()
+    {
+        if (numThinSeparatorThickness != null)
+        {
+            return;
+        }
+
+        tableLayoutPanel5.SuspendLayout();
+        try
+        {
+            tableLayoutPanel5.RowCount += 1;
+            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            lblThinSeparatorThickness = new Label
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Text = T("Thin Separator Thickness:")
+            };
+
+            numThinSeparatorThickness = new NumericUpDown
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                DecimalPlaces = 1,
+                Increment = 0.1M,
+                Minimum = 0.1M,
+                Maximum = 20M,
+                Margin = new Padding(7, 3, 3, 3)
+            };
+
+            lblSeparatorThickness = new Label
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Text = T("Separator Thickness:")
+            };
+
+            numSeparatorThickness = new NumericUpDown
+            {
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+                DecimalPlaces = 1,
+                Increment = 0.1M,
+                Minimum = 0.1M,
+                Maximum = 20M,
+                Margin = new Padding(7, 3, 3, 3)
+            };
+
+            var panel = new TableLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Fill,
+                ColumnCount = 4,
+                Margin = new Padding(0),
+                Padding = new Padding(0)
+            };
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
+            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
+            panel.Controls.Add(lblThinSeparatorThickness, 0, 0);
+            panel.Controls.Add(numThinSeparatorThickness, 1, 0);
+            panel.Controls.Add(lblSeparatorThickness, 2, 0);
+            panel.Controls.Add(numSeparatorThickness, 3, 0);
+
+            int row = tableLayoutPanel5.RowCount - 1;
+            tableLayoutPanel5.Controls.Add(panel, 0, row);
+            tableLayoutPanel5.SetColumnSpan(panel, 3);
+        }
+        finally
+        {
+            tableLayoutPanel5.ResumeLayout();
+        }
+    }
+
+    private void EnsureVideoBlurControls()
+    {
+        if (grpVideoBlur != null)
+        {
+            return;
+        }
+
+        lblVideoBlurType = new Label
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = true,
+            Text = T("Blur type:")
+        };
+        cmbVideoBlurType = new ComboBox
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            Dock = DockStyle.Fill,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        cmbVideoBlurType.Items.AddRange(new object[]
+        {
+            T("Gaussian"),
+            T("Directional"),
+            T("Box"),
+            T("Rotational")
+        });
+
+        lblVideoBlurScale = new Label
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = true,
+            Text = T("Blur scale:")
+        };
+        trkVideoBlurScale = new TrackBar
+        {
+            Dock = DockStyle.Fill,
+            Maximum = 100,
+            TickStyle = TickStyle.None
+        };
+
+        lblVideoBlurDegrees = new Label
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = true,
+            Text = T("Degrees:")
+        };
+        numVideoBlurDegrees = new NumericUpDown
+        {
+            Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right,
+            DecimalPlaces = 1,
+            Increment = 1M,
+            Minimum = 0M,
+            Maximum = 360M,
+            Margin = new Padding(3, 3, 3, 3)
+        };
+
+        tableVideoBlur = new TableLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            Dock = DockStyle.Fill,
+            RowCount = 3
+        };
+        tableVideoBlur.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 91F));
+        tableVideoBlur.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        tableVideoBlur.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        tableVideoBlur.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        tableVideoBlur.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        tableVideoBlur.Controls.Add(lblVideoBlurType, 0, 0);
+        tableVideoBlur.Controls.Add(cmbVideoBlurType, 1, 0);
+        tableVideoBlur.Controls.Add(lblVideoBlurScale, 0, 1);
+        tableVideoBlur.Controls.Add(trkVideoBlurScale, 1, 1);
+        tableVideoBlur.Controls.Add(lblVideoBlurDegrees, 0, 2);
+        tableVideoBlur.Controls.Add(numVideoBlurDegrees, 1, 2);
+
+        grpVideoBlur = new GroupBox
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Fill,
+            Text = T("Video blur"),
+            Visible = false
+        };
+        grpVideoBlur.Controls.Add(tableVideoBlur);
+
+        tableLayoutPanel5.SuspendLayout();
+        tableLayoutPanel3.SuspendLayout();
+        try
+        {
+            int row = tableLayoutPanel3.RowCount;
+            tableLayoutPanel3.RowCount = row + 1;
+            tableLayoutPanel3.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            tableLayoutPanel3.Controls.Add(grpVideoBlur, 0, row);
+            tableLayoutPanel3.SetColumnSpan(grpVideoBlur, 6);
+        }
+        finally
+        {
+            tableLayoutPanel3.ResumeLayout();
+            tableLayoutPanel5.ResumeLayout();
+        }
+    }
+
+    private void EnsureObsWindowCaptureCompatibilityControl()
+    {
+        if (chkObsWindowCaptureCompatibilityMode != null)
+        {
+            return;
+        }
+
+        chkObsWindowCaptureCompatibilityMode = new CheckBox
+        {
+            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = true,
+            Margin = new Padding(7, 3, 3, 3),
+            Text = T("OBS Window Capture compatibility mode")
+        };
+
+        string helpText = T("Uses a single in-window composited path for better OBS Window Capture reliability. This can use more CPU.");
+        backgroundVideoToolTip.SetToolTip(chkObsWindowCaptureCompatibilityMode, helpText);
+
+        tableLayoutPanel5.SuspendLayout();
+        try
+        {
+            tableLayoutPanel5.RowCount += 1;
+            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            int row = tableLayoutPanel5.RowCount - 1;
+            tableLayoutPanel5.Controls.Add(chkObsWindowCaptureCompatibilityMode, 0, row);
+            tableLayoutPanel5.SetColumnSpan(chkObsWindowCaptureCompatibilityMode, 3);
+        }
+        finally
+        {
+            tableLayoutPanel5.ResumeLayout();
+        }
     }
 
     private string GetBackgroundTypeString(BackgroundType type)
@@ -75,6 +738,8 @@ public partial class LayoutSettingsControl : UserControl
         {
             BackgroundType.HorizontalGradient => "Horizontal Gradient",
             BackgroundType.VerticalGradient => "Vertical Gradient",
+            BackgroundType.AnimatedImage => "Animated Image",
+            BackgroundType.Video => "Video",
             BackgroundType.Image => "Image",
             _ => "Solid Color",
         };
@@ -82,15 +747,106 @@ public partial class LayoutSettingsControl : UserControl
 
     private void cmbGradientType_SelectedIndexChanged(object sender, EventArgs e)
     {
+        if (updatingBackgroundSettingsUi)
+        {
+            return;
+        }
+
+        updatingBackgroundSettingsUi = true;
+        try
+        {
+        BackgroundType previousBackgroundType = Settings.BackgroundType;
         string selectedItem = cmbBackgroundType.SelectedItem.ToString();
-        btnBackground.Visible = selectedItem is not "Solid Color" and not "Image";
+        bool imageBackground = selectedItem is "Image" or "Animated Image";
+        bool videoBackground = selectedItem == "Video";
+        trkImageOpacity.DataBindings.Clear();
+        trkImageOpacity.DataBindings.Add(
+            "Value",
+            this,
+            videoBackground ? "VideoOpacity" : "ImageOpacity",
+            false,
+            DataSourceUpdateMode.OnPropertyChanged);
+        btnBackground.Visible = selectedItem != "Solid Color" && !imageBackground && !videoBackground;
         btnBackground2.DataBindings.Clear();
-        lblImageOpacity.Enabled = lblBlur.Enabled = trkImageOpacity.Enabled = trkBlur.Enabled = selectedItem == "Image";
-        if (selectedItem == "Image")
+        lblImageOpacity.Enabled = trkImageOpacity.Enabled = imageBackground || videoBackground;
+        lblImageOpacity.Text = videoBackground ? T("Video Opacity:") : T("Image Opacity:");
+        trkBlur.DataBindings.Clear();
+        chkUseHardwareVideoDecoding.Enabled = videoBackground;
+        chkLoopVideo.Enabled = videoBackground;
+        chkPlayVideoAudio.Enabled = videoBackground;
+        chkObsWindowCaptureCompatibilityMode.Visible = videoBackground;
+        chkObsWindowCaptureCompatibilityMode.Enabled = videoBackground;
+        grpVideoTimerSync.Visible = videoBackground;
+        grpVideoTimerSync.Enabled = videoBackground;
+        grpWhenRunCompletes.Visible = videoBackground;
+        grpWhenRunCompletes.Enabled = videoBackground;
+        if (videoBackground)
+        {
+            grpVideoTimerSync.Text = T("Video with run timer");
+            grpWhenRunCompletes.Text = T("When run completes");
+            grpVideoBlur.Text = T("Video blur");
+            chkVideoStartWithTimer.Text = T("Start background video when timer starts");
+            chkVideoKeepPlaybackAcrossTimerResets.Text = T("Keep video playing across timer resets (no restart at file start)");
+            chkVideoPauseWhenRunCompletes.Text = T("Pause video when run completes");
+            lblVideoVolumeReductionAfterRunCompletes.Text = T("Lower volume after final split (%):");
+            lblVideoStartOffset.Text = T("Video start offset (seconds):");
+            lblVideoBlurType.Text = T("Blur type:");
+            lblVideoBlurScale.Text = T("Blur scale:");
+            lblVideoBlurDegrees.Text = T("Degrees:");
+            SyncVideoBlurControlsFromSettings();
+        }
+
+        grpVideoBlur.Visible = videoBackground;
+        grpVideoBlur.Enabled = videoBackground;
+
+        bool showVideoPanZoom = videoBackground;
+        lblVideoPanX.Visible = lblVideoPanY.Visible = lblVideoZoom.Visible =
+            trkVideoPanX.Visible = trkVideoPanY.Visible = trkVideoZoom.Visible = showVideoPanZoom;
+        lblVideoPanX.Enabled = lblVideoPanY.Enabled = lblVideoZoom.Enabled =
+            trkVideoPanX.Enabled = trkVideoPanY.Enabled = trkVideoZoom.Enabled = showVideoPanZoom;
+        if (showVideoPanZoom)
+        {
+            lblVideoPanX.Text = T("Video Pan X:");
+            lblVideoPanY.Text = T("Video Pan Y:");
+            lblVideoZoom.Text = T("Video Zoom:");
+            SyncVideoPanZoomTrackbarsFromSettings();
+        }
+
+        if (lblBackgroundVideoBackend != null)
+        {
+            lblBackgroundVideoBackend.Visible = cmbBackgroundVideoBackend.Visible = videoBackground;
+            lblBackgroundVideoBackend.Enabled = cmbBackgroundVideoBackend.Enabled = videoBackground;
+            if (videoBackground)
+            {
+                SyncBackgroundVideoBackendComboFromSettings();
+            }
+        }
+
+        UpdateLayoutOpacityControlsEnabled();
+
+        bool supportsBlur = selectedItem == "Image";
+        bool supportsVideoVolume = videoBackground;
+        lblBlur.Enabled = trkBlur.Enabled = supportsBlur || supportsVideoVolume;
+        lblBlur.Text = supportsVideoVolume ? T("Audio Volume:") : T("Image Blur:");
+        if (supportsVideoVolume)
+        {
+            trkBlur.DataBindings.Add("Value", this, "VideoAudioVolume", false, DataSourceUpdateMode.OnPropertyChanged);
+        }
+        else
+        {
+            trkBlur.DataBindings.Add("Value", this, "ImageBlur", false, DataSourceUpdateMode.OnPropertyChanged);
+        }
+        if (imageBackground)
         {
             btnBackground2.BackgroundImage = Settings.BackgroundImage;
             btnBackground2.BackColor = Color.Transparent;
             lblBackground.Text = T("Image:");
+        }
+        else if (videoBackground)
+        {
+            btnBackground2.BackgroundImage = null;
+            btnBackground2.BackColor = SystemColors.ControlDark;
+            lblBackground.Text = T("Video:");
         }
         else
         {
@@ -100,6 +856,96 @@ public partial class LayoutSettingsControl : UserControl
         }
 
         Settings.BackgroundType = (BackgroundType)Enum.Parse(typeof(BackgroundType), selectedItem.Replace(" ", ""));
+        bool backgroundTypeChanged = previousBackgroundType != Settings.BackgroundType;
+        if (videoBackground && backgroundTypeChanged)
+        {
+            suppressVideoTimerSyncUiEvents = true;
+            chkVideoStartWithTimer.Checked = Settings.VideoStartWithTimer;
+            ClampAndSetVideoStartOffsetNud();
+            suppressVideoTimerSyncUiEvents = false;
+        }
+
+        UpdateVideoTimerOffsetControlsEnabled(videoBackground);
+        NotifyLiveApplyRequested();
+        }
+        finally
+        {
+            updatingBackgroundSettingsUi = false;
+        }
+    }
+
+    private void ClampAndSetVideoStartOffsetNud()
+    {
+        decimal v = (decimal)Settings.VideoStartOffsetSeconds;
+        v = Math.Max(numVideoStartOffsetSeconds.Minimum, Math.Min(numVideoStartOffsetSeconds.Maximum, v));
+        numVideoStartOffsetSeconds.Value = v;
+    }
+
+    private void SyncVideoPanZoomTrackbarsFromSettings()
+    {
+        if (Settings == null)
+        {
+            return;
+        }
+
+        suppressVideoPanZoomEvents = true;
+        try
+        {
+            trkVideoPanX.Value = Math.Max(trkVideoPanX.Minimum, Math.Min(trkVideoPanX.Maximum, (int)Math.Round(Settings.VideoPanX * 100.0)));
+            trkVideoPanY.Value = Math.Max(trkVideoPanY.Minimum, Math.Min(trkVideoPanY.Maximum, (int)Math.Round(Settings.VideoPanY * 100.0)));
+            trkVideoZoom.Value = Math.Max(trkVideoZoom.Minimum, Math.Min(trkVideoZoom.Maximum, (int)Math.Round(Settings.VideoZoomExtra * 100.0)));
+        }
+        finally
+        {
+            suppressVideoPanZoomEvents = false;
+        }
+    }
+
+    private void SyncVideoBlurControlsFromSettings()
+    {
+        if (Settings == null || cmbVideoBlurType == null || trkVideoBlurScale == null)
+        {
+            return;
+        }
+
+        int value = Math.Max(trkVideoBlurScale.Minimum, Math.Min(trkVideoBlurScale.Maximum, (int)Math.Round(Settings.VideoBlurScale * 100.0)));
+        trkVideoBlurScale.Value = value;
+        cmbVideoBlurType.SelectedIndex = Settings.VideoBlurType switch
+        {
+            BackgroundVideoBlurType.Directional => 1,
+            BackgroundVideoBlurType.Box => 2,
+            BackgroundVideoBlurType.Rotational => 3,
+            _ => 0,
+        };
+        numVideoBlurDegrees.Value = Math.Max(numVideoBlurDegrees.Minimum, Math.Min(numVideoBlurDegrees.Maximum, (decimal)Settings.VideoBlurDegrees));
+        UpdateVideoBlurDegreeControlsEnabled();
+    }
+
+    private void UpdateVideoBlurDegreeControlsEnabled()
+    {
+        bool usesDegrees = cmbVideoBlurType?.SelectedIndex is 1 or 3;
+        if (lblVideoBlurDegrees != null)
+        {
+            lblVideoBlurDegrees.Enabled = usesDegrees;
+        }
+
+        if (numVideoBlurDegrees != null)
+        {
+            numVideoBlurDegrees.Enabled = usesDegrees;
+        }
+    }
+
+    private void VideoPanZoomTrackbars_ValueChanged(object sender, EventArgs e)
+    {
+        if (suppressVideoPanZoomEvents || Settings == null)
+        {
+            return;
+        }
+
+        Settings.VideoPanX = trkVideoPanX.Value / 100f;
+        Settings.VideoPanY = trkVideoPanY.Value / 100f;
+        Settings.VideoZoomExtra = trkVideoZoom.Value / 100f;
+        NotifyLiveApplyRequested();
     }
 
     private void ColorButtonClick(object sender, EventArgs e)
@@ -109,7 +955,8 @@ public partial class LayoutSettingsControl : UserControl
 
     private void BackgroundColorButtonClick(object sender, EventArgs e)
     {
-        if (cmbBackgroundType.SelectedItem.ToString() == "Image")
+        string selectedItem = cmbBackgroundType.SelectedItem.ToString();
+        if (selectedItem is "Image" or "Animated Image")
         {
             var dialog = new OpenFileDialog
             {
@@ -134,6 +981,24 @@ public partial class LayoutSettingsControl : UserControl
                     Log.Error(ex);
                     MessageBox.Show(T("Could not load image!"), T("Error"), MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
+            }
+        }
+        else if (selectedItem == "Video")
+        {
+            var dialog = new OpenFileDialog
+            {
+                Filter = T("Video Files|*.BMP;*.JPG;*.GIF;*.JPEG;*.PNG;*.MP4;*.MKV;*.WEBM;*.AVI;*.MOV;*.M4V;*.WMV|All files (*.*)|*.*"),
+                Title = T("Set Background Video...")
+            };
+            DialogResult result = dialog.ShowDialog();
+            if (result == DialogResult.OK)
+            {
+                Settings.BackgroundVideoInputType = BackgroundVideoInputType.File;
+                Settings.BackgroundVideoPath = dialog.FileName;
+                Settings.BackgroundVideoSource = dialog.FileName;
+                ((Button)sender).BackgroundImage = null;
+                ((Button)sender).Text = T("Loaded");
+                NotifyLiveApplyRequested();
             }
         }
         else
@@ -188,5 +1053,43 @@ public partial class LayoutSettingsControl : UserControl
     {
         chkRainbow_CheckedChanged(null, null);
         chkAntiAliasing_CheckedChanged(null, null);
+    }
+
+    private void VideoTimerSyncOptions_Changed(object sender, EventArgs e)
+    {
+        if (suppressVideoTimerSyncUiEvents || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+        {
+            return;
+        }
+
+        bool videoBackground = cmbBackgroundType.SelectedItem?.ToString() == "Video";
+        UpdateVideoTimerOffsetControlsEnabled(videoBackground);
+
+        DeferAfterDataBindingCommit(() =>
+        {
+            if (IsDisposed || suppressVideoTimerSyncUiEvents || updatingBackgroundSettingsUi || Settings == null || !liveApplyHooksReady)
+            {
+                return;
+            }
+
+            if (cmbBackgroundType.SelectedItem?.ToString() != "Video")
+            {
+                return;
+            }
+
+            UpdateVideoTimerOffsetControlsEnabled(true);
+            NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.TimerStartSyncOnly);
+        });
+    }
+
+    private void UpdateVideoTimerOffsetControlsEnabled(bool videoBackground)
+    {
+        bool timerSync = videoBackground && chkVideoStartWithTimer.Checked;
+        bool showOffset = timerSync;
+        lblVideoStartOffset.Visible = numVideoStartOffsetSeconds.Visible = videoBackground;
+        lblVideoStartOffset.Enabled = numVideoStartOffsetSeconds.Enabled = showOffset;
+        chkVideoPauseWhenRunCompletes.Enabled = timerSync;
+        lblVideoVolumeReductionAfterRunCompletes.Enabled = timerSync;
+        numVideoVolumeReductionAfterRunCompletes.Enabled = timerSync;
     }
 }

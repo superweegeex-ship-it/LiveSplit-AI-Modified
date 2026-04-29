@@ -1,6 +1,6 @@
-﻿namespace LiveSplit.UI;
+namespace LiveSplit.UI;
 
 public enum GradientType
 {
-    Plain, Vertical, Horizontal
+    Plain, Vertical, Horizontal, Image
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -17,9 +17,18 @@ namespace LiveSplit.View;
 
 public partial class LayoutEditorDialog : Form
 {
+    private const string WindowSizeRegistryPath = "WindowSizes";
+    private const string WindowWidthRegistryValue = "LayoutEditorDialogWidth";
+    private const string WindowHeightRegistryValue = "LayoutEditorDialogHeight";
+    private const string WindowXRegistryValue = "LayoutEditorDialogX";
+    private const string WindowYRegistryValue = "LayoutEditorDialogY";
+
     public event EventHandler OrientationSwitched;
     public event EventHandler LayoutResized;
     public event EventHandler LayoutSettingsAssigned;
+
+    /// <summary>Scoped background-video live apply from Layout Settings (loop / timer sync vs full refresh).</summary>
+    public event EventHandler<BackgroundVideoLiveApplyEventArgs> LayoutSettingsLiveVideoApply;
 
     public Form Form { get; set; }
 
@@ -50,6 +59,7 @@ public partial class LayoutEditorDialog : Form
     public LayoutEditorDialog(ILayout layout, LiveSplitState state, Form form)
     {
         InitializeComponent();
+        RestoreWindowBounds();
         Form = form;
         Layout = layout;
         BindingList = new BindingList<ILayoutComponent>(Layout.LayoutComponents);
@@ -58,6 +68,7 @@ public partial class LayoutEditorDialog : Form
         lbxComponents.DataSource = BindingList;
         lbxComponents.DisplayMember = "Component.ComponentName";
         LoadAllComponentsAvailable();
+        WinFormsTheme.Apply(menuAddComponents);
 
         rdoVertical.Checked = IsVertical;
         rdoHorizontal.Checked = IsHorizontal;
@@ -69,6 +80,13 @@ public partial class LayoutEditorDialog : Form
             DragCursor = Cursors.SizeAll
         };
         UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
+        WinFormsTheme.Apply(this);
+        FormClosing += LayoutEditorDialog_FormClosing;
+    }
+
+    private void LayoutEditorDialog_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        SaveWindowBounds();
     }
 
     private void rdoVertical_CheckedChanged(object sender, EventArgs e)
@@ -163,6 +181,7 @@ public partial class LayoutEditorDialog : Form
 
     private void btnAdd_Click(object sender, EventArgs e)
     {
+        WinFormsTheme.Apply(menuAddComponents);
         menuAddComponents.Show(this, new Point(btnAdd.Width + btnAdd.Location.X, btnAdd.Location.Y));
     }
 
@@ -242,7 +261,11 @@ public partial class LayoutEditorDialog : Form
     {
         var oldSettings = (Options.LayoutSettings)Layout.Settings.Clone();
         var settingsDialog = new LayoutSettingsDialog(Layout.Settings, Layout, tabControl);
+        void ForwardLiveApply(object _, BackgroundVideoLiveApplyEventArgs e) =>
+            Form?.InvokeIfRequired(() => LayoutSettingsLiveVideoApply?.Invoke(this, e));
+        settingsDialog.LiveApplyRequested += ForwardLiveApply;
         DialogResult result = settingsDialog.ShowDialog(this);
+        settingsDialog.LiveApplyRequested -= ForwardLiveApply;
         //settingsDialog.Dispose();
         if (result == DialogResult.OK)
         {
@@ -252,6 +275,7 @@ public partial class LayoutEditorDialog : Form
             }
 
             Layout.HasChanged = true;
+            Form?.InvokeIfRequired(() => LayoutSettingsAssigned?.Invoke(this, EventArgs.Empty));
         }
         else if (result == DialogResult.Cancel)
         {
@@ -276,7 +300,7 @@ public partial class LayoutEditorDialog : Form
     {
         using var setSizeDialog = new SetSizeForm(CurrentState.Form);
         Size oldSize = CurrentState.Form.Size;
-        DialogResult result = setSizeDialog.ShowDialog();
+        DialogResult result = setSizeDialog.ShowDialog(this);
 
         if (result == DialogResult.Cancel)
         {
@@ -316,5 +340,73 @@ public partial class LayoutEditorDialog : Form
     {
         DialogResult = DialogResult.Cancel;
         Close();
+    }
+
+    private void RestoreWindowBounds()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            object widthValue = windowSizes.GetValue(WindowWidthRegistryValue);
+            object heightValue = windowSizes.GetValue(WindowHeightRegistryValue);
+            object xValue = windowSizes.GetValue(WindowXRegistryValue);
+            object yValue = windowSizes.GetValue(WindowYRegistryValue);
+            if (widthValue is int width && heightValue is int height
+                && width >= MinimumSize.Width && height >= MinimumSize.Height)
+            {
+                Size = new Size(width, height);
+            }
+
+            if (xValue is int x && yValue is int y)
+            {
+                Rectangle bounds = WinFormsTheme.ClampToVisibleScreen(new Rectangle(x, y, Width, Height), MinimumSize);
+                StartPosition = FormStartPosition.Manual;
+                Bounds = bounds;
+            }
+        }
+        catch
+        {
+            // Ignore persisted-window-bounds read errors.
+        }
+    }
+
+    private void SaveWindowBounds()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            Rectangle bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
+            windowSizes.SetValue(WindowWidthRegistryValue, bounds.Width);
+            windowSizes.SetValue(WindowHeightRegistryValue, bounds.Height);
+            windowSizes.SetValue(WindowXRegistryValue, bounds.X);
+            windowSizes.SetValue(WindowYRegistryValue, bounds.Y);
+        }
+        catch
+        {
+            // Ignore persisted-window-bounds write errors.
+        }
+    }
+
+    private static bool IsWindowBoundsVisible(Rectangle bounds)
+    {
+        foreach (Screen screen in Screen.AllScreens)
+        {
+            if (screen.WorkingArea.IntersectsWith(bounds))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

@@ -10,6 +10,8 @@ namespace LiveSplit.UI.Components;
 
 public class ThinSeparatorComponent : IComponent
 {
+    private float separatorThickness = 1f;
+
     public float PaddingTop => 0f;
     public float PaddingLeft => 0f;
     public float PaddingBottom => 0f;
@@ -21,11 +23,11 @@ public class ThinSeparatorComponent : IComponent
 
     protected LineComponent Line { get; set; }
 
-    public float VerticalHeight => 1f;
+    public float VerticalHeight => separatorThickness;
 
     public float MinimumWidth => 0f;
 
-    public float HorizontalWidth => 1f;
+    public float HorizontalWidth => separatorThickness;
 
     public float MinimumHeight => 0f;
 
@@ -44,11 +46,12 @@ public class ThinSeparatorComponent : IComponent
         g.Clip = new Region();
         Line.LineColor = state.LayoutSettings.ThinSeparatorsColor;
         float scale = g.Transform.Elements.First();
-        float newHeight = Math.Max((int)((1f * scale) + 0.5f), 1) / scale;
+        float targetThickness = Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
+        float newHeight = Math.Max((int)((targetThickness * scale) + 0.5f), 1) / scale;
         Line.VerticalHeight = newHeight;
         if (LockToBottom)
         {
-            g.TranslateTransform(0, 1f - newHeight);
+            g.TranslateTransform(0, targetThickness - newHeight);
         }
 
         Line.DrawVertical(g, state, width, clipRegion);
@@ -66,10 +69,11 @@ public class ThinSeparatorComponent : IComponent
         g.Clip = new Region();
         Line.LineColor = state.LayoutSettings.ThinSeparatorsColor;
         float scale = g.Transform.Elements.First();
-        float newWidth = Math.Max((int)((1f * scale) + 0.5f), 1) / scale;
+        float targetThickness = Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
+        float newWidth = Math.Max((int)((targetThickness * scale) + 0.5f), 1) / scale;
         if (LockToBottom)
         {
-            g.TranslateTransform(1f - newWidth, 0);
+            g.TranslateTransform(targetThickness - newWidth, 0);
         }
 
         Line.HorizontalWidth = newWidth;
@@ -112,6 +116,8 @@ public class ThinSeparatorComponent : IComponent
     {
         Cache.Restart();
         Cache["LockToBottom"] = LockToBottom;
+        separatorThickness = Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
+        Cache["SeparatorThickness"] = separatorThickness;
 
         if (invalidator != null && Cache.HasChanged)
         {

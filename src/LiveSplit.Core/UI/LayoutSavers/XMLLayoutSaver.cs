@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Xml;
@@ -17,6 +17,8 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "BackgroundColor2", settings.BackgroundColor2) ^
         SettingsHelper.CreateSetting(document, element, "ThinSeparatorsColor", settings.ThinSeparatorsColor) ^
         SettingsHelper.CreateSetting(document, element, "SeparatorsColor", settings.SeparatorsColor) ^
+        SettingsHelper.CreateSetting(document, element, "ThinSeparatorThickness", settings.ThinSeparatorThickness) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorThickness", settings.SeparatorThickness) ^
         SettingsHelper.CreateSetting(document, element, "PersonalBestColor", settings.PersonalBestColor) ^
         SettingsHelper.CreateSetting(document, element, "AheadGainingTimeColor", settings.AheadGainingTimeColor) ^
         SettingsHelper.CreateSetting(document, element, "AheadLosingTimeColor", settings.AheadLosingTimeColor) ^
@@ -37,8 +39,29 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "DropShadows", settings.DropShadows) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundType", settings.BackgroundType) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundImage", settings.BackgroundImage) ^
+        SettingsHelper.CreateSetting(document, element, "BackgroundVideoPath", settings.BackgroundVideoPath) ^
+        SettingsHelper.CreateSetting(document, element, "BackgroundVideoSource", settings.BackgroundVideoSource) ^
+        SettingsHelper.CreateSetting(document, element, "BackgroundVideoInputType", settings.BackgroundVideoInputType) ^
+        SettingsHelper.CreateSetting(document, element, "BackgroundVideoBackend", settings.BackgroundVideoBackend) ^
+        SettingsHelper.CreateSetting(document, element, "UseHardwareVideoDecoding", settings.UseHardwareVideoDecoding) ^
+        SettingsHelper.CreateSetting(document, element, "LoopVideo", settings.LoopVideo) ^
+        SettingsHelper.CreateSetting(document, element, "PlayVideoAudio", settings.PlayVideoAudio) ^
+        SettingsHelper.CreateSetting(document, element, "VideoAudioVolume", settings.VideoAudioVolume) ^
+        SettingsHelper.CreateSetting(document, element, "ObsWindowCaptureCompatibilityMode", settings.ObsWindowCaptureCompatibilityMode) ^
+        SettingsHelper.CreateSetting(document, element, "VideoPanX", settings.VideoPanX) ^
+        SettingsHelper.CreateSetting(document, element, "VideoPanY", settings.VideoPanY) ^
+        SettingsHelper.CreateSetting(document, element, "VideoZoomExtra", settings.VideoZoomExtra) ^
+        SettingsHelper.CreateSetting(document, element, "VideoStartWithTimer", settings.VideoStartWithTimer) ^
+        SettingsHelper.CreateSetting(document, element, "VideoKeepPlaybackAcrossTimerResets", settings.VideoKeepPlaybackAcrossTimerResets) ^
+        SettingsHelper.CreateSetting(document, element, "VideoPauseWhenRunCompletes", settings.VideoPauseWhenRunCompletes) ^
+        SettingsHelper.CreateSetting(document, element, "VideoVolumeReductionPercentWhenRunCompletes", settings.VideoVolumeReductionPercentWhenRunCompletes) ^
+        SettingsHelper.CreateSetting(document, element, "VideoStartOffsetSeconds", settings.VideoStartOffsetSeconds) ^
         SettingsHelper.CreateSetting(document, element, "ImageOpacity", settings.ImageOpacity) ^
+        SettingsHelper.CreateSetting(document, element, "VideoOpacity", settings.VideoOpacity) ^
         SettingsHelper.CreateSetting(document, element, "ImageBlur", settings.ImageBlur) ^
+        SettingsHelper.CreateSetting(document, element, "VideoBlurScale", settings.VideoBlurScale) ^
+        SettingsHelper.CreateSetting(document, element, "VideoBlurType", settings.VideoBlurType) ^
+        SettingsHelper.CreateSetting(document, element, "VideoBlurDegrees", settings.VideoBlurDegrees) ^
         SettingsHelper.CreateSetting(document, element, "Opacity", settings.Opacity) ^
         SettingsHelper.CreateSetting(document, element, "MousePassThroughWhileRunning", settings.MousePassThroughWhileRunning) ^
         SettingsHelper.CreateSetting(document, element, "AllowResizing", settings.AllowResizing) ^

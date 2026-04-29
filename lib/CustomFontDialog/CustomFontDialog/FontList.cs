@@ -70,7 +70,7 @@ public partial class FontList : UserControl
 
     public int IndexOf(FontFamily ff)
     {
-        for (int i = 1; i < lstFont.Items.Count; i++)
+        for (int i = 0; i < lstFont.Items.Count; i++)
         {
             var f = (FontItem)lstFont.Items[i];
             if (f.ToString() == ff.Name)
@@ -92,7 +92,7 @@ public partial class FontList : UserControl
                 txtFont.Text = f.Name;
             }
 
-            SelectedFontFamilyChanged(lstFont, new EventArgs());
+            SelectedFontFamilyChanged?.Invoke(lstFont, EventArgs.Empty);
         }
     }
 

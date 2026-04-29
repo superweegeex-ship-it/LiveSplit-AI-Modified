@@ -1,0 +1,404 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\components\\LiveSplit.PossibleTimeSave\\src\\LiveSplit.PossibleTimeSave\\LiveSplit.PossibleTimeSave.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\components\\LiveSplit.PossibleTimeSave\\src\\LiveSplit.PossibleTimeSave\\LiveSplit.PossibleTimeSave.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\components\\LiveSplit.PossibleTimeSave\\src\\LiveSplit.PossibleTimeSave\\LiveSplit.PossibleTimeSave.csproj",
+        "projectName": "LiveSplit.PossibleTimeSave",
+        "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\components\\LiveSplit.PossibleTimeSave\\src\\LiveSplit.PossibleTimeSave\\LiveSplit.PossibleTimeSave.csproj",
+        "packagesPath": "C:\\Users\\xskil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\props\\..\\artifacts\\obj\\LiveSplit.PossibleTimeSave\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\xskil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net4.8.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net481": {
+            "targetAlias": "net4.8.1",
+            "projectReferences": {
+              "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\LiveSplit.Core\\LiveSplit.Core.csproj": {
+                "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\LiveSplit.Core\\LiveSplit.Core.csproj",
+                "excludeAssets": "runtime"
+              },
+              "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj": {
+                "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj",
+                "excludeAssets": "runtime"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net4.8.1",
+          "dependencies": {
+            "PolySharp": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.14.1, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.107\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\CustomFontDialog\\CustomFontDialog\\CustomFontDialog.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\CustomFontDialog\\CustomFontDialog\\CustomFontDialog.csproj",
+        "projectName": "CustomFontDialog",
+        "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\CustomFontDialog\\CustomFontDialog\\CustomFontDialog.csproj",
+        "packagesPath": "C:\\Users\\xskil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\props\\..\\artifacts\\obj\\CustomFontDialog\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\xskil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net4.8.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net481": {
+            "targetAlias": "net4.8.1",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net4.8.1",
+          "dependencies": {
+            "PolySharp": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.14.1, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.107\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\SpeedrunComSharp\\src\\SpeedrunComSharp\\SpeedrunComSharp.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\SpeedrunComSharp\\src\\SpeedrunComSharp\\SpeedrunComSharp.csproj",
+        "projectName": "SpeedrunComSharp",
+        "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\SpeedrunComSharp\\src\\SpeedrunComSharp\\SpeedrunComSharp.csproj",
+        "packagesPath": "C:\\Users\\xskil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\SpeedrunComSharp\\artifacts\\obj\\SpeedrunComSharp\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\xskil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net4.8.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net481": {
+            "targetAlias": "net4.8.1",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net4.8.1",
+          "dependencies": {
+            "PolySharp": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.14.1, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.107\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\WinForms Color Picker\\WinFormsColor\\WinFormsColor.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\WinForms Color Picker\\WinFormsColor\\WinFormsColor.csproj",
+        "projectName": "WinFormsColor",
+        "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\WinForms Color Picker\\WinFormsColor\\WinFormsColor.csproj",
+        "packagesPath": "C:\\Users\\xskil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\props\\..\\artifacts\\obj\\WinFormsColor\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\xskil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net4.8.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net481": {
+            "targetAlias": "net4.8.1",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net4.8.1",
+          "dependencies": {
+            "PolySharp": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.14.1, )"
+            },
+            "System.Resources.Extensions": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.107\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\LiveSplit.Core\\LiveSplit.Core.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\LiveSplit.Core\\LiveSplit.Core.csproj",
+        "projectName": "LiveSplit.Core",
+        "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\LiveSplit.Core\\LiveSplit.Core.csproj",
+        "packagesPath": "C:\\Users\\xskil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\props\\..\\artifacts\\obj\\LiveSplit.Core\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\xskil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net4.8.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net481": {
+            "targetAlias": "net4.8.1",
+            "projectReferences": {
+              "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\CustomFontDialog\\CustomFontDialog\\CustomFontDialog.csproj": {
+                "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\CustomFontDialog\\CustomFontDialog\\CustomFontDialog.csproj"
+              },
+              "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\SpeedrunComSharp\\src\\SpeedrunComSharp\\SpeedrunComSharp.csproj": {
+                "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\SpeedrunComSharp\\src\\SpeedrunComSharp\\SpeedrunComSharp.csproj"
+              },
+              "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\WinForms Color Picker\\WinFormsColor\\WinFormsColor.csproj": {
+                "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\lib\\WinForms Color Picker\\WinFormsColor\\WinFormsColor.csproj"
+              },
+              "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj": {
+                "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net4.8.1",
+          "dependencies": {
+            "Codaxy.Xlio": {
+              "target": "Package",
+              "version": "[1.0.0, )"
+            },
+            "IrcDotNet": {
+              "target": "Package",
+              "version": "[0.7.0, )"
+            },
+            "PolySharp": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.14.1, )"
+            },
+            "SharpDX.DirectInput": {
+              "target": "Package",
+              "version": "[4.2.0, )"
+            },
+            "SharpZipLib": {
+              "target": "Package",
+              "version": "[1.3.3, )"
+            },
+            "System.Resources.Extensions": {
+              "target": "Package",
+              "version": "[6.0.0, )"
+            },
+            "System.Text.Json": {
+              "target": "Package",
+              "version": "[9.0.4, )"
+            },
+            "WebSocketSharp": {
+              "target": "Package",
+              "version": "[1.0.3-rc11, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.107\\RuntimeIdentifierGraph.json"
+        }
+      }
+    },
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj",
+        "projectName": "UpdateManager",
+        "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj",
+        "packagesPath": "C:\\Users\\xskil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\props\\..\\artifacts\\obj\\UpdateManager\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\xskil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net4.8.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net481": {
+            "targetAlias": "net4.8.1",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net4.8.1",
+          "dependencies": {
+            "PolySharp": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.14.1, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.107\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

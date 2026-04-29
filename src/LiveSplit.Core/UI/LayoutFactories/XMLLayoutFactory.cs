@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.IO;
 using System.Xml;
@@ -18,6 +18,43 @@ public class XMLLayoutFactory : ILayoutFactory
         Stream = stream;
     }
 
+    /// <summary>
+    /// Layout XML stores <see cref="BackgroundVideoBackend"/> as <see cref="object.ToString"/> or a legacy numeric value.
+    /// Readback and removed VLC values are migrated to the embedded mpv backend while preserving XML compatibility.
+    /// </summary>
+    private static BackgroundVideoBackend ParseBackgroundVideoBackend(XmlElement element)
+    {
+        if (element == null || string.IsNullOrWhiteSpace(element.InnerText))
+        {
+            return BackgroundVideoBackend.MpvReadback;
+        }
+
+        string t = element.InnerText.Trim();
+        if (int.TryParse(t, out int n))
+        {
+            return n switch
+            {
+                1 => BackgroundVideoBackend.MpvWindowEmbed,
+                2 => BackgroundVideoBackend.MpvReadbackThreaded,
+                0 => BackgroundVideoBackend.MpvReadback,
+                _ => BackgroundVideoBackend.MpvReadback,
+            };
+        }
+
+        if (string.Equals(t, "VlcWindowEmbed", StringComparison.OrdinalIgnoreCase))
+        {
+            return BackgroundVideoBackend.MpvWindowEmbed;
+        }
+
+        if (Enum.TryParse(t, ignoreCase: true, out BackgroundVideoBackend parsed)
+            && Enum.IsDefined(typeof(BackgroundVideoBackend), parsed))
+        {
+            return parsed;
+        }
+
+        return BackgroundVideoBackend.MpvReadback;
+    }
+
     private static LayoutSettings ParseSettings(XmlElement element, Version version)
     {
         var settings = new LayoutSettings
@@ -26,6 +63,8 @@ public class XMLLayoutFactory : ILayoutFactory
             BackgroundColor = SettingsHelper.ParseColor(element["BackgroundColor"]),
             ThinSeparatorsColor = SettingsHelper.ParseColor(element["ThinSeparatorsColor"]),
             SeparatorsColor = SettingsHelper.ParseColor(element["SeparatorsColor"]),
+            ThinSeparatorThickness = SettingsHelper.ParseFloat(element["ThinSeparatorThickness"], 1f),
+            SeparatorThickness = SettingsHelper.ParseFloat(element["SeparatorThickness"], 2f),
             PersonalBestColor = SettingsHelper.ParseColor(element["PersonalBestColor"]),
             AheadGainingTimeColor = SettingsHelper.ParseColor(element["AheadGainingTimeColor"]),
             AheadLosingTimeColor = SettingsHelper.ParseColor(element["AheadLosingTimeColor"]),
@@ -47,7 +86,28 @@ public class XMLLayoutFactory : ILayoutFactory
             AlwaysOnTop = SettingsHelper.ParseBool(element["AlwaysOnTop"]),
             TimerFont = SettingsHelper.GetFontFromElement(element["TimerFont"]),
             ImageOpacity = SettingsHelper.ParseFloat(element["ImageOpacity"], 1f),
-            ImageBlur = SettingsHelper.ParseFloat(element["ImageBlur"], 0f)
+            VideoOpacity = SettingsHelper.ParseFloat(element["VideoOpacity"], 1f),
+            ImageBlur = SettingsHelper.ParseFloat(element["ImageBlur"], 0f),
+            VideoBlurScale = SettingsHelper.ParseFloat(element["VideoBlurScale"], 0f),
+            VideoBlurType = SettingsHelper.ParseEnum(element["VideoBlurType"], BackgroundVideoBlurType.Gaussian),
+            VideoBlurDegrees = SettingsHelper.ParseFloat(element["VideoBlurDegrees"], 0f),
+            BackgroundVideoPath = SettingsHelper.ParseString(element["BackgroundVideoPath"]),
+            BackgroundVideoSource = SettingsHelper.ParseString(element["BackgroundVideoSource"]),
+            BackgroundVideoInputType = SettingsHelper.ParseEnum(element["BackgroundVideoInputType"], BackgroundVideoInputType.File),
+            BackgroundVideoBackend = ParseBackgroundVideoBackend(element["BackgroundVideoBackend"]),
+            UseHardwareVideoDecoding = SettingsHelper.ParseBool(element["UseHardwareVideoDecoding"], false),
+            LoopVideo = SettingsHelper.ParseBool(element["LoopVideo"], false),
+            PlayVideoAudio = SettingsHelper.ParseBool(element["PlayVideoAudio"], false),
+            VideoAudioVolume = SettingsHelper.ParseFloat(element["VideoAudioVolume"], 1f),
+            ObsWindowCaptureCompatibilityMode = SettingsHelper.ParseBool(element["ObsWindowCaptureCompatibilityMode"], true),
+            VideoPanX = SettingsHelper.ParseFloat(element["VideoPanX"], 0f),
+            VideoPanY = SettingsHelper.ParseFloat(element["VideoPanY"], 0f),
+            VideoZoomExtra = SettingsHelper.ParseFloat(element["VideoZoomExtra"], 0f),
+            VideoStartWithTimer = SettingsHelper.ParseBool(element["VideoStartWithTimer"], false),
+            VideoKeepPlaybackAcrossTimerResets = SettingsHelper.ParseBool(element["VideoKeepPlaybackAcrossTimerResets"], true),
+            VideoPauseWhenRunCompletes = SettingsHelper.ParseBool(element["VideoPauseWhenRunCompletes"], false),
+            VideoVolumeReductionPercentWhenRunCompletes = SettingsHelper.ParseFloat(element["VideoVolumeReductionPercentWhenRunCompletes"], 0f),
+            VideoStartOffsetSeconds = SettingsHelper.ParseFloat(element["VideoStartOffsetSeconds"], 0f)
         };
 
         if (version >= new Version(1, 3))

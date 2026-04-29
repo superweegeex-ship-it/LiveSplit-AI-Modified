@@ -1,0 +1,126 @@
+[2026-04-28T05:37:00.2283211-04:00] Shutdown start
+[2026-04-28T05:37:00.2413499-04:00] OK: Dispose component: World Record
+[2026-04-28T05:37:00.2418536-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:00.2418536-04:00] OK: Dispose component: Splits
+[2026-04-28T05:37:00.2423500-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:00.2423500-04:00] OK: Dispose component: Detailed Timer
+[2026-04-28T05:37:00.2428505-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:00.2428505-04:00] OK: Dispose component: Previous Segment
+[2026-04-28T05:37:00.2428505-04:00] OK: Dispose component: Possible Time Save
+[2026-04-28T05:37:00.2438536-04:00] OK: Dispose component: Best Possible Time
+[2026-04-28T05:37:00.2448587-04:00] OK: Dispose component: Sum of Best
+[2026-04-28T05:37:00.2448587-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:00.2453584-04:00] OK: Stop animated background
+[2026-04-28T05:37:00.2458591-04:00] OK: TearDownBackgroundVideoControl
+[2026-04-28T05:37:00.2463598-04:00] OK: DisposeLayoutOverlayWindow
+[2026-04-28T05:37:00.2463598-04:00] OK: DeactivateAutoSplitter
+[2026-04-28T05:37:00.3445950-04:00] OK: Server.StopAll
+[2026-04-28T05:37:00.3450947-04:00] Shutdown end
+[2026-04-28T05:37:38.7110287-04:00] Shutdown start
+[2026-04-28T05:37:38.7175401-04:00] OK: Dispose component: World Record
+[2026-04-28T05:37:38.7180399-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:38.7180399-04:00] OK: Dispose component: Splits
+[2026-04-28T05:37:38.7185399-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:38.7185399-04:00] OK: Dispose component: Detailed Timer
+[2026-04-28T05:37:38.7185399-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:38.7190369-04:00] OK: Dispose component: Previous Segment
+[2026-04-28T05:37:38.7190369-04:00] OK: Dispose component: Possible Time Save
+[2026-04-28T05:37:38.7195405-04:00] OK: Dispose component: Best Possible Time
+[2026-04-28T05:37:38.7200402-04:00] OK: Dispose component: Sum of Best
+[2026-04-28T05:37:38.7205398-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:37:38.7205398-04:00] OK: Stop animated background
+[2026-04-28T05:37:38.7210368-04:00] OK: TearDownBackgroundVideoControl
+[2026-04-28T05:37:38.7215381-04:00] OK: DisposeLayoutOverlayWindow
+[2026-04-28T05:37:38.7215381-04:00] OK: DeactivateAutoSplitter
+[2026-04-28T05:37:38.7235793-04:00] OK: Server.StopAll
+[2026-04-28T05:37:38.7235793-04:00] Shutdown end
+[2026-04-28T05:47:08.6029333-04:00] Shutdown start
+[2026-04-28T05:47:08.6089573-04:00] OK: Dispose component: World Record
+[2026-04-28T05:47:08.6099613-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:08.6099613-04:00] OK: Dispose component: Splits
+[2026-04-28T05:47:08.6104661-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:08.6104661-04:00] OK: Dispose component: Detailed Timer
+[2026-04-28T05:47:08.6104661-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:08.6134650-04:00] OK: Dispose component: Previous Segment
+[2026-04-28T05:47:08.6149669-04:00] OK: Dispose component: Possible Time Save
+[2026-04-28T05:47:08.6159707-04:00] OK: Dispose component: Best Possible Time
+[2026-04-28T05:47:08.6164700-04:00] OK: Dispose component: Sum of Best
+[2026-04-28T05:47:08.6169698-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:08.6174698-04:00] OK: Stop animated background
+[2026-04-28T05:47:08.6179704-04:00] OK: TearDownBackgroundVideoControl
+[2026-04-28T05:47:08.6184704-04:00] OK: DisposeLayoutOverlayWindow
+[2026-04-28T05:47:08.6184704-04:00] OK: DeactivateAutoSplitter
+[2026-04-28T05:47:08.6204829-04:00] OK: Server.StopAll
+[2026-04-28T05:47:08.6204829-04:00] Shutdown end
+[2026-04-28T05:47:24.6615712-04:00] Shutdown start
+[2026-04-28T05:47:24.6680907-04:00] OK: Dispose component: World Record
+[2026-04-28T05:47:24.6685840-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:24.6685840-04:00] OK: Dispose component: Splits
+[2026-04-28T05:47:24.6690836-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:24.6690836-04:00] OK: Dispose component: Detailed Timer
+[2026-04-28T05:47:24.6690836-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:24.6695836-04:00] OK: Dispose component: Previous Segment
+[2026-04-28T05:47:24.6695836-04:00] OK: Dispose component: Possible Time Save
+[2026-04-28T05:47:24.6700839-04:00] OK: Dispose component: Best Possible Time
+[2026-04-28T05:47:24.6705836-04:00] OK: Dispose component: Sum of Best
+[2026-04-28T05:47:24.6705836-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:47:24.6710836-04:00] OK: Stop animated background
+[2026-04-28T05:47:24.6715842-04:00] OK: TearDownBackgroundVideoControl
+[2026-04-28T05:47:24.6720834-04:00] OK: DisposeLayoutOverlayWindow
+[2026-04-28T05:47:24.6720834-04:00] OK: DeactivateAutoSplitter
+[2026-04-28T05:47:24.6740881-04:00] OK: Server.StopAll
+[2026-04-28T05:47:24.6740881-04:00] Shutdown end
+[2026-04-28T05:49:34.1848312-04:00] Shutdown start
+[2026-04-28T05:49:35.9653264-04:00] OK: Dispose component: World Record
+[2026-04-28T05:49:35.9658298-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:49:35.9658298-04:00] OK: Dispose component: Splits
+[2026-04-28T05:49:35.9663268-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:49:35.9663268-04:00] OK: Dispose component: Detailed Timer
+[2026-04-28T05:49:35.9668270-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:49:35.9668270-04:00] OK: Dispose component: Previous Segment
+[2026-04-28T05:49:35.9668270-04:00] OK: Dispose component: Possible Time Save
+[2026-04-28T05:49:35.9673267-04:00] OK: Dispose component: Best Possible Time
+[2026-04-28T05:49:35.9678263-04:00] OK: Dispose component: Sum of Best
+[2026-04-28T05:49:35.9678263-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:49:35.9683261-04:00] OK: Stop animated background
+[2026-04-28T05:49:35.9688264-04:00] OK: TearDownBackgroundVideoControl
+[2026-04-28T05:49:35.9688264-04:00] OK: DisposeLayoutOverlayWindow
+[2026-04-28T05:49:35.9688264-04:00] OK: DeactivateAutoSplitter
+[2026-04-28T05:49:35.9713381-04:00] OK: Server.StopAll
+[2026-04-28T05:49:35.9713381-04:00] Shutdown end
+[2026-04-28T05:51:06.6787831-04:00] Shutdown start
+[2026-04-28T05:51:06.6853013-04:00] OK: Dispose component: World Record
+[2026-04-28T05:51:06.6853013-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:51:06.6853013-04:00] OK: Dispose component: Splits
+[2026-04-28T05:51:06.6863050-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:51:06.6863050-04:00] OK: Dispose component: Detailed Timer
+[2026-04-28T05:51:06.6863050-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:51:06.6868103-04:00] OK: Dispose component: Previous Segment
+[2026-04-28T05:51:06.6868103-04:00] OK: Dispose component: Possible Time Save
+[2026-04-28T05:51:06.6873105-04:00] OK: Dispose component: Best Possible Time
+[2026-04-28T05:51:06.6878088-04:00] OK: Dispose component: Sum of Best
+[2026-04-28T05:51:06.6883085-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T05:51:06.6883085-04:00] OK: Stop animated background
+[2026-04-28T05:51:06.6888084-04:00] OK: TearDownBackgroundVideoControl
+[2026-04-28T05:51:06.6888084-04:00] OK: DisposeLayoutOverlayWindow
+[2026-04-28T05:51:06.6898111-04:00] OK: DeactivateAutoSplitter
+[2026-04-28T05:51:06.6913178-04:00] OK: Server.StopAll
+[2026-04-28T05:51:06.6913178-04:00] Shutdown end
+[2026-04-28T18:09:52.2704947-04:00] Shutdown start
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: World Record
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: Splits
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: Detailed Timer
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: Previous Segment
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: Possible Time Save
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: Best Possible Time
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: Sum of Best
+[2026-04-28T18:09:52.2817493-04:00] OK: Dispose component: ----------------------------------------------------------------------------
+[2026-04-28T18:09:52.2817493-04:00] OK: Stop animated background
+[2026-04-28T18:09:52.2817493-04:00] OK: TearDownBackgroundVideoControl
+[2026-04-28T18:09:52.2817493-04:00] OK: DisposeLayoutOverlayWindow
+[2026-04-28T18:09:52.2817493-04:00] OK: DeactivateAutoSplitter
+[2026-04-28T18:09:52.2989246-04:00] OK: Server.StopAll
+[2026-04-28T18:09:52.2989246-04:00] Shutdown end

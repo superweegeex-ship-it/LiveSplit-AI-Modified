@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 
 using LiveSplit.Model;
@@ -18,7 +18,10 @@ public interface ISettings : ICloneable
     int HcpNBestRuns { get; set; }
     bool WarnOnReset { get; set; }
     bool SimpleSumOfBest { get; set; }
+    /// <summary>Layout refresh rate (Hz).</summary>
     int RefreshRate { get; set; }
+    /// <summary>Max rate to present the video layout background (Hz); may be lower than <see cref="RefreshRate"/>.</summary>
+    int VideoBackgroundPaintFps { get; set; }
     int ServerPort { get; set; }
     ServerStartupType ServerStartup { get; set; }
     ServerStateType ServerState { get; set; }
@@ -42,6 +45,7 @@ public interface ISettings : ICloneable
     KeyOrButton UndoKey { get; set; }
     KeyOrButton PauseKey { get; set; }
     KeyOrButton ToggleGlobalHotkeys { get; set; }
+    KeyOrButton ToggleVideoDebugOverlay { get; set; }
     KeyOrButton SwitchComparisonPrevious { get; set; }
     KeyOrButton SwitchComparisonNext { get; set; }
     float HotkeyDelay { get; set; }
@@ -50,4 +54,6 @@ public interface ISettings : ICloneable
     bool DoubleTapPrevention { get; set; }
     bool EnableDPIAwareness { get; set; }
     string UILanguage { get; set; }
+    AppTheme AppTheme { get; set; }
+    bool AllowDialogPanelResizing { get; set; }
 }

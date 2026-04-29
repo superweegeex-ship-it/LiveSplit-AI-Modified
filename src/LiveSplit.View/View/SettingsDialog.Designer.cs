@@ -54,6 +54,8 @@ namespace LiveSplit.View
             this.txtUndo = new System.Windows.Forms.TextBox();
             this.label7 = new System.Windows.Forms.Label();
             this.txtToggle = new System.Windows.Forms.TextBox();
+            this.labelDebugOverlayHotkey = new System.Windows.Forms.Label();
+            this.txtToggleVideoDebugOverlay = new System.Windows.Forms.TextBox();
             this.label8 = new System.Windows.Forms.Label();
             this.label9 = new System.Windows.Forms.Label();
             this.txtSwitchPrevious = new System.Windows.Forms.TextBox();
@@ -76,6 +78,8 @@ namespace LiveSplit.View
             this.chkSimpleSOB = new System.Windows.Forms.CheckBox();
             this.chkWarnOnReset = new System.Windows.Forms.CheckBox();
             this.panelRefreshRate = new System.Windows.Forms.Panel();
+            this.txtVideoBackgroundPaintFps = new System.Windows.Forms.TextBox();
+            this.labelVideoBackgroundPaintFps = new System.Windows.Forms.Label();
             this.txtRefreshRate = new System.Windows.Forms.TextBox();
             this.labelRefreshRate = new System.Windows.Forms.Label();
             this.grpServerSettings = new System.Windows.Forms.GroupBox();
@@ -121,6 +125,7 @@ namespace LiveSplit.View
             this.tableLayoutPanel1.Controls.Add(this.chkSimpleSOB, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.chkWarnOnReset, 1, 1);
             this.tableLayoutPanel1.Controls.Add(this.panelRefreshRate, 0, 7);
+            this.tableLayoutPanel1.SetColumnSpan(this.panelRefreshRate, 4);
             this.tableLayoutPanel1.Controls.Add(this.grpServerSettings, 0, 6);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
@@ -190,11 +195,11 @@ namespace LiveSplit.View
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 200F));
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 56F));
-            this.tableLayoutPanel2.Controls.Add(this.chkEnableDPIAwareness, 1, 10);
-            this.tableLayoutPanel2.Controls.Add(this.chkDeactivateForOtherPrograms, 1, 8);
+            this.tableLayoutPanel2.Controls.Add(this.chkEnableDPIAwareness, 1, 11);
+            this.tableLayoutPanel2.Controls.Add(this.chkDeactivateForOtherPrograms, 1, 9);
             this.tableLayoutPanel2.Controls.Add(this.label1, 0, 0);
-            this.tableLayoutPanel2.Controls.Add(this.chkGlobalHotkeys, 0, 8);
-            this.tableLayoutPanel2.Controls.Add(this.chkDoubleTap, 0, 9);
+            this.tableLayoutPanel2.Controls.Add(this.chkGlobalHotkeys, 0, 9);
+            this.tableLayoutPanel2.Controls.Add(this.chkDoubleTap, 0, 10);
             this.tableLayoutPanel2.Controls.Add(this.txtStartSplit, 1, 0);
             this.tableLayoutPanel2.Controls.Add(this.label2, 0, 1);
             this.tableLayoutPanel2.Controls.Add(this.label6, 0, 4);
@@ -206,18 +211,21 @@ namespace LiveSplit.View
             this.tableLayoutPanel2.Controls.Add(this.txtUndo, 1, 2);
             this.tableLayoutPanel2.Controls.Add(this.label7, 0, 7);
             this.tableLayoutPanel2.Controls.Add(this.txtToggle, 1, 7);
+            this.tableLayoutPanel2.Controls.Add(this.labelDebugOverlayHotkey, 0, 8);
+            this.tableLayoutPanel2.Controls.Add(this.txtToggleVideoDebugOverlay, 1, 8);
             this.tableLayoutPanel2.Controls.Add(this.label8, 0, 5);
             this.tableLayoutPanel2.Controls.Add(this.label9, 0, 6);
             this.tableLayoutPanel2.Controls.Add(this.txtSwitchPrevious, 1, 5);
             this.tableLayoutPanel2.Controls.Add(this.txtSwitchNext, 1, 6);
-            this.tableLayoutPanel2.Controls.Add(this.label10, 1, 9);
-            this.tableLayoutPanel2.Controls.Add(this.txtDelay, 2, 9);
-            this.tableLayoutPanel2.Controls.Add(this.grpHotkeyProfiles, 0, 11);
-            this.tableLayoutPanel2.Controls.Add(this.chkAllowGamepads, 0, 10);
+            this.tableLayoutPanel2.Controls.Add(this.label10, 1, 10);
+            this.tableLayoutPanel2.Controls.Add(this.txtDelay, 2, 10);
+            this.tableLayoutPanel2.Controls.Add(this.grpHotkeyProfiles, 0, 12);
+            this.tableLayoutPanel2.Controls.Add(this.chkAllowGamepads, 0, 11);
             this.tableLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
-            this.tableLayoutPanel2.RowCount = 12;
+            this.tableLayoutPanel2.RowCount = 13;
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
@@ -237,7 +245,7 @@ namespace LiveSplit.View
             // 
             this.chkEnableDPIAwareness.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.chkEnableDPIAwareness.AutoSize = true;
-            this.chkEnableDPIAwareness.Location = new System.Drawing.Point(209, 296);
+            this.chkEnableDPIAwareness.Location = new System.Drawing.Point(209, 325);
             this.chkEnableDPIAwareness.Margin = new System.Windows.Forms.Padding(9, 4, 4, 4);
             this.chkEnableDPIAwareness.Name = "chkEnableDPIAwareness";
             this.chkEnableDPIAwareness.Size = new System.Drawing.Size(141, 17);
@@ -253,7 +261,7 @@ namespace LiveSplit.View
             | System.Windows.Forms.AnchorStyles.Left)));
             this.chkDeactivateForOtherPrograms.AutoSize = true;
             this.tableLayoutPanel2.SetColumnSpan(this.chkDeactivateForOtherPrograms, 2);
-            this.chkDeactivateForOtherPrograms.Location = new System.Drawing.Point(207, 235);
+            this.chkDeactivateForOtherPrograms.Location = new System.Drawing.Point(207, 264);
             this.chkDeactivateForOtherPrograms.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
             this.chkDeactivateForOtherPrograms.Name = "chkDeactivateForOtherPrograms";
             this.chkDeactivateForOtherPrograms.Size = new System.Drawing.Size(172, 23);
@@ -276,7 +284,7 @@ namespace LiveSplit.View
             this.chkGlobalHotkeys.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
             this.chkGlobalHotkeys.AutoSize = true;
-            this.chkGlobalHotkeys.Location = new System.Drawing.Point(7, 235);
+            this.chkGlobalHotkeys.Location = new System.Drawing.Point(7, 264);
             this.chkGlobalHotkeys.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
             this.chkGlobalHotkeys.Name = "chkGlobalHotkeys";
             this.chkGlobalHotkeys.Size = new System.Drawing.Size(98, 23);
@@ -289,7 +297,7 @@ namespace LiveSplit.View
             // 
             this.chkDoubleTap.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.chkDoubleTap.AutoSize = true;
-            this.chkDoubleTap.Location = new System.Drawing.Point(7, 267);
+            this.chkDoubleTap.Location = new System.Drawing.Point(7, 296);
             this.chkDoubleTap.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
             this.chkDoubleTap.Name = "chkDoubleTap";
             this.chkDoubleTap.Size = new System.Drawing.Size(190, 17);
@@ -413,6 +421,27 @@ namespace LiveSplit.View
             this.txtToggle.TabIndex = 8;
             this.txtToggle.Enter += new System.EventHandler(this.Toggle_Set_Enter);
             // 
+            // labelDebugOverlayHotkey
+            // 
+            this.labelDebugOverlayHotkey.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.labelDebugOverlayHotkey.AutoSize = true;
+            this.labelDebugOverlayHotkey.Location = new System.Drawing.Point(3, 240);
+            this.labelDebugOverlayHotkey.Name = "labelDebugOverlayHotkey";
+            this.labelDebugOverlayHotkey.Size = new System.Drawing.Size(194, 13);
+            this.labelDebugOverlayHotkey.TabIndex = 21;
+            this.labelDebugOverlayHotkey.Text = "Toggle Debug Overlay:";
+            // 
+            // txtToggleVideoDebugOverlay
+            // 
+            this.txtToggleVideoDebugOverlay.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.tableLayoutPanel2.SetColumnSpan(this.txtToggleVideoDebugOverlay, 2);
+            this.txtToggleVideoDebugOverlay.Location = new System.Drawing.Point(203, 236);
+            this.txtToggleVideoDebugOverlay.Name = "txtToggleVideoDebugOverlay";
+            this.txtToggleVideoDebugOverlay.ReadOnly = true;
+            this.txtToggleVideoDebugOverlay.Size = new System.Drawing.Size(204, 20);
+            this.txtToggleVideoDebugOverlay.TabIndex = 22;
+            this.txtToggleVideoDebugOverlay.Enter += new System.EventHandler(this.ToggleVideoDebugOverlay_Set_Enter);
+            // 
             // label8
             // 
             this.label8.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
@@ -459,7 +488,7 @@ namespace LiveSplit.View
             // 
             this.label10.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.label10.AutoSize = true;
-            this.label10.Location = new System.Drawing.Point(203, 269);
+            this.label10.Location = new System.Drawing.Point(203, 298);
             this.label10.Name = "label10";
             this.label10.Size = new System.Drawing.Size(148, 13);
             this.label10.TabIndex = 14;
@@ -468,7 +497,7 @@ namespace LiveSplit.View
             // txtDelay
             // 
             this.txtDelay.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
-            this.txtDelay.Location = new System.Drawing.Point(357, 265);
+            this.txtDelay.Location = new System.Drawing.Point(357, 294);
             this.txtDelay.Name = "txtDelay";
             this.txtDelay.Size = new System.Drawing.Size(50, 20);
             this.txtDelay.TabIndex = 12;
@@ -479,7 +508,7 @@ namespace LiveSplit.View
             this.tableLayoutPanel2.SetColumnSpan(this.grpHotkeyProfiles, 3);
             this.grpHotkeyProfiles.Controls.Add(this.tableLayoutPanel3);
             this.grpHotkeyProfiles.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.grpHotkeyProfiles.Location = new System.Drawing.Point(3, 322);
+            this.grpHotkeyProfiles.Location = new System.Drawing.Point(3, 351);
             this.grpHotkeyProfiles.Name = "grpHotkeyProfiles";
             this.grpHotkeyProfiles.Size = new System.Drawing.Size(404, 77);
             this.grpHotkeyProfiles.TabIndex = 13;
@@ -567,7 +596,7 @@ namespace LiveSplit.View
             // 
             this.chkAllowGamepads.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.chkAllowGamepads.AutoSize = true;
-            this.chkAllowGamepads.Location = new System.Drawing.Point(7, 296);
+            this.chkAllowGamepads.Location = new System.Drawing.Point(7, 325);
             this.chkAllowGamepads.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
             this.chkAllowGamepads.Name = "chkAllowGamepads";
             this.chkAllowGamepads.Size = new System.Drawing.Size(190, 17);
@@ -661,21 +690,23 @@ namespace LiveSplit.View
             // 
             // panelRefreshRate
             // 
+            this.panelRefreshRate.Controls.Add(this.txtVideoBackgroundPaintFps);
+            this.panelRefreshRate.Controls.Add(this.labelVideoBackgroundPaintFps);
             this.panelRefreshRate.Controls.Add(this.txtRefreshRate);
             this.panelRefreshRate.Controls.Add(this.labelRefreshRate);
             this.panelRefreshRate.Location = new System.Drawing.Point(0, 656);
             this.panelRefreshRate.Margin = new System.Windows.Forms.Padding(0);
             this.panelRefreshRate.Name = "panelRefreshRate";
-            this.panelRefreshRate.Size = new System.Drawing.Size(184, 29);
+            this.panelRefreshRate.Size = new System.Drawing.Size(416, 29);
             this.panelRefreshRate.TabIndex = 19;
             // 
             // txtRefreshRate
             // 
             this.txtRefreshRate.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
-            this.txtRefreshRate.Location = new System.Drawing.Point(130, 5);
+            this.txtRefreshRate.Location = new System.Drawing.Point(112, 5);
             this.txtRefreshRate.Name = "txtRefreshRate";
-            this.txtRefreshRate.Size = new System.Drawing.Size(51, 20);
+            this.txtRefreshRate.Size = new System.Drawing.Size(44, 20);
             this.txtRefreshRate.TabIndex = 15;
             this.txtRefreshRate.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
@@ -688,6 +719,25 @@ namespace LiveSplit.View
             this.labelRefreshRate.Size = new System.Drawing.Size(95, 13);
             this.labelRefreshRate.TabIndex = 19;
             this.labelRefreshRate.Text = "Refresh Rate (Hz):";
+            // 
+            // labelVideoBackgroundPaintFps
+            // 
+            this.labelVideoBackgroundPaintFps.AutoSize = true;
+            this.labelVideoBackgroundPaintFps.Location = new System.Drawing.Point(168, 8);
+            this.labelVideoBackgroundPaintFps.Name = "labelVideoBackgroundPaintFps";
+            this.labelVideoBackgroundPaintFps.Size = new System.Drawing.Size(96, 13);
+            this.labelVideoBackgroundPaintFps.TabIndex = 20;
+            this.labelVideoBackgroundPaintFps.Text = "Video paint (Hz):";
+            // 
+            // txtVideoBackgroundPaintFps
+            // 
+            this.txtVideoBackgroundPaintFps.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.txtVideoBackgroundPaintFps.Location = new System.Drawing.Point(270, 5);
+            this.txtVideoBackgroundPaintFps.Name = "txtVideoBackgroundPaintFps";
+            this.txtVideoBackgroundPaintFps.Size = new System.Drawing.Size(44, 20);
+            this.txtVideoBackgroundPaintFps.TabIndex = 16;
+            this.txtVideoBackgroundPaintFps.TextAlign = System.Windows.Forms.HorizontalAlignment.Right;
             // 
             // grpServerSettings
             // 
@@ -874,6 +924,8 @@ namespace LiveSplit.View
         private System.Windows.Forms.CheckBox chkWarnOnReset;
         private System.Windows.Forms.TextBox txtToggle;
         private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label labelDebugOverlayHotkey;
+        private System.Windows.Forms.TextBox txtToggleVideoDebugOverlay;
         private System.Windows.Forms.CheckBox chkDoubleTap;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
@@ -902,8 +954,10 @@ namespace LiveSplit.View
         private System.Windows.Forms.Label label13;
         private System.Windows.Forms.CheckBox chkAllowGamepads;
         private System.Windows.Forms.Label labelRefreshRate;
+        private System.Windows.Forms.Label labelVideoBackgroundPaintFps;
         private System.Windows.Forms.Panel panelRefreshRate;
         private System.Windows.Forms.TextBox txtRefreshRate;
+        private System.Windows.Forms.TextBox txtVideoBackgroundPaintFps;
         private System.Windows.Forms.TextBox txtServerPort;
         private System.Windows.Forms.Label lblServerPort;
         private System.Windows.Forms.CheckBox chkEnableDPIAwareness;

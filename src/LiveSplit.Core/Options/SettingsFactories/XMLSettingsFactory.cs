@@ -34,6 +34,7 @@ public class XMLSettingsFactory : ISettingsFactory
         settings.WarnOnReset = ParseBool(parent["WarnOnReset"], settings.WarnOnReset);
         settings.SimpleSumOfBest = ParseBool(parent["SimpleSumOfBest"], settings.SimpleSumOfBest);
         settings.RefreshRate = ParseInt(parent["RefreshRate"], settings.RefreshRate);
+        settings.VideoBackgroundPaintFps = ParseInt(parent["VideoBackgroundPaintFps"], settings.VideoBackgroundPaintFps);
         settings.ServerPort = ParseInt(parent["ServerPort"], settings.ServerPort);
 
         int serverStartupInt = ParseInt(parent["ServerStartup"], (int)settings.ServerStartup);
@@ -70,6 +71,11 @@ public class XMLSettingsFactory : ISettingsFactory
         }
 
         settings.UILanguage = ParseString(parent["UILanguage"], settings.UILanguage);
+        if (TryParseEnum(parent["AppTheme"], out AppTheme appTheme, settings.AppTheme))
+        {
+            settings.AppTheme = appTheme;
+        }
+        settings.AllowDialogPanelResizing = ParseBool(parent["AllowDialogPanelResizing"], settings.AllowDialogPanelResizing);
 
         if (version >= new Version(1, 3))
         {

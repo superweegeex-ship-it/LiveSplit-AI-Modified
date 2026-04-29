@@ -1,0 +1,23 @@
+[package]
+name = "livesplit-core-capi"
+version = "0.11.0"
+authors = ["Christopher Serr <christopher.serr@gmail.com>"]
+edition = "2018"
+
+[lib]
+name = "livesplit_core"
+crate-type = ["staticlib", "cdylib"]
+
+[dependencies]
+livesplit-core = { path = "..", default-features = false, features = ["std"] }
+serde_json = { version = "1.0.8", default-features = false }
+time = { version = "0.3.4", default-features = false, features = ["formatting"] }
+simdutf8 = { version = "0.1.4", default-features = false }
+
+[features]
+default = ["image-shrinking"]
+image-shrinking = ["livesplit-core/image-shrinking"]
+software-rendering = ["livesplit-core/software-rendering"]
+wasm-web = ["livesplit-core/wasm-web"]
+auto-splitting = ["livesplit-core/auto-splitting"]
+assume-str-parameters-are-utf8 = []

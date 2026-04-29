@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{036F874B-1BB3-469A-8B4B-7EAF3C587D1F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LiveSplit.BlankSpace", "src\LiveSplit.BlankSpace\LiveSplit.BlankSpace.csproj", "{D56DF27F-A0EB-43F6-943E-EC0282DB497F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D56DF27F-A0EB-43F6-943E-EC0282DB497F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D56DF27F-A0EB-43F6-943E-EC0282DB497F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D56DF27F-A0EB-43F6-943E-EC0282DB497F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D56DF27F-A0EB-43F6-943E-EC0282DB497F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{D56DF27F-A0EB-43F6-943E-EC0282DB497F} = {036F874B-1BB3-469A-8B4B-7EAF3C587D1F}
+	EndGlobalSection
+EndGlobal

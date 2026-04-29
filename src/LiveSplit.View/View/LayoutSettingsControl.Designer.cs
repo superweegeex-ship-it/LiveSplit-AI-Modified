@@ -1,4 +1,4 @@
-﻿namespace LiveSplit.View
+namespace LiveSplit.View
 {
     partial class LayoutSettingsControl
     {
@@ -77,6 +77,12 @@
             this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
             this.trkBlur = new System.Windows.Forms.TrackBar();
             this.trkImageOpacity = new System.Windows.Forms.TrackBar();
+            this.lblVideoPanX = new System.Windows.Forms.Label();
+            this.trkVideoPanX = new System.Windows.Forms.TrackBar();
+            this.lblVideoPanY = new System.Windows.Forms.Label();
+            this.trkVideoPanY = new System.Windows.Forms.TrackBar();
+            this.lblVideoZoom = new System.Windows.Forms.Label();
+            this.trkVideoZoom = new System.Windows.Forms.TrackBar();
             this.cmbBackgroundType = new System.Windows.Forms.ComboBox();
             this.lblBackground = new System.Windows.Forms.Label();
             this.btnBackground2 = new System.Windows.Forms.Button();
@@ -88,6 +94,21 @@
             this.chkAlwaysOnTop = new System.Windows.Forms.CheckBox();
             this.chkAllowResizing = new System.Windows.Forms.CheckBox();
             this.chkAllowMoving = new System.Windows.Forms.CheckBox();
+            this.chkUseHardwareVideoDecoding = new System.Windows.Forms.CheckBox();
+            this.chkLoopVideo = new System.Windows.Forms.CheckBox();
+            this.chkPlayVideoAudio = new System.Windows.Forms.CheckBox();
+            this.grpVideoTimerSync = new System.Windows.Forms.GroupBox();
+            this.flowVideoTimerSync = new System.Windows.Forms.FlowLayoutPanel();
+            this.chkVideoStartWithTimer = new System.Windows.Forms.CheckBox();
+            this.chkVideoKeepPlaybackAcrossTimerResets = new System.Windows.Forms.CheckBox();
+            this.grpWhenRunCompletes = new System.Windows.Forms.GroupBox();
+            this.flowWhenRunCompletes = new System.Windows.Forms.FlowLayoutPanel();
+            this.chkVideoPauseWhenRunCompletes = new System.Windows.Forms.CheckBox();
+            this.flowVolumeReductionRow = new System.Windows.Forms.FlowLayoutPanel();
+            this.lblVideoVolumeReductionAfterRunCompletes = new System.Windows.Forms.Label();
+            this.numVideoVolumeReductionAfterRunCompletes = new System.Windows.Forms.NumericUpDown();
+            this.lblVideoStartOffset = new System.Windows.Forms.Label();
+            this.numVideoStartOffsetSeconds = new System.Windows.Forms.NumericUpDown();
             this.tableLayoutPanel5.SuspendLayout();
             this.groupBox2.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
@@ -98,6 +119,16 @@
             this.tableLayoutPanel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkBlur)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkImageOpacity)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanX)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanY)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoZoom)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numVideoStartOffsetSeconds)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numVideoVolumeReductionAfterRunCompletes)).BeginInit();
+            this.grpVideoTimerSync.SuspendLayout();
+            this.flowVideoTimerSync.SuspendLayout();
+            this.grpWhenRunCompletes.SuspendLayout();
+            this.flowWhenRunCompletes.SuspendLayout();
+            this.flowVolumeReductionRow.SuspendLayout();
             this.SuspendLayout();
             // 
             // tableLayoutPanel5
@@ -106,7 +137,9 @@
             this.tableLayoutPanel5.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 21.05206F));
             this.tableLayoutPanel5.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 28.86521F));
             this.tableLayoutPanel5.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 50.08273F));
-            this.tableLayoutPanel5.Controls.Add(this.chkAllowMoving, 2, 6);
+            this.tableLayoutPanel5.AutoSize = true;
+            this.tableLayoutPanel5.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.tableLayoutPanel5.Controls.Add(this.chkAllowMoving, 1, 6);
             this.tableLayoutPanel5.Controls.Add(this.chkAllowResizing, 0, 6);
             this.tableLayoutPanel5.Controls.Add(this.groupBox2, 0, 3);
             this.tableLayoutPanel5.Controls.Add(this.groupBox1, 0, 2);
@@ -116,30 +149,41 @@
             this.tableLayoutPanel5.Controls.Add(this.chkBestSegments, 0, 4);
             this.tableLayoutPanel5.Controls.Add(this.chkMousePassThroughWhileRunning, 0, 5);
             this.tableLayoutPanel5.Controls.Add(this.chkAlwaysOnTop, 2, 4);
-            this.tableLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel5.Controls.Add(this.chkUseHardwareVideoDecoding, 0, 7);
+            this.tableLayoutPanel5.Controls.Add(this.chkLoopVideo, 1, 7);
+            this.tableLayoutPanel5.Controls.Add(this.chkPlayVideoAudio, 2, 7);
+            this.tableLayoutPanel5.Controls.Add(this.grpVideoTimerSync, 0, 8);
+            this.tableLayoutPanel5.Controls.Add(this.grpWhenRunCompletes, 0, 9);
+            this.tableLayoutPanel5.Controls.Add(this.lblVideoStartOffset, 0, 10);
+            this.tableLayoutPanel5.Controls.Add(this.numVideoStartOffsetSeconds, 1, 10);
+            this.tableLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Top;
             this.tableLayoutPanel5.Location = new System.Drawing.Point(7, 7);
             this.tableLayoutPanel5.Name = "tableLayoutPanel5";
-            this.tableLayoutPanel5.RowCount = 8;
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 84F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 142F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 228F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel5.Size = new System.Drawing.Size(462, 570);
+            this.tableLayoutPanel5.RowCount = 11;
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel5.Size = new System.Drawing.Size(462, 886);
             this.tableLayoutPanel5.TabIndex = 41;
             // 
             // groupBox2
             // 
             this.tableLayoutPanel5.SetColumnSpan(this.groupBox2, 3);
+            this.groupBox2.AutoSize = true;
+            this.groupBox2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.groupBox2.Controls.Add(this.tableLayoutPanel2);
             this.groupBox2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox2.Location = new System.Drawing.Point(3, 258);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(456, 222);
+            this.groupBox2.Size = new System.Drawing.Size(456, 232);
             this.groupBox2.TabIndex = 2;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "Colors";
@@ -152,6 +196,8 @@
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 197F));
             this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 29F));
+            this.tableLayoutPanel2.AutoSize = true;
+            this.tableLayoutPanel2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.tableLayoutPanel2.Controls.Add(this.lblOutlines, 0, 6);
             this.tableLayoutPanel2.Controls.Add(this.label9, 0, 0);
             this.tableLayoutPanel2.Controls.Add(this.btnGlod, 2, 0);
@@ -183,15 +229,14 @@
             this.tableLayoutPanel2.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel2.Name = "tableLayoutPanel2";
             this.tableLayoutPanel2.RowCount = 7;
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(450, 203);
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel2.Size = new System.Drawing.Size(450, 213);
             this.tableLayoutPanel2.TabIndex = 0;
             // 
             // lblOutlines
@@ -510,6 +555,8 @@
             // groupBox1
             // 
             this.tableLayoutPanel5.SetColumnSpan(this.groupBox1, 3);
+            this.groupBox1.AutoSize = true;
+            this.groupBox1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.groupBox1.Controls.Add(this.tableLayoutPanel1);
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox1.Location = new System.Drawing.Point(3, 116);
@@ -526,6 +573,8 @@
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 161F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 81F));
+            this.tableLayoutPanel1.AutoSize = true;
+            this.tableLayoutPanel1.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.tableLayoutPanel1.Controls.Add(this.chkAntiAliasing, 0, 3);
             this.tableLayoutPanel1.Controls.Add(this.label16, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this.label17, 0, 1);
@@ -541,10 +590,10 @@
             this.tableLayoutPanel1.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
             this.tableLayoutPanel1.RowCount = 4;
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(450, 117);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
@@ -697,11 +746,13 @@
             // groupBox3
             // 
             this.tableLayoutPanel5.SetColumnSpan(this.groupBox3, 3);
+            this.groupBox3.AutoSize = true;
+            this.groupBox3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.groupBox3.Controls.Add(this.tableLayoutPanel3);
             this.groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox3.Location = new System.Drawing.Point(3, 3);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(456, 78);
+            this.groupBox3.Size = new System.Drawing.Size(456, 165);
             this.groupBox3.TabIndex = 17;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Background";
@@ -715,27 +766,109 @@
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 93F));
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 133F));
-            this.tableLayoutPanel3.Controls.Add(this.trkBlur, 5, 1);
-            this.tableLayoutPanel3.Controls.Add(this.trkImageOpacity, 1, 1);
-            this.tableLayoutPanel3.Controls.Add(this.cmbBackgroundType, 4, 0);
-            this.tableLayoutPanel3.Controls.Add(this.lblBackground, 0, 0);
-            this.tableLayoutPanel3.Controls.Add(this.btnBackground2, 3, 0);
-            this.tableLayoutPanel3.Controls.Add(this.btnBackground, 2, 0);
-            this.tableLayoutPanel3.Controls.Add(this.lblImageOpacity, 0, 1);
-            this.tableLayoutPanel3.Controls.Add(this.lblBlur, 4, 1);
+            this.tableLayoutPanel3.AutoSize = true;
+            this.tableLayoutPanel3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.tableLayoutPanel3.Controls.Add(this.trkBlur, 5, 4);
+            this.tableLayoutPanel3.Controls.Add(this.trkImageOpacity, 1, 4);
+            this.tableLayoutPanel3.Controls.Add(this.cmbBackgroundType, 4, 3);
+            this.tableLayoutPanel3.Controls.Add(this.lblBackground, 0, 3);
+            this.tableLayoutPanel3.Controls.Add(this.btnBackground2, 3, 3);
+            this.tableLayoutPanel3.Controls.Add(this.btnBackground, 2, 3);
+            this.tableLayoutPanel3.Controls.Add(this.lblImageOpacity, 0, 4);
+            this.tableLayoutPanel3.Controls.Add(this.lblBlur, 4, 4);
+            this.tableLayoutPanel3.Controls.Add(this.lblVideoPanX, 0, 0);
+            this.tableLayoutPanel3.Controls.Add(this.trkVideoPanX, 1, 0);
+            this.tableLayoutPanel3.Controls.Add(this.lblVideoPanY, 0, 1);
+            this.tableLayoutPanel3.Controls.Add(this.trkVideoPanY, 1, 1);
+            this.tableLayoutPanel3.Controls.Add(this.lblVideoZoom, 0, 2);
+            this.tableLayoutPanel3.Controls.Add(this.trkVideoZoom, 1, 2);
             this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel3.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel3.Name = "tableLayoutPanel3";
-            this.tableLayoutPanel3.RowCount = 2;
-            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(450, 59);
+            this.tableLayoutPanel3.RowCount = 5;
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel3.Size = new System.Drawing.Size(450, 145);
             this.tableLayoutPanel3.TabIndex = 0;
+            // 
+            // lblVideoPanX
+            // 
+            this.lblVideoPanX.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblVideoPanX.AutoSize = true;
+            this.lblVideoPanX.Location = new System.Drawing.Point(3, 8);
+            this.lblVideoPanX.Name = "lblVideoPanX";
+            this.lblVideoPanX.Size = new System.Drawing.Size(85, 13);
+            this.lblVideoPanX.TabIndex = 23;
+            this.lblVideoPanX.Text = "Video Pan X:";
+            this.lblVideoPanX.Visible = false;
+            // 
+            // trkVideoPanX
+            // 
+            this.tableLayoutPanel3.SetColumnSpan(this.trkVideoPanX, 5);
+            this.trkVideoPanX.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.trkVideoPanX.Location = new System.Drawing.Point(94, 3);
+            this.trkVideoPanX.Maximum = 100;
+            this.trkVideoPanX.Minimum = -100;
+            this.trkVideoPanX.Name = "trkVideoPanX";
+            this.trkVideoPanX.Size = new System.Drawing.Size(353, 23);
+            this.trkVideoPanX.TabIndex = 24;
+            this.trkVideoPanX.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.trkVideoPanX.Visible = false;
+            // 
+            // lblVideoPanY
+            // 
+            this.lblVideoPanY.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblVideoPanY.AutoSize = true;
+            this.lblVideoPanY.Location = new System.Drawing.Point(3, 37);
+            this.lblVideoPanY.Name = "lblVideoPanY";
+            this.lblVideoPanY.Size = new System.Drawing.Size(85, 13);
+            this.lblVideoPanY.TabIndex = 25;
+            this.lblVideoPanY.Text = "Video Pan Y:";
+            this.lblVideoPanY.Visible = false;
+            // 
+            // trkVideoPanY
+            // 
+            this.tableLayoutPanel3.SetColumnSpan(this.trkVideoPanY, 5);
+            this.trkVideoPanY.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.trkVideoPanY.Location = new System.Drawing.Point(94, 32);
+            this.trkVideoPanY.Maximum = 100;
+            this.trkVideoPanY.Minimum = -100;
+            this.trkVideoPanY.Name = "trkVideoPanY";
+            this.trkVideoPanY.Size = new System.Drawing.Size(353, 23);
+            this.trkVideoPanY.TabIndex = 26;
+            this.trkVideoPanY.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.trkVideoPanY.Visible = false;
+            // 
+            // lblVideoZoom
+            // 
+            this.lblVideoZoom.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblVideoZoom.AutoSize = true;
+            this.lblVideoZoom.Location = new System.Drawing.Point(3, 66);
+            this.lblVideoZoom.Name = "lblVideoZoom";
+            this.lblVideoZoom.Size = new System.Drawing.Size(85, 13);
+            this.lblVideoZoom.TabIndex = 27;
+            this.lblVideoZoom.Text = "Video Zoom:";
+            this.lblVideoZoom.Visible = false;
+            // 
+            // trkVideoZoom
+            // 
+            this.tableLayoutPanel3.SetColumnSpan(this.trkVideoZoom, 5);
+            this.trkVideoZoom.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.trkVideoZoom.Location = new System.Drawing.Point(94, 61);
+            this.trkVideoZoom.Maximum = 100;
+            this.trkVideoZoom.Name = "trkVideoZoom";
+            this.trkVideoZoom.Size = new System.Drawing.Size(353, 23);
+            this.trkVideoZoom.TabIndex = 28;
+            this.trkVideoZoom.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.trkVideoZoom.Visible = false;
             // 
             // trkBlur
             // 
             this.trkBlur.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.trkBlur.Location = new System.Drawing.Point(320, 32);
+            this.trkBlur.Location = new System.Drawing.Point(320, 119);
             this.trkBlur.Maximum = 100;
             this.trkBlur.Name = "trkBlur";
             this.trkBlur.Size = new System.Drawing.Size(127, 24);
@@ -746,7 +879,7 @@
             // 
             this.tableLayoutPanel3.SetColumnSpan(this.trkImageOpacity, 3);
             this.trkImageOpacity.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.trkImageOpacity.Location = new System.Drawing.Point(94, 32);
+            this.trkImageOpacity.Location = new System.Drawing.Point(94, 119);
             this.trkImageOpacity.Maximum = 100;
             this.trkImageOpacity.Minimum = 5;
             this.trkImageOpacity.Name = "trkImageOpacity";
@@ -765,8 +898,10 @@
             "Solid Color",
             "Vertical Gradient",
             "Horizontal Gradient",
-            "Image"});
-            this.cmbBackgroundType.Location = new System.Drawing.Point(227, 4);
+            "Image",
+            "Animated Image",
+            "Video"});
+            this.cmbBackgroundType.Location = new System.Drawing.Point(227, 90);
             this.cmbBackgroundType.Name = "cmbBackgroundType";
             this.cmbBackgroundType.Size = new System.Drawing.Size(220, 21);
             this.cmbBackgroundType.TabIndex = 2;
@@ -776,7 +911,7 @@
             // 
             this.lblBackground.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.lblBackground.AutoSize = true;
-            this.lblBackground.Location = new System.Drawing.Point(3, 8);
+            this.lblBackground.Location = new System.Drawing.Point(3, 95);
             this.lblBackground.Name = "lblBackground";
             this.lblBackground.Size = new System.Drawing.Size(85, 13);
             this.lblBackground.TabIndex = 19;
@@ -789,7 +924,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.btnBackground2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.btnBackground2.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.btnBackground2.Location = new System.Drawing.Point(198, 3);
+            this.btnBackground2.Location = new System.Drawing.Point(198, 90);
             this.btnBackground2.Name = "btnBackground2";
             this.btnBackground2.Size = new System.Drawing.Size(23, 23);
             this.btnBackground2.TabIndex = 1;
@@ -802,7 +937,7 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.btnBackground.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.btnBackground.Location = new System.Drawing.Point(169, 3);
+            this.btnBackground.Location = new System.Drawing.Point(169, 90);
             this.btnBackground.Name = "btnBackground";
             this.btnBackground.Size = new System.Drawing.Size(23, 23);
             this.btnBackground.TabIndex = 0;
@@ -813,7 +948,7 @@
             // 
             this.lblImageOpacity.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.lblImageOpacity.AutoSize = true;
-            this.lblImageOpacity.Location = new System.Drawing.Point(3, 37);
+            this.lblImageOpacity.Location = new System.Drawing.Point(3, 124);
             this.lblImageOpacity.Name = "lblImageOpacity";
             this.lblImageOpacity.Size = new System.Drawing.Size(85, 13);
             this.lblImageOpacity.TabIndex = 20;
@@ -823,7 +958,7 @@
             // 
             this.lblBlur.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.lblBlur.AutoSize = true;
-            this.lblBlur.Location = new System.Drawing.Point(227, 37);
+            this.lblBlur.Location = new System.Drawing.Point(227, 124);
             this.lblBlur.Name = "lblBlur";
             this.lblBlur.Size = new System.Drawing.Size(87, 13);
             this.lblBlur.TabIndex = 22;
@@ -889,13 +1024,215 @@
             this.chkAllowMoving.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left)));
             this.chkAllowMoving.AutoSize = true;
-            this.chkAllowMoving.Location = new System.Drawing.Point(237, 544);
+            this.chkAllowMoving.Location = new System.Drawing.Point(104, 544);
             this.chkAllowMoving.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
             this.chkAllowMoving.Name = "chkAllowMoving";
             this.chkAllowMoving.Size = new System.Drawing.Size(89, 23);
             this.chkAllowMoving.TabIndex = 29;
             this.chkAllowMoving.Text = "Allow Moving";
             this.chkAllowMoving.UseVisualStyleBackColor = true;
+            // 
+            // chkUseHardwareVideoDecoding
+            // 
+            this.chkUseHardwareVideoDecoding.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.chkUseHardwareVideoDecoding.AutoSize = true;
+            this.chkUseHardwareVideoDecoding.Location = new System.Drawing.Point(7, 573);
+            this.chkUseHardwareVideoDecoding.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
+            this.chkUseHardwareVideoDecoding.Name = "chkUseHardwareVideoDecoding";
+            this.chkUseHardwareVideoDecoding.Size = new System.Drawing.Size(173, 23);
+            this.chkUseHardwareVideoDecoding.TabIndex = 30;
+            this.chkUseHardwareVideoDecoding.Text = "Use Hardware Video Decoding";
+            this.chkUseHardwareVideoDecoding.UseVisualStyleBackColor = true;
+            // 
+            // chkLoopVideo
+            // 
+            this.chkLoopVideo.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.chkLoopVideo.AutoSize = true;
+            this.chkLoopVideo.Location = new System.Drawing.Point(104, 573);
+            this.chkLoopVideo.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
+            this.chkLoopVideo.Name = "chkLoopVideo";
+            this.chkLoopVideo.Size = new System.Drawing.Size(76, 23);
+            this.chkLoopVideo.TabIndex = 31;
+            this.chkLoopVideo.Text = "Loop Video";
+            this.chkLoopVideo.UseVisualStyleBackColor = true;
+            // 
+            // chkPlayVideoAudio
+            // 
+            this.chkPlayVideoAudio.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left)));
+            this.chkPlayVideoAudio.AutoSize = true;
+            this.chkPlayVideoAudio.Location = new System.Drawing.Point(237, 573);
+            this.chkPlayVideoAudio.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
+            this.chkPlayVideoAudio.Name = "chkPlayVideoAudio";
+            this.chkPlayVideoAudio.Size = new System.Drawing.Size(104, 23);
+            this.chkPlayVideoAudio.TabIndex = 32;
+            this.chkPlayVideoAudio.Text = "Play Video Audio";
+            this.chkPlayVideoAudio.UseVisualStyleBackColor = true;
+            // 
+            // grpVideoTimerSync
+            // 
+            this.tableLayoutPanel5.SetColumnSpan(this.grpVideoTimerSync, 3);
+            this.grpVideoTimerSync.AutoSize = true;
+            this.grpVideoTimerSync.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.grpVideoTimerSync.Controls.Add(this.flowVideoTimerSync);
+            this.grpVideoTimerSync.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.grpVideoTimerSync.Location = new System.Drawing.Point(3, 599);
+            this.grpVideoTimerSync.Name = "grpVideoTimerSync";
+            this.grpVideoTimerSync.Padding = new System.Windows.Forms.Padding(6, 4, 6, 6);
+            this.grpVideoTimerSync.Size = new System.Drawing.Size(456, 84);
+            this.grpVideoTimerSync.TabIndex = 36;
+            this.grpVideoTimerSync.TabStop = false;
+            this.grpVideoTimerSync.Text = "Video with run timer";
+            this.grpVideoTimerSync.Visible = false;
+            // 
+            // flowVideoTimerSync
+            // 
+            this.flowVideoTimerSync.Controls.Add(this.chkVideoStartWithTimer);
+            this.flowVideoTimerSync.Controls.Add(this.chkVideoKeepPlaybackAcrossTimerResets);
+            this.flowVideoTimerSync.AutoSize = true;
+            this.flowVideoTimerSync.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.flowVideoTimerSync.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flowVideoTimerSync.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.flowVideoTimerSync.Location = new System.Drawing.Point(6, 17);
+            this.flowVideoTimerSync.Margin = new System.Windows.Forms.Padding(0);
+            this.flowVideoTimerSync.Name = "flowVideoTimerSync";
+            this.flowVideoTimerSync.Size = new System.Drawing.Size(444, 60);
+            this.flowVideoTimerSync.TabIndex = 0;
+            this.flowVideoTimerSync.WrapContents = false;
+            // 
+            // chkVideoStartWithTimer
+            // 
+            this.chkVideoStartWithTimer.AutoSize = true;
+            this.chkVideoStartWithTimer.Location = new System.Drawing.Point(3, 3);
+            this.chkVideoStartWithTimer.Margin = new System.Windows.Forms.Padding(3, 3, 3, 0);
+            this.chkVideoStartWithTimer.Name = "chkVideoStartWithTimer";
+            this.chkVideoStartWithTimer.Size = new System.Drawing.Size(280, 17);
+            this.chkVideoStartWithTimer.TabIndex = 33;
+            this.chkVideoStartWithTimer.Text = "Start background video when timer starts";
+            this.chkVideoStartWithTimer.UseVisualStyleBackColor = true;
+            // 
+            // chkVideoKeepPlaybackAcrossTimerResets
+            // 
+            this.chkVideoKeepPlaybackAcrossTimerResets.AutoSize = true;
+            this.chkVideoKeepPlaybackAcrossTimerResets.Location = new System.Drawing.Point(3, 23);
+            this.chkVideoKeepPlaybackAcrossTimerResets.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
+            this.chkVideoKeepPlaybackAcrossTimerResets.Name = "chkVideoKeepPlaybackAcrossTimerResets";
+            this.chkVideoKeepPlaybackAcrossTimerResets.Size = new System.Drawing.Size(350, 17);
+            this.chkVideoKeepPlaybackAcrossTimerResets.TabIndex = 38;
+            this.chkVideoKeepPlaybackAcrossTimerResets.Text = "Keep video playing across timer resets (no restart at file start)";
+            this.chkVideoKeepPlaybackAcrossTimerResets.UseVisualStyleBackColor = true;
+            // 
+            // grpWhenRunCompletes
+            // 
+            this.tableLayoutPanel5.SetColumnSpan(this.grpWhenRunCompletes, 3);
+            this.grpWhenRunCompletes.AutoSize = true;
+            this.grpWhenRunCompletes.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.grpWhenRunCompletes.Controls.Add(this.flowWhenRunCompletes);
+            this.grpWhenRunCompletes.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.grpWhenRunCompletes.Location = new System.Drawing.Point(3, 692);
+            this.grpWhenRunCompletes.Name = "grpWhenRunCompletes";
+            this.grpWhenRunCompletes.Padding = new System.Windows.Forms.Padding(6, 4, 6, 6);
+            this.grpWhenRunCompletes.Size = new System.Drawing.Size(456, 86);
+            this.grpWhenRunCompletes.TabIndex = 39;
+            this.grpWhenRunCompletes.TabStop = false;
+            this.grpWhenRunCompletes.Text = "When run completes";
+            this.grpWhenRunCompletes.Visible = false;
+            // 
+            // flowWhenRunCompletes
+            // 
+            this.flowWhenRunCompletes.Controls.Add(this.chkVideoPauseWhenRunCompletes);
+            this.flowWhenRunCompletes.Controls.Add(this.flowVolumeReductionRow);
+            this.flowWhenRunCompletes.AutoSize = true;
+            this.flowWhenRunCompletes.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.flowWhenRunCompletes.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.flowWhenRunCompletes.FlowDirection = System.Windows.Forms.FlowDirection.TopDown;
+            this.flowWhenRunCompletes.Location = new System.Drawing.Point(6, 17);
+            this.flowWhenRunCompletes.Margin = new System.Windows.Forms.Padding(0);
+            this.flowWhenRunCompletes.Name = "flowWhenRunCompletes";
+            this.flowWhenRunCompletes.Size = new System.Drawing.Size(444, 63);
+            this.flowWhenRunCompletes.TabIndex = 0;
+            this.flowWhenRunCompletes.WrapContents = false;
+            // 
+            // chkVideoPauseWhenRunCompletes
+            // 
+            this.chkVideoPauseWhenRunCompletes.AutoSize = true;
+            this.chkVideoPauseWhenRunCompletes.Location = new System.Drawing.Point(3, 3);
+            this.chkVideoPauseWhenRunCompletes.Margin = new System.Windows.Forms.Padding(3, 3, 3, 0);
+            this.chkVideoPauseWhenRunCompletes.Name = "chkVideoPauseWhenRunCompletes";
+            this.chkVideoPauseWhenRunCompletes.Size = new System.Drawing.Size(200, 17);
+            this.chkVideoPauseWhenRunCompletes.TabIndex = 37;
+            this.chkVideoPauseWhenRunCompletes.Text = "Pause video when run completes";
+            this.chkVideoPauseWhenRunCompletes.UseVisualStyleBackColor = true;
+            // 
+            // flowVolumeReductionRow
+            // 
+            this.flowVolumeReductionRow.Controls.Add(this.lblVideoVolumeReductionAfterRunCompletes);
+            this.flowVolumeReductionRow.Controls.Add(this.numVideoVolumeReductionAfterRunCompletes);
+            this.flowVolumeReductionRow.AutoSize = true;
+            this.flowVolumeReductionRow.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.flowVolumeReductionRow.FlowDirection = System.Windows.Forms.FlowDirection.LeftToRight;
+            this.flowVolumeReductionRow.Location = new System.Drawing.Point(3, 23);
+            this.flowVolumeReductionRow.Margin = new System.Windows.Forms.Padding(3, 0, 3, 3);
+            this.flowVolumeReductionRow.Name = "flowVolumeReductionRow";
+            this.flowVolumeReductionRow.Size = new System.Drawing.Size(380, 26);
+            this.flowVolumeReductionRow.TabIndex = 40;
+            this.flowVolumeReductionRow.WrapContents = false;
+            // 
+            // lblVideoVolumeReductionAfterRunCompletes
+            // 
+            this.lblVideoVolumeReductionAfterRunCompletes.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.lblVideoVolumeReductionAfterRunCompletes.AutoSize = true;
+            this.lblVideoVolumeReductionAfterRunCompletes.Location = new System.Drawing.Point(3, 6);
+            this.lblVideoVolumeReductionAfterRunCompletes.Margin = new System.Windows.Forms.Padding(3, 6, 3, 0);
+            this.lblVideoVolumeReductionAfterRunCompletes.Name = "lblVideoVolumeReductionAfterRunCompletes";
+            this.lblVideoVolumeReductionAfterRunCompletes.Size = new System.Drawing.Size(248, 13);
+            this.lblVideoVolumeReductionAfterRunCompletes.TabIndex = 41;
+            this.lblVideoVolumeReductionAfterRunCompletes.Text = "Lower volume after final split (%):";
+            // 
+            // numVideoVolumeReductionAfterRunCompletes
+            // 
+            this.numVideoVolumeReductionAfterRunCompletes.Location = new System.Drawing.Point(257, 3);
+            this.numVideoVolumeReductionAfterRunCompletes.Margin = new System.Windows.Forms.Padding(3, 3, 3, 3);
+            this.numVideoVolumeReductionAfterRunCompletes.Maximum = new decimal(new int[] {
+            100,
+            0,
+            0,
+            0});
+            this.numVideoVolumeReductionAfterRunCompletes.Name = "numVideoVolumeReductionAfterRunCompletes";
+            this.numVideoVolumeReductionAfterRunCompletes.Size = new System.Drawing.Size(56, 20);
+            this.numVideoVolumeReductionAfterRunCompletes.TabIndex = 42;
+            // 
+            // lblVideoStartOffset
+            // 
+            this.lblVideoStartOffset.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblVideoStartOffset.AutoSize = true;
+            this.lblVideoStartOffset.Location = new System.Drawing.Point(3, 634);
+            this.lblVideoStartOffset.Name = "lblVideoStartOffset";
+            this.lblVideoStartOffset.Size = new System.Drawing.Size(85, 13);
+            this.lblVideoStartOffset.TabIndex = 34;
+            this.lblVideoStartOffset.Text = "Video start (s):";
+            this.lblVideoStartOffset.Visible = false;
+            // 
+            // numVideoStartOffsetSeconds
+            // 
+            this.numVideoStartOffsetSeconds.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tableLayoutPanel5.SetColumnSpan(this.numVideoStartOffsetSeconds, 2);
+            this.numVideoStartOffsetSeconds.DecimalPlaces = 3;
+            this.numVideoStartOffsetSeconds.Increment = 0.01M;
+            this.numVideoStartOffsetSeconds.Location = new System.Drawing.Point(104, 631);
+            this.numVideoStartOffsetSeconds.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
+            this.numVideoStartOffsetSeconds.Maximum = new decimal(new int[] {
+            86400,
+            0,
+            0,
+            0});
+            this.numVideoStartOffsetSeconds.Name = "numVideoStartOffsetSeconds";
+            this.numVideoStartOffsetSeconds.Size = new System.Drawing.Size(120, 20);
+            this.numVideoStartOffsetSeconds.TabIndex = 35;
+            this.numVideoStartOffsetSeconds.Visible = false;
             // 
             // LayoutSettingsControl
             // 
@@ -904,8 +1241,16 @@
             this.Controls.Add(this.tableLayoutPanel5);
             this.Name = "LayoutSettingsControl";
             this.Padding = new System.Windows.Forms.Padding(7);
-            this.Size = new System.Drawing.Size(476, 584);
+            this.Size = new System.Drawing.Size(476, 908);
             this.Load += new System.EventHandler(this.LayoutSettingsControl_Load);
+            this.flowVolumeReductionRow.ResumeLayout(false);
+            this.flowVolumeReductionRow.PerformLayout();
+            this.flowWhenRunCompletes.ResumeLayout(false);
+            this.flowWhenRunCompletes.PerformLayout();
+            this.grpWhenRunCompletes.ResumeLayout(false);
+            this.flowVideoTimerSync.ResumeLayout(false);
+            this.flowVideoTimerSync.PerformLayout();
+            this.grpVideoTimerSync.ResumeLayout(false);
             this.tableLayoutPanel5.ResumeLayout(false);
             this.tableLayoutPanel5.PerformLayout();
             this.groupBox2.ResumeLayout(false);
@@ -920,6 +1265,11 @@
             this.tableLayoutPanel3.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkBlur)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkImageOpacity)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanX)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanY)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoZoom)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numVideoStartOffsetSeconds)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.numVideoVolumeReductionAfterRunCompletes)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -978,6 +1328,12 @@
         private System.Windows.Forms.GroupBox groupBox3;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel3;
         private System.Windows.Forms.TrackBar trkImageOpacity;
+        private System.Windows.Forms.Label lblVideoPanX;
+        private System.Windows.Forms.TrackBar trkVideoPanX;
+        private System.Windows.Forms.Label lblVideoPanY;
+        private System.Windows.Forms.TrackBar trkVideoPanY;
+        private System.Windows.Forms.Label lblVideoZoom;
+        private System.Windows.Forms.TrackBar trkVideoZoom;
         private System.Windows.Forms.Label lblImageOpacity;
         private System.Windows.Forms.TrackBar trkBlur;
         private System.Windows.Forms.Label lblBlur;
@@ -986,5 +1342,20 @@
         private System.Windows.Forms.CheckBox chkMousePassThroughWhileRunning;
         private System.Windows.Forms.CheckBox chkAllowResizing;
         private System.Windows.Forms.CheckBox chkAllowMoving;
+        private System.Windows.Forms.CheckBox chkUseHardwareVideoDecoding;
+        private System.Windows.Forms.CheckBox chkLoopVideo;
+        private System.Windows.Forms.CheckBox chkPlayVideoAudio;
+        private System.Windows.Forms.GroupBox grpVideoTimerSync;
+        private System.Windows.Forms.FlowLayoutPanel flowVideoTimerSync;
+        private System.Windows.Forms.CheckBox chkVideoStartWithTimer;
+        private System.Windows.Forms.CheckBox chkVideoKeepPlaybackAcrossTimerResets;
+        private System.Windows.Forms.GroupBox grpWhenRunCompletes;
+        private System.Windows.Forms.FlowLayoutPanel flowWhenRunCompletes;
+        private System.Windows.Forms.CheckBox chkVideoPauseWhenRunCompletes;
+        private System.Windows.Forms.FlowLayoutPanel flowVolumeReductionRow;
+        private System.Windows.Forms.Label lblVideoVolumeReductionAfterRunCompletes;
+        private System.Windows.Forms.NumericUpDown numVideoVolumeReductionAfterRunCompletes;
+        private System.Windows.Forms.Label lblVideoStartOffset;
+        private System.Windows.Forms.NumericUpDown numVideoStartOffsetSeconds;
     }
 }

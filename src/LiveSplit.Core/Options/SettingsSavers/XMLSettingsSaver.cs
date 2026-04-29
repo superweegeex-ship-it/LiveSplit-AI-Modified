@@ -19,7 +19,7 @@ public class XMLSettingsSaver : ISettingsSaver
 
         XmlElement parent = document.CreateElement("Settings");
         XmlAttribute version = document.CreateAttribute("version");
-        version.Value = "1.8.18";
+        version.Value = "1.8.19";
         parent.Attributes.Append(version);
         document.AppendChild(parent);
 
@@ -49,6 +49,8 @@ public class XMLSettingsSaver : ISettingsSaver
         }
 
         CreateSetting(document, parent, "UILanguage", settings.UILanguage ?? string.Empty);
+        CreateSetting(document, parent, "AppTheme", settings.AppTheme);
+        CreateSetting(document, parent, "AllowDialogPanelResizing", settings.AllowDialogPanelResizing);
 
         XmlElement recentSplits = document.CreateElement("RecentSplits");
         foreach (RecentSplitsFile splitsFile in settings.RecentSplits)
@@ -73,6 +75,7 @@ public class XMLSettingsSaver : ISettingsSaver
         CreateSetting(document, parent, "LastComparison", settings.LastComparison);
         CreateSetting(document, parent, "SimpleSumOfBest", settings.SimpleSumOfBest);
         CreateSetting(document, parent, "RefreshRate", settings.RefreshRate);
+        CreateSetting(document, parent, "VideoBackgroundPaintFps", settings.VideoBackgroundPaintFps);
         CreateSetting(document, parent, "ServerPort", settings.ServerPort);
         CreateSetting(document, parent, "ServerStartup", (int)settings.ServerStartup);
         CreateSetting(document, parent, "ServerState", (int)settings.ServerState);

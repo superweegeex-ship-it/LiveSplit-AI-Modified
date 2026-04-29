@@ -1,0 +1,188 @@
+[package]
+name = "livesplit-core"
+version = "0.13.0"
+authors = ["Christopher Serr <christopher.serr@gmail.com>"]
+documentation = "https://docs.rs/livesplit-core/"
+repository = "https://github.com/LiveSplit/livesplit-core"
+license = "Apache-2.0/MIT"
+description = "livesplit-core is a library that provides a lot of functionality for creating a speedrun timer."
+readme = "README.md"
+keywords = ["speedrun", "timer", "livesplit", "gaming"]
+categories = ["no-std", "date-and-time"]
+include = [
+    # FIXME: We technically don't want to publish the benches, as they rely on
+    # the tests folder, but otherwise crater can't compile us, as these benches
+    # are referenced in the Cargo.toml.
+    "/benches/*",
+    "/src/*",
+    "/Cargo.toml",
+    "/CHANGELOG.md",
+    "/CODE_OF_CONDUCT.md",
+    "/LICENSE-APACHE",
+    "/LICENSE-MIT",
+    "/README.md",
+]
+edition = "2021"
+resolver = "2"
+rust-version = "1.70"
+
+[package.metadata.docs.rs]
+all-features = true
+
+[workspace]
+members = ["capi", "capi/bind_gen", "crates/*"]
+
+[dependencies]
+# core
+base64-simd = { version = "0.8.0", default-features = false, features = ["alloc"] }
+bytemuck = { version = "1.9.1", default-features = false, features = ["derive"] }
+cfg-if = "1.0.0"
+itoa = { version = "1.0.3", default-features = false }
+time = { version = "0.3.3", default-features = false }
+hashbrown = "0.13.1"
+libm = "0.2.1"
+livesplit-hotkey = { path = "crates/livesplit-hotkey", version = "0.7.0", default-features = false }
+livesplit-title-abbreviations = { path = "crates/livesplit-title-abbreviations", version = "0.3.0" }
+memchr = { version = "2.3.4", default-features = false }
+simdutf8 = { version = "0.1.4", default-features = false, features = ["aarch64_neon"] }
+serde = { version = "1.0.98", default-features = false, features = [
+    "alloc",
+    "derive",
+] }
+serde_json = { version = "1.0.60", default-features = false, features = ["alloc"] }
+smallstr = { version = "0.3.0", default-features = false }
+snafu = { version = "0.7.0", default-features = false }
+unicase = "2.6.0"
+
+# std
+image = { version = "0.24.0", features = [
+    "png",
+], default-features = false, optional = true }
+
+# Rendering
+# Currently doesn't require any additional dependencies.
+
+# Default Text Engine
+cosmic-text = { git = "https://github.com/pop-os/cosmic-text", default-features = false, optional = true }
+
+# Font Loading
+# Currently doesn't require any additional dependencies.
+
+# Software Rendering
+tiny-skia = { version = "0.9.0", default-features = false, features = [
+    "no-std-float",
+    "simd",
+], optional = true }
+tiny-skia-path = { version = "0.9.0", default-features = false, optional = true }
+
+# Networking
+splits-io-api = { version = "0.3.0", optional = true }
+
+# Auto Splitting
+livesplit-auto-splitting = { path = "crates/livesplit-auto-splitting", version = "0.1.0", optional = true }
+tokio = { version = "1.24.2", default-features = false, features = [
+    "rt",
+    "sync",
+    "time",
+], optional = true }
+log = { version = "0.4.14", default-features = false, optional = true }
+
+[target.'cfg(all(target_arch = "wasm32", target_os = "unknown"))'.dependencies]
+# WebAssembly in the Web
+js-sys = { version = "0.3.55", optional = true }
+wasm-bindgen = { version = "0.2.78", optional = true }
+web-sys = { version = "0.3.28", default-features = false, features = [
+    "Performance",
+    "Window",
+], optional = true }
+
+[target.'cfg(windows)'.dependencies]
+# We need winapi to use GDI to resolve fonts on Windows.
+winapi = { version = "0.3.9", features = ["wingdi"], optional = true }
+
+[target.'cfg(any(target_os = "linux", target_os = "l4re", target_os = "android", target_os = "macos", target_os = "ios"))'.dependencies]
+# We need libc for our own implementation of Instant
+libc = { version = "0.2.101", optional = true }
+
+[dev-dependencies]
+img_hash = "3.1.0"
+
+[target.'cfg(not(target_arch = "wasm32"))'.dev-dependencies]
+criterion = "0.5.0"
+
+[features]
+default = ["image-shrinking", "std"]
+std = [
+    "base64-simd/detect",
+    "base64-simd/std",
+    "image",
+    "libc",
+    "livesplit-hotkey/std",
+    "memchr/std",
+    "cosmic-text?/std",
+    "serde_json/std",
+    "serde/std",
+    "simdutf8/std",
+    "snafu/std",
+    "time/local-offset",
+    "tiny-skia?/std",
+    "winapi",
+]
+more-image-formats = [
+    "image?/bmp",
+    "image?/farbfeld",
+    "image?/hdr",
+    "image?/ico",
+    "image?/jpeg",
+    "image?/pnm",
+    "image?/tga",
+    "image?/tiff",
+    "image?/webp",
+]
+image-shrinking = ["std", "more-image-formats"]
+rendering = ["more-image-formats", "image?/gif"]
+default-text-engine = ["rendering", "cosmic-text"]
+font-loading = ["std", "default-text-engine"]
+software-rendering = ["default-text-engine", "tiny-skia", "tiny-skia-path"]
+wasm-web = [
+    "std",
+    "cosmic-text?/wasm-web",
+    "js-sys",
+    "livesplit-hotkey/wasm-web",
+    "wasm-bindgen",
+    "web-sys",
+]
+networking = ["std", "splits-io-api"]
+auto-splitting = ["std", "livesplit-auto-splitting", "tokio", "log"]
+
+[lib]
+bench = false
+
+[[bench]]
+name = "balanced_pb"
+harness = false
+
+[[bench]]
+name = "layout_state"
+harness = false
+
+[[bench]]
+name = "parsing"
+harness = false
+
+[[bench]]
+name = "scene_management"
+harness = false
+
+[[bench]]
+name = "software_rendering"
+harness = false
+
+[profile.max-opt]
+inherits = "release"
+lto = true
+panic = "abort"
+codegen-units = 1
+
+[profile.max-opt.build-override]
+opt-level = 0

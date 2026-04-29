@@ -6,4 +6,5 @@ namespace CustomFontDialog;
 public class FontChangedEventArgs : EventArgs
 {
     public Font NewFont { get; set; }
+    public int LetterSpacing { get; set; }
 }

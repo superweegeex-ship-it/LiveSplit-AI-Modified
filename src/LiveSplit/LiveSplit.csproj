@@ -6,6 +6,8 @@
     <OutputType>WinExe</OutputType>
     <UseWindowsForms>true</UseWindowsForms>
     <TargetFramework>net4.8.1</TargetFramework>
+    <Platforms>AnyCPU;x64</Platforms>
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,28 +27,33 @@
 
   <ItemGroup>
     <PackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+    <PackageReference Include="System.Text.Json" Version="9.0.4" />
   </ItemGroup>
 
   <PropertyGroup>
     <PostBuildEvent>
-      mkdir "$(OutputPath)\Resources"
+      if not exist "$(OutputPath)\Resources" mkdir "$(OutputPath)\Resources"
       copy "$(ResourcesPath)\SplitsFile.ico" "$(OutputPath)\Resources"
       copy "$(ResourcesPath)\LayoutFile.ico" "$(OutputPath)\Resources"
-      rd /s /q "$(OutputPath)\runtimes"
-      del "$(OutputPath)\Microsoft.WindowsAPICodePack.ExtendedLinguisticServices.dll"
-      del "$(OutputPath)\Microsoft.WindowsAPICodePack.Sensors.dll"
-      del "$(OutputPath)\Microsoft.WindowsAPICodePack.ShellExtensions.dll"
-      del "$(OutputPath)\x64\asr_capi.dll"
-      del "$(OutputPath)\x86\asr_capi.dll"
-      del "$(OutputPath)\Components\SpeedrunComSharp.dll"
-      del "$(OutputPath)\Components\CustomFontDialog.dll"
-      del "$(OutputPath)\Components\CustomFontDialog.dll.config"
-      del "$(OutputPath)\Components\WinFormsColor.dll"
-      del "$(OutputPath)\Components\System.Buffers.dll"
-      del "$(OutputPath)\Components\System.Memory.dll"
-      del "$(OutputPath)\Components\System.Numerics.Vectors.dll"
-      del "$(OutputPath)\Components\System.Resources.Extensions.dll"
-      del "$(OutputPath)\Components\System.Runtime.CompilerServices.Unsafe.dll"
+      if exist "$(OutputPath)\runtimes" rd /s /q "$(OutputPath)\runtimes"
+      if exist "$(OutputPath)\Microsoft.WindowsAPICodePack.ExtendedLinguisticServices.dll" del "$(OutputPath)\Microsoft.WindowsAPICodePack.ExtendedLinguisticServices.dll"
+      if exist "$(OutputPath)\Microsoft.WindowsAPICodePack.Sensors.dll" del "$(OutputPath)\Microsoft.WindowsAPICodePack.Sensors.dll"
+      if exist "$(OutputPath)\Microsoft.WindowsAPICodePack.ShellExtensions.dll" del "$(OutputPath)\Microsoft.WindowsAPICodePack.ShellExtensions.dll"
+      if exist "$(OutputPath)\x64\asr_capi.dll" del "$(OutputPath)\x64\asr_capi.dll"
+      if exist "$(OutputPath)\x86\asr_capi.dll" del "$(OutputPath)\x86\asr_capi.dll"
+      rem libmpv-2.dll: copy first match into output (required for video background). Skip if you already placed one next to LiveSplit.exe.
+      if not exist "$(OutputPath)\libmpv-2.dll" if exist "$(LocalAppData)\Programs\mpv.net\libmpv-2.dll" copy /y "$(LocalAppData)\Programs\mpv.net\libmpv-2.dll" "$(OutputPath)"
+      if not exist "$(OutputPath)\libmpv-2.dll" if exist "$(ProgramW6432)\mpv\libmpv-2.dll" copy /y "$(ProgramW6432)\mpv\libmpv-2.dll" "$(OutputPath)"
+      if not exist "$(OutputPath)\libmpv-2.dll" if exist "$(MSBuildProjectDirectory)\..\..\libmpv-2.dll" copy /y "$(MSBuildProjectDirectory)\..\..\libmpv-2.dll" "$(OutputPath)"
+      if exist "$(OutputPath)\Components\SpeedrunComSharp.dll" del "$(OutputPath)\Components\SpeedrunComSharp.dll"
+      if exist "$(OutputPath)\Components\CustomFontDialog.dll" del "$(OutputPath)\Components\CustomFontDialog.dll"
+      if exist "$(OutputPath)\Components\CustomFontDialog.dll.config" del "$(OutputPath)\Components\CustomFontDialog.dll.config"
+      if exist "$(OutputPath)\Components\WinFormsColor.dll" del "$(OutputPath)\Components\WinFormsColor.dll"
+      if exist "$(OutputPath)\Components\System.Buffers.dll" del "$(OutputPath)\Components\System.Buffers.dll"
+      if exist "$(OutputPath)\Components\System.Memory.dll" del "$(OutputPath)\Components\System.Memory.dll"
+      if exist "$(OutputPath)\Components\System.Numerics.Vectors.dll" del "$(OutputPath)\Components\System.Numerics.Vectors.dll"
+      if exist "$(OutputPath)\Components\System.Resources.Extensions.dll" del "$(OutputPath)\Components\System.Resources.Extensions.dll"
+      if exist "$(OutputPath)\Components\System.Runtime.CompilerServices.Unsafe.dll" del "$(OutputPath)\Components\System.Runtime.CompilerServices.Unsafe.dll"
     </PostBuildEvent>
   </PropertyGroup>
 

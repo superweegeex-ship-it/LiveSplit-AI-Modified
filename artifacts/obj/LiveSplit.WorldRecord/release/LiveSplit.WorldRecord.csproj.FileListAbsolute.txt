@@ -1,0 +1,17 @@
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\bin\release\Components\LiveSplit.WorldRecord.dll
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\bin\release\Components\LiveSplit.WorldRecord.pdb
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\bin\release\Components\CustomFontDialog.dll
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\bin\release\Components\WinFormsColor.dll
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\bin\release\Components\CustomFontDialog.pdb
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\bin\release\Components\CustomFontDialog.dll.config
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\bin\release\Components\WinFormsColor.pdb
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.csproj.AssemblyReference.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.UI.Components.WorldRecordSettings.resources
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.csproj.GenerateResource.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.AssemblyInfoInputs.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.AssemblyInfo.cs
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.csproj.CoreCompileInputs.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSpli.178A6363.Up2Date
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.dll
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\LiveSplit.WorldRecord\release\LiveSplit.WorldRecord.pdb

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -13,13 +13,24 @@ namespace LiveSplit.View;
 
 public partial class LayoutSettingsDialog : Form
 {
+    private const string WindowSizeRegistryPath = "WindowSizes";
+    private const string WindowWidthRegistryValue = "LayoutSettingsDialogWidth";
+    private const string WindowHeightRegistryValue = "LayoutSettingsDialogHeight";
+    private const string WindowXRegistryValue = "LayoutSettingsDialogX";
+    private const string WindowYRegistryValue = "LayoutSettingsDialogY";
+    private const int TabContentMinHeight = 560;
+
     public Options.LayoutSettings Settings { get; set; }
     public new UI.ILayout Layout { get; set; }
+
+    /// <summary>Fired when layout/background options should be pushed to the main window immediately (live preview).</summary>
+    public event EventHandler<BackgroundVideoLiveApplyEventArgs> LiveApplyRequested;
     public List<XmlNode> ComponentSettings { get; set; }
     public List<IComponent> Components { get; set; }
 
     private List<FontOverrides> _fontOverrideSnapshots;
     private List<LayoutComponent> _layoutComponents;
+    private LayoutSettingsControl _layoutSettingsControl;
 
     protected override void Dispose(bool disposing)
     {
@@ -39,15 +50,25 @@ public partial class LayoutSettingsDialog : Form
     public LayoutSettingsDialog(Options.LayoutSettings settings, UI.ILayout layout, IComponent tabComponent = null)
     {
         InitializeComponent();
+        RestoreWindowSize();
         Settings = settings;
         Layout = layout;
         ComponentSettings = [];
         Components = [];
         _fontOverrideSnapshots = [];
         _layoutComponents = [];
-        AddNewTab("Layout", new LayoutSettingsControl(settings, layout));
+        _layoutSettingsControl = new LayoutSettingsControl(settings, layout);
+        _layoutSettingsControl.LiveApplyRequested += (_, e) => LiveApplyRequested?.Invoke(this, e);
+        AddNewTab("Layout", _layoutSettingsControl);
         AddComponents(tabComponent);
         UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
+        WinFormsTheme.Apply(this);
+        FormClosing += LayoutSettingsDialog_FormClosing;
+    }
+
+    private void LayoutSettingsDialog_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        SaveWindowSize();
     }
 
     private void btnOK_Click(object sender, EventArgs e)
@@ -125,12 +146,17 @@ public partial class LayoutSettingsDialog : Form
                 if (settingsControl != null && showFontPanel)
                 {
                     // Both: stack font panel above settings
-                    var container = new Panel { Dock = DockStyle.Fill };
+                    var container = new Panel
+                    {
+                        Dock = DockStyle.Top,
+                        AutoSize = true,
+                        AutoSizeMode = AutoSizeMode.GrowAndShrink
+                    };
                     var fontPanel = new FontOverridePanel();
                     fontPanel.Bind(lc.FontOverrides, Layout.Settings, usedFonts);
                     fontPanel.Dock = DockStyle.Top;
                     container.Controls.Add(settingsControl);
-                    settingsControl.Dock = DockStyle.Fill;
+                    settingsControl.Dock = DockStyle.Top;
                     container.Controls.Add(fontPanel);
                     tabContent = container;
                 }
@@ -161,10 +187,108 @@ public partial class LayoutSettingsDialog : Form
     protected void AddNewTab(string name, Control control)
     {
         var page = new TabPage(name);
-        control.Location = new Point(0, 0);
-        page.Controls.Add(control);
-        page.AutoScroll = true;
+        var contentPanel = new Panel
+        {
+            Dock = DockStyle.Fill,
+            AutoScroll = true,
+            Padding = new Padding(3, 3, SystemInformation.VerticalScrollBarWidth + 8, 8)
+        };
+
+        control.Location = new Point(contentPanel.Padding.Left, contentPanel.Padding.Top);
+        control.Dock = DockStyle.Top;
+        control.Margin = new Padding(0, 0, 0, 8);
+        if (control is Panel panelControl)
+        {
+            panelControl.AutoSize = true;
+            panelControl.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        }
+
+        contentPanel.Controls.Add(control);
+        page.Layout += (_, _) =>
+        {
+            int availableWidth = Math.Max(0, contentPanel.ClientSize.Width - contentPanel.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth);
+            if (availableWidth > 0)
+            {
+                control.Width = availableWidth;
+            }
+
+            control.PerformLayout();
+            Size preferredSize = control.GetPreferredSize(new Size(availableWidth, 0));
+            int actualHeight = Math.Max(preferredSize.Height, control.Height);
+            int contentHeight = Math.Max(TabContentMinHeight, actualHeight + contentPanel.Padding.Vertical + control.Margin.Bottom);
+            contentPanel.AutoScrollMinSize = new Size(preferredSize.Width + contentPanel.Padding.Horizontal, contentHeight);
+        };
+        page.Controls.Add(contentPanel);
         page.Name = name;
         tabControl.TabPages.Add(page);
+        WinFormsTheme.Apply(page);
+    }
+
+    private void RestoreWindowSize()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            object widthValue = windowSizes.GetValue(WindowWidthRegistryValue);
+            object heightValue = windowSizes.GetValue(WindowHeightRegistryValue);
+            object xValue = windowSizes.GetValue(WindowXRegistryValue);
+            object yValue = windowSizes.GetValue(WindowYRegistryValue);
+            if (widthValue is int width && heightValue is int height
+                && width >= MinimumSize.Width && height >= MinimumSize.Height)
+            {
+                Size = new Size(width, height);
+            }
+
+            if (xValue is int x && yValue is int y)
+            {
+                Rectangle bounds = WinFormsTheme.ClampToVisibleScreen(new Rectangle(x, y, Width, Height), MinimumSize);
+                StartPosition = FormStartPosition.Manual;
+                Bounds = bounds;
+            }
+        }
+        catch
+        {
+            // Ignore persisted-window-size read errors.
+        }
+    }
+
+    private void SaveWindowSize()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            Rectangle bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
+            windowSizes.SetValue(WindowWidthRegistryValue, bounds.Width);
+            windowSizes.SetValue(WindowHeightRegistryValue, bounds.Height);
+            windowSizes.SetValue(WindowXRegistryValue, bounds.X);
+            windowSizes.SetValue(WindowYRegistryValue, bounds.Y);
+        }
+        catch
+        {
+            // Ignore persisted-window-size write errors.
+        }
+    }
+
+    private static bool IsWindowBoundsVisible(Rectangle bounds)
+    {
+        foreach (Screen screen in Screen.AllScreens)
+        {
+            if (screen.WorkingArea.IntersectsWith(bounds))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

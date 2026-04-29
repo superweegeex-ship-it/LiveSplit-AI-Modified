@@ -1,0 +1,127 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\test\\LiveSplit.Tests\\LiveSplit.Tests.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\test\\LiveSplit.Tests\\LiveSplit.Tests.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\test\\LiveSplit.Tests\\LiveSplit.Tests.csproj",
+        "projectName": "LiveSplit.Tests",
+        "projectPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\test\\LiveSplit.Tests\\LiveSplit.Tests.csproj",
+        "packagesPath": "C:\\Users\\xskil\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\test\\LiveSplit.Tests\\obj\\",
+        "projectStyle": "PackageReference",
+        "fallbackFolders": [
+          "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
+        ],
+        "configFilePaths": [
+          "C:\\Users\\xskil\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net4.8.1"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "C:\\Program Files\\dotnet\\library-packs": {},
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net481": {
+            "targetAlias": "net4.8.1",
+            "projectReferences": {
+              "C:\\LiveSplit.Core\\LiveSplit.Core.csproj": {
+                "projectPath": "C:\\LiveSplit.Core\\LiveSplit.Core.csproj"
+              },
+              "C:\\LiveSplit.CurrentComparison\\src\\LiveSplit.CurrentComparison\\LiveSplit.CurrentComparison.csproj": {
+                "projectPath": "C:\\LiveSplit.CurrentComparison\\src\\LiveSplit.CurrentComparison\\LiveSplit.CurrentComparison.csproj"
+              },
+              "C:\\LiveSplit.Delta\\src\\LiveSplit.Delta\\LiveSplit.Delta.csproj": {
+                "projectPath": "C:\\LiveSplit.Delta\\src\\LiveSplit.Delta\\LiveSplit.Delta.csproj"
+              },
+              "C:\\LiveSplit.DetailedTimer\\src\\LiveSplit.DetailedTimer\\LiveSplit.DetailedTimer.csproj": {
+                "projectPath": "C:\\LiveSplit.DetailedTimer\\src\\LiveSplit.DetailedTimer\\LiveSplit.DetailedTimer.csproj"
+              },
+              "C:\\LiveSplit.ManualGameTime\\src\\LiveSplit.ManualGameTime\\LiveSplit.ManualGameTime.csproj": {
+                "projectPath": "C:\\LiveSplit.ManualGameTime\\src\\LiveSplit.ManualGameTime\\LiveSplit.ManualGameTime.csproj"
+              },
+              "C:\\LiveSplit.PossibleTimeSave\\src\\LiveSplit.PossibleTimeSave\\LiveSplit.PossibleTimeSave.csproj": {
+                "projectPath": "C:\\LiveSplit.PossibleTimeSave\\src\\LiveSplit.PossibleTimeSave\\LiveSplit.PossibleTimeSave.csproj"
+              },
+              "C:\\LiveSplit.PreviousSegment\\src\\LiveSplit.PreviousSegment\\LiveSplit.PreviousSegment.csproj": {
+                "projectPath": "C:\\LiveSplit.PreviousSegment\\src\\LiveSplit.PreviousSegment\\LiveSplit.PreviousSegment.csproj"
+              },
+              "C:\\LiveSplit.RunPrediction\\src\\LiveSplit.RunPrediction\\LiveSplit.RunPrediction.csproj": {
+                "projectPath": "C:\\LiveSplit.RunPrediction\\src\\LiveSplit.RunPrediction\\LiveSplit.RunPrediction.csproj"
+              },
+              "C:\\LiveSplit.ScriptableAutoSplit\\src\\LiveSplit.ScriptableAutoSplit\\LiveSplit.ScriptableAutoSplit.csproj": {
+                "projectPath": "C:\\LiveSplit.ScriptableAutoSplit\\src\\LiveSplit.ScriptableAutoSplit\\LiveSplit.ScriptableAutoSplit.csproj"
+              },
+              "C:\\LiveSplit.Splits\\src\\LiveSplit.Splits\\LiveSplit.Splits.csproj": {
+                "projectPath": "C:\\LiveSplit.Splits\\src\\LiveSplit.Splits\\LiveSplit.Splits.csproj"
+              },
+              "C:\\LiveSplit.Subsplits\\src\\LiveSplit.Subsplits\\LiveSplit.Subsplits.csproj": {
+                "projectPath": "C:\\LiveSplit.Subsplits\\src\\LiveSplit.Subsplits\\LiveSplit.Subsplits.csproj"
+              },
+              "C:\\LiveSplit.SumOfBest\\src\\LiveSplit.SumOfBest\\LiveSplit.SumOfBest.csproj": {
+                "projectPath": "C:\\LiveSplit.SumOfBest\\src\\LiveSplit.SumOfBest\\LiveSplit.SumOfBest.csproj"
+              },
+              "C:\\LiveSplit.Timer\\src\\LiveSplit.Timer\\LiveSplit.Timer.csproj": {
+                "projectPath": "C:\\LiveSplit.Timer\\src\\LiveSplit.Timer\\LiveSplit.Timer.csproj"
+              },
+              "C:\\LiveSplit.TotalPlaytime\\src\\LiveSplit.TotalPlaytime\\LiveSplit.TotalPlaytime.csproj": {
+                "projectPath": "C:\\LiveSplit.TotalPlaytime\\src\\LiveSplit.TotalPlaytime\\LiveSplit.TotalPlaytime.csproj"
+              },
+              "C:\\LiveSplit.WorldRecord\\src\\LiveSplit.WorldRecord\\LiveSplit.WorldRecord.csproj": {
+                "projectPath": "C:\\LiveSplit.WorldRecord\\src\\LiveSplit.WorldRecord\\LiveSplit.WorldRecord.csproj"
+              }
+            }
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        },
+        "SdkAnalysisLevel": "10.0.100"
+      },
+      "frameworks": {
+        "net481": {
+          "targetAlias": "net4.8.1",
+          "dependencies": {
+            "Microsoft.NET.Test.Sdk": {
+              "target": "Package",
+              "version": "[17.12.0, )"
+            },
+            "PolySharp": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[1.14.1, )"
+            },
+            "coverlet.collector": {
+              "target": "Package",
+              "version": "[6.0.4, )"
+            },
+            "xunit": {
+              "target": "Package",
+              "version": "[2.4.1, )"
+            },
+            "xunit.runner.visualstudio": {
+              "target": "Package",
+              "version": "[3.0.1, )"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.107\\RuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

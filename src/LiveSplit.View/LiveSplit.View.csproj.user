@@ -1,0 +1,69 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup />
+  <ItemGroup>
+    <Compile Update="UI\NewRaceInputBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\AboutBox.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\AuthenticationDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\BackgroundVideo\EmbeddedLayoutOverlayPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="View\BackgroundVideo\VideoHostPanel.cs">
+      <SubType>Component</SubType>
+    </Compile>
+    <Compile Update="View\ChooseComparisonsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\ComponentSettingsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\EditHistoryDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\FontOverridePanel.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="View\LayoutEditorDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\LayoutSettingsControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="View\LayoutSettingsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\MetadataControl.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Update="View\RaceProviderManagingDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\RunEditorDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\SetSizeForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\SettingsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\ShareRunDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\SpeedrunComSubmitDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\SpeedRunsLiveForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Update="View\TimerForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+  </ItemGroup>
+</Project>

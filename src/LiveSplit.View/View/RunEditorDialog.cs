@@ -46,6 +46,7 @@ public partial class RunEditorDialog : Form
     protected bool IsInitialized = false;
     protected Time PreviousPersonalBestTime;
     private readonly CancellationTokenSource FillCbxGameTaskToken = new();
+    private bool _isClosing;
 
     protected bool IsGridTab => tabControl.SelectedTab == RealTime || tabControl.SelectedTab == GameTime;
     protected bool IsMetadataTab => tabControl.SelectedTab == Metadata;
@@ -977,12 +978,14 @@ public partial class RunEditorDialog : Form
 
     private void btnOK_Click(object sender, EventArgs e)
     {
+        BeginDialogClose();
         DialogResult = DialogResult.OK;
         Close();
     }
 
     private void btnCancel_Click(object sender, EventArgs e)
     {
+        BeginDialogClose();
         DialogResult = DialogResult.Cancel;
         Close();
     }
@@ -1910,7 +1913,20 @@ public partial class RunEditorDialog : Form
 
     private void ClickControl(object sender, EventArgs e)
     {
-        cbxGameName.CloseDropDown();
+        if (_isClosing || IsDisposed || Disposing || cbxGameName == null || cbxGameName.IsDisposed)
+        {
+            return;
+        }
+
+        BeginInvoke(new Action(() =>
+        {
+            if (_isClosing || IsDisposed || Disposing || cbxGameName == null || cbxGameName.IsDisposed)
+            {
+                return;
+            }
+
+            cbxGameName.CloseDropDown();
+        }));
     }
 
     private void SetClickEvents(Control control)
@@ -1962,7 +1978,20 @@ public partial class RunEditorDialog : Form
 
     private void RunEditorDialog_FormClosing(object sender, FormClosingEventArgs e)
     {
+        BeginDialogClose();
         FillCbxGameTaskToken.Cancel();
+    }
+
+    private void BeginDialogClose()
+    {
+        if (_isClosing)
+        {
+            return;
+        }
+
+        _isClosing = true;
+        cbxGameName?.MarkParentFormClosing();
+        cbxGameName?.CloseDropDown();
     }
 }
 
@@ -1975,6 +2004,7 @@ public class CustomAutoCompleteComboBox : ComboBox
     private string currentText = "";
     private string previousText = "";
     private bool taskCanceled = false;
+    private bool parentFormClosing = false;
 
     public IList<string> MyAutoCompleteSource { get; set; } = null;
 
@@ -1983,14 +2013,30 @@ public class CustomAutoCompleteComboBox : ComboBox
     public CustomAutoCompleteComboBox(Form controlForm) : base()
     {
         form = controlForm;
+        form.FormClosing += Form_FormClosing;
         form.FormClosed += Form_FormClosed;
         refreshDropDown = new SemaphoreSlim(0, 1);
     }
 
+    private void Form_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        parentFormClosing = true;
+        taskCanceled = true;
+        CloseDropDown();
+        TryReleaseRefreshDropDown();
+    }
+
     private void Form_FormClosed(object sender, FormClosedEventArgs e)
     {
+        parentFormClosing = true;
         taskCanceled = true;
         TryReleaseRefreshDropDown();
+    }
+
+    public void MarkParentFormClosing()
+    {
+        parentFormClosing = true;
+        taskCanceled = true;
     }
 
     public void UpdateUI()
@@ -2002,7 +2048,7 @@ public class CustomAutoCompleteComboBox : ComboBox
                 while (true)
                 {
                     refreshDropDown.Wait();
-                    if (taskCanceled || IsDisposed)
+                    if (taskCanceled || parentFormClosing || IsDisposed)
                     {
                         return;
                     }
@@ -2016,6 +2062,11 @@ public class CustomAutoCompleteComboBox : ComboBox
                         {
                             form.InvokeIfRequired(() =>
                             {
+                                if (taskCanceled || parentFormClosing || IsDisposed || !IsHandleCreated)
+                                {
+                                    return;
+                                }
+
                                 _box.Items.Clear();
                                 _box.Items.AddRange(legalStrings);
                                 DroppedDown = false;
@@ -2036,6 +2087,10 @@ public class CustomAutoCompleteComboBox : ComboBox
     protected override void OnTextChanged(EventArgs e)
     {
         base.OnTextChanged(e);
+        if (parentFormClosing || taskCanceled || IsDisposed || !IsHandleCreated)
+        {
+            return;
+        }
 
         _dropDown.AutoClose = false;
 
@@ -2046,10 +2101,26 @@ public class CustomAutoCompleteComboBox : ComboBox
     protected override void OnLostFocus(EventArgs e)
     {
         base.OnLostFocus(e);
-        if (!_dropDown.Focused)
+        if (parentFormClosing || taskCanceled || IsDisposed || !IsHandleCreated || form == null || form.IsDisposed || form.Disposing)
         {
-            CloseDropDown();
+            return;
         }
+
+        // Defer the close until after the current message (e.g. a click on OK/Cancel) has been
+        // fully processed. Calling _dropDown.Close() synchronously here sends WM_ACTIVATE back to
+        // the parent form, which kills the pending button-click and forces the user to click again.
+        form.BeginInvoke(new Action(() =>
+        {
+            if (parentFormClosing || taskCanceled || IsDisposed || _dropDown == null || _dropDown.IsDisposed)
+            {
+                return;
+            }
+
+            if (!ContainsFocus && !_dropDown.ContainsFocus)
+            {
+                CloseDropDown();
+            }
+        }));
     }
 
     private void TryReleaseRefreshDropDown()
@@ -2062,6 +2133,11 @@ public class CustomAutoCompleteComboBox : ComboBox
 
     public void CloseDropDown()
     {
+        if (_dropDown == null || _dropDown.IsDisposed || !IsHandleCreated)
+        {
+            return;
+        }
+
         _dropDown.Close();
     }
 

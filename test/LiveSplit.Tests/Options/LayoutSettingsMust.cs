@@ -1,6 +1,11 @@
-﻿using System.Drawing;
+﻿using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 
 using LiveSplit.Options;
+using LiveSplit.Options.SettingsFactories;
+using LiveSplit.Options.SettingsSavers;
+using LiveSplit.UI.Components;
 
 using Xunit;
 
@@ -8,6 +13,22 @@ namespace LiveSplit.Tests.Options;
 
 public class LayoutSettingsMust
 {
+    [Fact]
+    public void PersistDialogPanelResizingOption()
+    {
+        ComponentManager.RaceProviderFactories ??= new Dictionary<string, IRaceProviderFactory>();
+        ISettings settings = new StandardSettingsFactory().Create();
+        settings.AllowDialogPanelResizing = true;
+
+        using var stream = new MemoryStream();
+        new XMLSettingsSaver().Save(settings, stream);
+
+        stream.Position = 0;
+        ISettings loaded = new XMLSettingsFactory(stream).Create();
+
+        Assert.True(loaded.AllowDialogPanelResizing);
+    }
+
     [Fact]
     public void RememberValuesCorrectly()
     {
@@ -34,6 +55,9 @@ public class LayoutSettingsMust
             DropShadows = true,
             ImageBlur = 4.5F,
             ImageOpacity = 1,
+            VideoBlurScale = 0.35F,
+            VideoBlurType = BackgroundVideoBlurType.Directional,
+            VideoBlurDegrees = 45F,
             MousePassThroughWhileRunning = true,
             AllowResizing = true,
             AllowMoving = true,
@@ -42,11 +66,13 @@ public class LayoutSettingsMust
             PausedColor = Color.HotPink,
             PersonalBestColor = Color.Aqua,
             SeparatorsColor = Color.White,
+            SeparatorThickness = 3.5f,
             ShadowsColor = Color.Brown,
             ShowBestSegments = true,
             TextFont = new Font("Arial", 8.0F),
             TextOutlineColor = Color.CadetBlue,
             ThinSeparatorsColor = Color.Chartreuse,
+            ThinSeparatorThickness = 1.5f,
             TimerFont = new Font("Arial", 9.0F),
             TimesFont = new Font("Arial", 10.0F)
         };
@@ -71,6 +97,9 @@ public class LayoutSettingsMust
         Assert.True(sut.DropShadows);
         Assert.Equal(4.5F, sut.ImageBlur);
         Assert.Equal(1, sut.ImageOpacity);
+        Assert.Equal(0.35F, sut.VideoBlurScale);
+        Assert.Equal(BackgroundVideoBlurType.Directional, sut.VideoBlurType);
+        Assert.Equal(45F, sut.VideoBlurDegrees);
         Assert.True(sut.MousePassThroughWhileRunning);
         Assert.True(sut.AllowResizing);
         Assert.True(sut.AllowMoving);
@@ -79,12 +108,14 @@ public class LayoutSettingsMust
         Assert.Equal(Color.HotPink, sut.PausedColor);
         Assert.Equal(Color.Aqua, sut.PersonalBestColor);
         Assert.Equal(Color.White, sut.SeparatorsColor);
+        Assert.Equal(3.5f, sut.SeparatorThickness);
         Assert.Equal(Color.Brown, sut.ShadowsColor);
         Assert.True(sut.ShowBestSegments);
         Assert.NotNull(sut.TextFont);
         Assert.Equal("Arial", sut.TextFont.Name);
         Assert.Equal(Color.CadetBlue, sut.TextOutlineColor);
         Assert.Equal(Color.Chartreuse, sut.ThinSeparatorsColor);
+        Assert.Equal(1.5f, sut.ThinSeparatorThickness);
         Assert.Equal("Arial", sut.TimerFont.Name);
         Assert.Equal("Arial", sut.TimesFont.Name);
     }

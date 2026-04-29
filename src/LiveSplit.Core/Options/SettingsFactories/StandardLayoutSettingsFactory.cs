@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 
 using static System.Drawing.Color;
 
@@ -15,6 +15,8 @@ public class StandardLayoutSettingsFactory : ILayoutSettingsFactory
             BackgroundColor2 = FromArgb(0, 0, 0, 0),
             ThinSeparatorsColor = FromArgb(9, 255, 255, 255),
             SeparatorsColor = FromArgb(38, 255, 255, 255),
+            ThinSeparatorThickness = 1f,
+            SeparatorThickness = 2f,
             PersonalBestColor = FromArgb(22, 166, 255),
             AheadGainingTimeColor = FromArgb(41, 204, 84),
             AheadLosingTimeColor = FromArgb(112, 204, 137),
@@ -36,7 +38,28 @@ public class StandardLayoutSettingsFactory : ILayoutSettingsFactory
             BackgroundType = BackgroundType.SolidColor,
             BackgroundImage = null,
             ImageOpacity = 1f,
+            VideoOpacity = 1f,
             ImageBlur = 0f,
+            VideoBlurScale = 0f,
+            VideoBlurType = BackgroundVideoBlurType.Gaussian,
+            VideoBlurDegrees = 0f,
+            BackgroundVideoPath = "",
+            BackgroundVideoSource = "",
+            BackgroundVideoInputType = BackgroundVideoInputType.File,
+            BackgroundVideoBackend = BackgroundVideoBackend.MpvReadbackThreaded,
+            UseHardwareVideoDecoding = false,
+            LoopVideo = false,
+            PlayVideoAudio = false,
+            VideoAudioVolume = 1f,
+            ObsWindowCaptureCompatibilityMode = false,
+            VideoPanX = 0f,
+            VideoPanY = 0f,
+            VideoZoomExtra = 0f,
+            VideoStartWithTimer = false,
+            VideoKeepPlaybackAcrossTimerResets = true,
+            VideoPauseWhenRunCompletes = false,
+            VideoVolumeReductionPercentWhenRunCompletes = 0f,
+            VideoStartOffsetSeconds = 0f,
             Opacity = 1,
             MousePassThroughWhileRunning = false,
             AllowResizing = true,

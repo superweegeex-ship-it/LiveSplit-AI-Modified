@@ -38,6 +38,8 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.lstFont.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
+            this.lstFont.HorizontalScrollbar = true;
+            this.lstFont.IntegralHeight = false;
             this.lstFont.ItemHeight = 20;
             this.lstFont.Location = new System.Drawing.Point(0, 21);
             this.lstFont.Name = "lstFont";

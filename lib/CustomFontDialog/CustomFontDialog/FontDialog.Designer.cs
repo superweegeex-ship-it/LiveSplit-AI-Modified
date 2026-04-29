@@ -52,6 +52,7 @@
             this.label1.Size = new System.Drawing.Size(31, 13);
             this.label1.TabIndex = 0;
             this.label1.Text = "Font:";
+            this.label1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)));
             // 
             // label2
             // 
@@ -61,6 +62,7 @@
             this.label2.Size = new System.Drawing.Size(30, 13);
             this.label2.TabIndex = 3;
             this.label2.Text = "Size:";
+            this.label2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             // 
             // lstSize
             // 
@@ -85,16 +87,19 @@
             "72"});
             this.lstSize.Location = new System.Drawing.Point(190, 50);
             this.lstSize.Name = "lstSize";
-            this.lstSize.Size = new System.Drawing.Size(100, 171);
+            this.lstSize.Size = new System.Drawing.Size(64, 171);
             this.lstSize.TabIndex = 4;
+            this.lstSize.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.lstSize.SelectedIndexChanged += new System.EventHandler(this.lstSize_SelectedIndexChanged);
             // 
             // txtSize
             // 
             this.txtSize.Location = new System.Drawing.Point(190, 30);
             this.txtSize.Name = "txtSize";
-            this.txtSize.Size = new System.Drawing.Size(100, 20);
+            this.txtSize.Size = new System.Drawing.Size(64, 20);
             this.txtSize.TabIndex = 5;
+            this.txtSize.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.txtSize.TextChanged += new System.EventHandler(this.txtSize_TextChanged);
             this.txtSize.KeyDown += new System.Windows.Forms.KeyEventHandler(this.txtSize_KeyDown);
             // 
@@ -124,32 +129,37 @@
             // 
             this.groupBox1.Controls.Add(this.chbBold);
             this.groupBox1.Controls.Add(this.chbItalic);
-            this.groupBox1.Location = new System.Drawing.Point(312, 13);
+            this.groupBox1.Location = new System.Drawing.Point(266, 13);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(113, 83);
+            this.groupBox1.Size = new System.Drawing.Size(159, 83);
             this.groupBox1.TabIndex = 8;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Font Style";
+            this.groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             // 
             // groupBox2
             // 
             this.groupBox2.Controls.Add(this.lblSampleText);
-            this.groupBox2.Location = new System.Drawing.Point(190, 238);
+            this.groupBox2.Location = new System.Drawing.Point(266, 102);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(235, 79);
+            this.groupBox2.Size = new System.Drawing.Size(159, 83);
             this.groupBox2.TabIndex = 9;
             this.groupBox2.TabStop = false;
-            this.groupBox2.Text = "Sample Text";
+            this.groupBox2.Text = "Preview";
+            this.groupBox2.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             // 
             // lblSampleText
             // 
             this.lblSampleText.Font = new System.Drawing.Font("Microsoft Sans Serif", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.lblSampleText.Location = new System.Drawing.Point(6, 16);
             this.lblSampleText.Name = "lblSampleText";
-            this.lblSampleText.Size = new System.Drawing.Size(223, 53);
+            this.lblSampleText.Size = new System.Drawing.Size(147, 61);
             this.lblSampleText.TabIndex = 0;
             this.lblSampleText.Text = "AaBbCcXxYyZz";
             this.lblSampleText.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.lblSampleText.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             // 
             // btnCancel
             // 
@@ -160,6 +170,7 @@
             this.btnCancel.TabIndex = 10;
             this.btnCancel.Text = "Cancel";
             this.btnCancel.UseVisualStyleBackColor = true;
+            this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             // 
             // btnOK
             // 
@@ -170,6 +181,7 @@
             this.btnOK.TabIndex = 11;
             this.btnOK.Text = "OK";
             this.btnOK.UseVisualStyleBackColor = true;
+            this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
             // 
             // lstFont
             // 
@@ -178,6 +190,9 @@
             this.lstFont.SelectedFontFamily = null;
             this.lstFont.Size = new System.Drawing.Size(150, 289);
             this.lstFont.TabIndex = 1;
+            this.lstFont.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             // 
             // FontDialog
             // 
@@ -193,7 +208,8 @@
             this.Controls.Add(this.label2);
             this.Controls.Add(this.lstFont);
             this.Controls.Add(this.label1);
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.Sizable;
+            this.MinimumSize = new System.Drawing.Size(466, 420);
             this.Name = "FontDialog";
             this.ShowIcon = false;
             this.Text = "Font";

@@ -10,6 +10,8 @@ namespace LiveSplit.UI.Components;
 
 public class SeparatorComponent : IComponent
 {
+    private float separatorThickness = 2f;
+
     public float PaddingTop => 0;
     public float PaddingLeft => 0;
     public float PaddingBottom => 0;
@@ -23,10 +25,10 @@ public class SeparatorComponent : IComponent
 
     public GraphicsCache Cache { get; set; }
 
-    public float VerticalHeight => 2f;
+    public float VerticalHeight => separatorThickness;
 
     public float MinimumWidth => 0;
-    public float HorizontalWidth => 2f;
+    public float HorizontalWidth => separatorThickness;
 
     public float MinimumHeight => 0;
 
@@ -49,16 +51,19 @@ public class SeparatorComponent : IComponent
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
             g.Clip = new Region();
             Line.LineColor = UseSeparatorColor ? state.LayoutSettings.SeparatorsColor : state.LayoutSettings.ThinSeparatorsColor;
+            float targetSize = UseSeparatorColor
+                ? Math.Max(0.1f, state.LayoutSettings.SeparatorThickness)
+                : Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
             float scale = g.Transform.Elements.First();
-            float newHeight = Math.Max((int)((DisplayedSize * scale) + 0.5f), 1) / scale;
+            float newHeight = Math.Max((int)((targetSize * scale) + 0.5f), 1) / scale;
             Line.VerticalHeight = newHeight;
             if (LockToBottom)
             {
-                g.TranslateTransform(0, 2f - newHeight);
+                g.TranslateTransform(0, separatorThickness - newHeight);
             }
             else if (DisplayedSize > 1)
             {
-                g.TranslateTransform(0, (2f - newHeight) / 2f);
+                g.TranslateTransform(0, (separatorThickness - newHeight) / 2f);
             }
 
             Line.DrawVertical(g, state, width, clipRegion);
@@ -78,15 +83,18 @@ public class SeparatorComponent : IComponent
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
             g.Clip = new Region();
             Line.LineColor = UseSeparatorColor ? state.LayoutSettings.SeparatorsColor : state.LayoutSettings.ThinSeparatorsColor;
+            float targetSize = UseSeparatorColor
+                ? Math.Max(0.1f, state.LayoutSettings.SeparatorThickness)
+                : Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
             float scale = g.Transform.Elements.First();
-            float newWidth = Math.Max((int)((DisplayedSize * scale) + 0.5f), 1) / scale;
+            float newWidth = Math.Max((int)((targetSize * scale) + 0.5f), 1) / scale;
             if (LockToBottom)
             {
-                g.TranslateTransform(2f - newWidth, 0);
+                g.TranslateTransform(separatorThickness - newWidth, 0);
             }
             else if (DisplayedSize > 1)
             {
-                g.TranslateTransform((2f - newWidth) / 2f, 0);
+                g.TranslateTransform((separatorThickness - newWidth) / 2f, 0);
             }
 
             Line.HorizontalWidth = newWidth;
@@ -127,9 +135,11 @@ public class SeparatorComponent : IComponent
     public void Update(IInvalidator invalidator, LiveSplitState state, float width, float height, LayoutMode mode)
     {
         Cache.Restart();
+        separatorThickness = Math.Max(0.1f, state.LayoutSettings.SeparatorThickness);
         Cache["DisplayedSize"] = DisplayedSize;
         Cache["UseSeparatorColor"] = UseSeparatorColor;
         Cache["LockToBottom"] = LockToBottom;
+        Cache["SeparatorThickness"] = separatorThickness;
 
         if (invalidator != null && Cache.HasChanged)
         {

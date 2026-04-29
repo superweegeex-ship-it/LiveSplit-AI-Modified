@@ -365,6 +365,7 @@
             // btnCancel
             // 
             this.btnCancel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnCancel.CausesValidation = false;
             this.btnCancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             this.btnCancel.Location = new System.Drawing.Point(108, 3);
             this.btnCancel.Margin = new System.Windows.Forms.Padding(3, 3, 10, 10);
@@ -378,6 +379,8 @@
             // btnOK
             // 
             this.btnOK.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.btnOK.CausesValidation = false;
+            this.btnOK.DialogResult = System.Windows.Forms.DialogResult.OK;
             this.btnOK.Location = new System.Drawing.Point(25, 3);
             this.btnOK.Margin = new System.Windows.Forms.Padding(3, 3, 3, 10);
             this.btnOK.Name = "btnOK";
@@ -707,6 +710,8 @@
             this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.MinimumSize = new System.Drawing.Size(700, 510);
             this.Name = "RunEditorDialog";
+            this.AcceptButton = this.btnOK;
+            this.CancelButton = this.btnCancel;
             this.Text = "Splits Editor";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.RunEditorDialog_FormClosing);
             this.Load += new System.EventHandler(this.RunEditorDialog_Load);

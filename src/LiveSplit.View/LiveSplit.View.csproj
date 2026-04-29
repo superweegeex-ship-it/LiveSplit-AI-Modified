@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <RootNamespace>LiveSplit</RootNamespace>
@@ -6,6 +6,9 @@
     <TargetFramework>net4.8.1</TargetFramework>
 
     <GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
+
+    <Platforms>AnyCPU;x64</Platforms>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
@@ -13,10 +16,13 @@
     <ProjectReference Include="$(SrcPath)\LiveSplit.Core\LiveSplit.Core.csproj" />
     <ProjectReference Include="$(SrcPath)\UpdateManager\UpdateManager.csproj" />
     <ProjectReference Include="$(LibPath)\CustomFontDialog\CustomFontDialog\CustomFontDialog.csproj" />
+    <ProjectReference Include="$(ComponentsPath)\LiveSplit.Video\src\LiveSplit.Video\LiveSplit.Video.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+    <PackageReference Include="OpenTK" Version="3.3.3" />
+    <PackageReference Include="OpenTK.GLControl" Version="3.3.3" />
     <PackageReference Include="System.Resources.Extensions" Version="6.0.0" />
     <PackageReference Include="WindowsAPICodePack" Version="8.0.6" />
   </ItemGroup>

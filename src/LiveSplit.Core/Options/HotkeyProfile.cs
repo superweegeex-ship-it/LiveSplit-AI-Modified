@@ -17,6 +17,7 @@ public class HotkeyProfile : ICloneable
     public KeyOrButton UndoKey { get; set; }
     public KeyOrButton PauseKey { get; set; }
     public KeyOrButton ToggleGlobalHotkeys { get; set; }
+    public KeyOrButton ToggleVideoDebugOverlay { get; set; }
     public KeyOrButton SwitchComparisonPrevious { get; set; }
     public KeyOrButton SwitchComparisonNext { get; set; }
 
@@ -92,6 +93,16 @@ public class HotkeyProfile : ICloneable
             else
             {
                 hotkeyProfile.ToggleGlobalHotkeys = null;
+            }
+
+            XmlElement keyToggleDebugOverlay = element["ToggleVideoDebugOverlay"];
+            if (!string.IsNullOrEmpty(keyToggleDebugOverlay?.InnerText))
+            {
+                hotkeyProfile.ToggleVideoDebugOverlay = new KeyOrButton(keyToggleDebugOverlay.InnerText);
+            }
+            else
+            {
+                hotkeyProfile.ToggleVideoDebugOverlay = null;
             }
 
             if (version >= new Version(1, 3))
@@ -184,6 +195,14 @@ public class HotkeyProfile : ICloneable
 
         parent.AppendChild(toggleKey);
 
+        XmlElement toggleDebugOverlayKey = document.CreateElement("ToggleVideoDebugOverlay");
+        if (ToggleVideoDebugOverlay != null)
+        {
+            toggleDebugOverlayKey.InnerText = ToggleVideoDebugOverlay.ToString();
+        }
+
+        parent.AppendChild(toggleDebugOverlayKey);
+
         XmlElement switchComparisonPrevious = document.CreateElement("SwitchComparisonPrevious");
         if (SwitchComparisonPrevious != null)
         {
@@ -219,6 +238,7 @@ public class HotkeyProfile : ICloneable
             UndoKey = UndoKey,
             PauseKey = PauseKey,
             ToggleGlobalHotkeys = ToggleGlobalHotkeys,
+            ToggleVideoDebugOverlay = ToggleVideoDebugOverlay,
             SwitchComparisonPrevious = SwitchComparisonPrevious,
             SwitchComparisonNext = SwitchComparisonNext,
             HotkeyDelay = HotkeyDelay,
@@ -238,6 +258,7 @@ public class HotkeyProfile : ICloneable
             UndoKey,
             PauseKey,
             ToggleGlobalHotkeys,
+            ToggleVideoDebugOverlay,
             SwitchComparisonPrevious,
             SwitchComparisonNext
         };

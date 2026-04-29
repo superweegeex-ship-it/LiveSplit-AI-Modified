@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
@@ -8,6 +8,13 @@ using LiveSplit.Model.Input;
 using LiveSplit.Web.SRL;
 
 namespace LiveSplit.Options;
+
+public enum AppTheme
+{
+    Light = 0,
+    Dark = 1,
+    MatchSystem = 2,
+}
 
 public class Settings : ISettings
 {
@@ -21,7 +28,11 @@ public class Settings : ISettings
     public bool WarnOnReset { get; set; }
     public bool AgreedToSRLRules { get; set; }
     public bool SimpleSumOfBest { get; set; }
-    public int RefreshRate { get; set; }
+    /// <summary>How often the layout invalidation loop runs (Hz). Use 60 for streaming overlays.</summary>
+    public int RefreshRate { get; set; } = 60;
+
+    /// <summary>Max rate to sample the mpv video background onto the CPU bitmap (Hz); can be lower than <see cref="RefreshRate"/>.</summary>
+    public int VideoBackgroundPaintFps { get; set; } = 30;
     public int ServerPort { get; set; }
     public ServerStartupType ServerStartup { get; set; }
     public ServerStateType ServerState { get; set; }
@@ -31,6 +42,8 @@ public class Settings : ISettings
     public IDictionary<string, bool> ComparisonGeneratorStates { get; set; }
     public bool EnableDPIAwareness { get; set; }
     public string UILanguage { get; set; }
+    public AppTheme AppTheme { get; set; }
+    public bool AllowDialogPanelResizing { get; set; }
 
     // Deprecated properties
     public KeyOrButton SplitKey
@@ -62,6 +75,11 @@ public class Settings : ISettings
     {
         get => HotkeyProfiles.First().Value.ToggleGlobalHotkeys;
         set => HotkeyProfiles.First().Value.ToggleGlobalHotkeys = value;
+    }
+    public KeyOrButton ToggleVideoDebugOverlay
+    {
+        get => HotkeyProfiles.First().Value.ToggleVideoDebugOverlay;
+        set => HotkeyProfiles.First().Value.ToggleVideoDebugOverlay = value;
     }
     public KeyOrButton SwitchComparisonPrevious
     {
@@ -116,6 +134,7 @@ public class Settings : ISettings
             AgreedToSRLRules = AgreedToSRLRules,
             SimpleSumOfBest = SimpleSumOfBest,
             RefreshRate = RefreshRate,
+            VideoBackgroundPaintFps = VideoBackgroundPaintFps,
             ServerPort = ServerPort,
             ServerStartup = ServerStartup,
             ServerState = ServerState,
@@ -123,6 +142,8 @@ public class Settings : ISettings
             ComparisonGeneratorStates = new Dictionary<string, bool>(ComparisonGeneratorStates),
             EnableDPIAwareness = EnableDPIAwareness,
             UILanguage = UILanguage,
+            AppTheme = AppTheme,
+            AllowDialogPanelResizing = AllowDialogPanelResizing,
             HcpHistorySize = HcpHistorySize,
             HcpNBestRuns = HcpNBestRuns
         };
@@ -208,6 +229,18 @@ public class Settings : ISettings
                 try
                 {
                     RegisterHotkey(hook, hotkeyProfile.ToggleGlobalHotkeys, deactivateForOtherPrograms);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(e);
+                }
+            }
+
+            if (hotkeyProfile.ToggleVideoDebugOverlay != null)
+            {
+                try
+                {
+                    RegisterHotkey(hook, hotkeyProfile.ToggleVideoDebugOverlay, deactivateForOtherPrograms);
                 }
                 catch (Exception e)
                 {

@@ -1,0 +1,14 @@
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\bin\CustomFontDialog\release\CustomFontDialog.dll.config
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\bin\CustomFontDialog\release\CustomFontDialog.dll
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\bin\CustomFontDialog\release\CustomFontDialog.pdb
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.csproj.AssemblyReference.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.FontDialog.resources
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.FontList.resources
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.Properties.Resources.resources
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.csproj.GenerateResource.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.AssemblyInfoInputs.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.AssemblyInfo.cs
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.csproj.CoreCompileInputs.cache
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.dll
+C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\artifacts\obj\CustomFontDialog\release\CustomFontDialog.pdb

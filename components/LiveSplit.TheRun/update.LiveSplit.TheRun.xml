@@ -1,0 +1,65 @@
+﻿<updates>
+  <update version="0.4.4">
+    <files>
+      <file path="Components/LiveSplit.TheRun.dll" status="changed" />
+    </files>
+    <changelog>
+      <change>Strip images and layout path from splits file before uploading to reduce file size</change>
+    </changelog>
+  </update>
+  <update version="0.4.3">
+    <files>
+      <file path="Components/LiveSplit.TheRun.dll" status="changed" />
+    </files>
+    <changelog>
+      <change>Remove ConfigureAwait(false) to fix component crashes (LiveSplit#2677)</change>
+    </changelog>
+  </update>
+  <update version="0.4.2">
+    <files>
+      <file path="Components/LiveSplit.TheRun.dll" status="changed" />
+    </files>
+    <changelog>
+      <change>Fixed LiveSplit freezing on close when stats uploading is enabled</change>
+      <change>Skip upload on close when Sync on Reset is enabled</change>
+    </changelog>
+  </update>
+  <update version="0.4.1">
+    <files>
+      <file path="Components/LiveSplit.TheRun.dll" status="changed" />
+    </files>
+    <changelog>
+      <change>Fixed Test button staying greyed out when navigating back to settings</change>
+      <change>Added HTTP timeout to prevent button from hanging indefinitely</change>
+    </changelog>
+  </update>
+  <update version="0.4.0">
+    <files>
+      <file path="Components/LiveSplit.TheRun.dll" status="changed" />
+    </files>
+    <changelog>
+      <change>Auto-validate upload key on startup with connection status indicator</change>
+      <change>User profile and live page link shown in settings</change>
+      <change>Sync status displayed in component name</change>
+      <change>Toast notifications for stats sync progress</change>
+      <change>Added Sync on Reset option</change>
+      <change>Settings panel with info about therun.gg features and tooltips</change>
+      <change>Fixed event handler memory leak in Dispose</change>
+      <change>Code cleanup and MemoryStream disposal fix</change>
+    </changelog>
+  </update>
+  <update version="0.3.3">
+    <files>
+      <file path="Components/LiveSplit.TheRun.dll" status="changed" />
+    </files>
+    <changelog>
+    </changelog>
+  </update>
+  <update version="0.3.2">
+    <files>
+      <file path="Components/LiveSplit.TheRun.dll" status="changed" />
+    </files>
+    <changelog>
+    </changelog>
+  </update>
+</updates>

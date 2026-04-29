@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "b0LnZnp/j0k=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\xskil\\Desktop\\LiveSplit-mpv-experiment\\src\\UpdateManager\\UpdateManager.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\xskil\\.nuget\\packages\\polysharp\\1.14.1\\polysharp.1.14.1.nupkg.sha512"
+  ],
+  "logs": []
+}

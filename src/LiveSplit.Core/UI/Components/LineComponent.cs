@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
 using LiveSplit.Model;
+using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
@@ -27,8 +28,9 @@ public class LineComponent : IComponent
 
     public void DrawVertical(Graphics g, LiveSplitState state, float width, Region clipRegion)
     {
-        using var solidBrush = new SolidBrush(LineColor);
-        g.FillRectangle(solidBrush, 0.0f, 0.0f, width, VerticalHeight);
+        float h = Math.Max(VerticalHeight, 0.0001f);
+        using var brush = new SolidBrush(LineColor);
+        g.FillRectangle(brush, 0f, 0f, width, h);
     }
 
     public string ComponentName => throw new NotSupportedException();
@@ -64,8 +66,9 @@ public class LineComponent : IComponent
 
     public void DrawHorizontal(Graphics g, LiveSplitState state, float height, Region clipRegion)
     {
-        using var solidBrush = new SolidBrush(LineColor);
-        g.FillRectangle(solidBrush, 0.0f, 0.0f, HorizontalWidth, height);
+        float w = Math.Max(HorizontalWidth, 0.0001f);
+        using var brush = new SolidBrush(LineColor);
+        g.FillRectangle(brush, 0f, 0f, w, height);
     }
 
     public void Update(IInvalidator invalidator, LiveSplitState state, float width, float height, LayoutMode mode)

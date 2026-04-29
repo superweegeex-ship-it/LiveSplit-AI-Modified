@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Windows.Forms;
 
@@ -15,7 +16,16 @@ namespace LiveSplit.View;
 
 public partial class SettingsDialog : Form
 {
+    private const string WindowSizeRegistryPath = "WindowSizes";
+    private const string WindowWidthRegistryValue = "SettingsDialogWidth";
+    private const string WindowHeightRegistryValue = "SettingsDialogHeight";
+    private const string WindowXRegistryValue = "SettingsDialogX";
+    private const string WindowYRegistryValue = "SettingsDialogY";
+
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
+    private Label lblAppTheme;
+    private ComboBox cbxAppTheme;
+    private CheckBox chkAllowDialogPanelResizing;
 
     public ISettings Settings { get; set; }
     public CompositeHook Hook { get; set; }
@@ -29,6 +39,7 @@ public partial class SettingsDialog : Form
     public string SwitchComparisonPrevious => FormatKey(Settings.HotkeyProfiles[SelectedHotkeyProfile].SwitchComparisonPrevious);
     public string SwitchComparisonNext => FormatKey(Settings.HotkeyProfiles[SelectedHotkeyProfile].SwitchComparisonNext);
     public string ToggleGlobalHotkeys => FormatKey(Settings.HotkeyProfiles[SelectedHotkeyProfile].ToggleGlobalHotkeys);
+    public string ToggleVideoDebugOverlay => FormatKey(Settings.HotkeyProfiles[SelectedHotkeyProfile].ToggleVideoDebugOverlay);
     public float HotkeyDelay
     {
         get => Settings.HotkeyProfiles[SelectedHotkeyProfile].HotkeyDelay;
@@ -59,11 +70,26 @@ public partial class SettingsDialog : Form
         get => Settings.EnableDPIAwareness;
         set => Settings.EnableDPIAwareness = value;
     }
+    public bool AllowDialogPanelResizing
+    {
+        get => Settings.AllowDialogPanelResizing;
+        set
+        {
+            Settings.AllowDialogPanelResizing = value;
+            WinFormsTheme.AllowDialogPanelResizing = value;
+        }
+    }
 
     public int RefreshRate
     {
         get => Settings.RefreshRate;
         set => Settings.RefreshRate = Math.Min(Math.Max(value, 20), 300);
+    }
+
+    public int VideoBackgroundPaintFps
+    {
+        get => Settings.VideoBackgroundPaintFps;
+        set => Settings.VideoBackgroundPaintFps = Math.Min(Math.Max(value, 1), 120);
     }
 
     public int ServerPort
@@ -79,6 +105,8 @@ public partial class SettingsDialog : Form
     public SettingsDialog(CompositeHook hook, ISettings settings, string hotkeyProfile)
     {
         InitializeComponent();
+        ConfigureLayoutSizing();
+        RestoreWindowBounds();
         Settings = settings;
         Hook = hook;
 
@@ -94,8 +122,10 @@ public partial class SettingsDialog : Form
         chkEnableDPIAwareness.DataBindings.Add("Checked", this, "EnableDPIAwareness");
 
         txtRefreshRate.DataBindings.Add("Text", this, "RefreshRate");
+        txtVideoBackgroundPaintFps.DataBindings.Add("Text", this, "VideoBackgroundPaintFps");
         txtServerPort.DataBindings.Add("Text", this, "ServerPort");
         cbxServerStartup.SelectedIndex = (int)Settings.ServerStartup;
+        EnsureThemeControl();
 
         UpdateDisplayedHotkeyValues();
         RefreshRemoveButton();
@@ -110,6 +140,152 @@ public partial class SettingsDialog : Form
         }
 
         UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
+        WinFormsTheme.CurrentTheme = Settings.AppTheme;
+        WinFormsTheme.AllowDialogPanelResizing = Settings.AllowDialogPanelResizing;
+        WinFormsTheme.Apply(this);
+        FormClosing += SettingsDialog_FormClosing;
+    }
+
+    private void ConfigureLayoutSizing()
+    {
+        StartPosition = FormStartPosition.CenterParent;
+        groupBox1.AutoSize = true;
+        groupBox1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        tableLayoutPanel2.AutoSize = true;
+        tableLayoutPanel2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        if (tableLayoutPanel2.RowStyles.Count > 12)
+        {
+            tableLayoutPanel2.RowStyles[12].Height = 92F;
+        }
+    }
+
+    private void EnsureThemeControl()
+    {
+        if (cbxAppTheme != null)
+        {
+            return;
+        }
+
+        lblAppTheme = new Label
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = true,
+            Text = T("Theme:")
+        };
+
+        cbxAppTheme = new ComboBox
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        cbxAppTheme.Items.AddRange(new object[]
+        {
+            T("Light"),
+            T("Dark"),
+            T("Match System")
+        });
+        cbxAppTheme.SelectedIndex = Settings.AppTheme switch
+        {
+            AppTheme.Dark => 1,
+            AppTheme.MatchSystem => 2,
+            _ => 0,
+        };
+        cbxAppTheme.SelectedIndexChanged += cbxAppTheme_SelectedIndexChanged;
+
+        int row = tableLayoutPanel1.RowCount;
+        tableLayoutPanel1.RowCount = row + 1;
+        tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
+        tableLayoutPanel1.Controls.Add(lblAppTheme, 0, row);
+        tableLayoutPanel1.Controls.Add(cbxAppTheme, 1, row);
+        tableLayoutPanel1.SetColumnSpan(cbxAppTheme, 3);
+
+        chkAllowDialogPanelResizing = new CheckBox
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = true,
+            Margin = new Padding(7, 3, 3, 3),
+            Text = T("Allow resizable dialog panels (experimental)")
+        };
+        chkAllowDialogPanelResizing.DataBindings.Add("Checked", this, nameof(AllowDialogPanelResizing), false, DataSourceUpdateMode.OnPropertyChanged);
+
+        row = tableLayoutPanel1.RowCount;
+        tableLayoutPanel1.RowCount = row + 1;
+        tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
+        tableLayoutPanel1.Controls.Add(chkAllowDialogPanelResizing, 0, row);
+        tableLayoutPanel1.SetColumnSpan(chkAllowDialogPanelResizing, 4);
+    }
+
+    private void cbxAppTheme_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        Settings.AppTheme = cbxAppTheme.SelectedIndex switch
+        {
+            1 => AppTheme.Dark,
+            2 => AppTheme.MatchSystem,
+            _ => AppTheme.Light,
+        };
+        WinFormsTheme.CurrentTheme = Settings.AppTheme;
+        WinFormsTheme.Apply(this);
+    }
+
+    private void SettingsDialog_FormClosing(object sender, FormClosingEventArgs e)
+    {
+        SaveWindowBounds();
+    }
+
+    private void RestoreWindowBounds()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            object widthValue = windowSizes.GetValue(WindowWidthRegistryValue);
+            object heightValue = windowSizes.GetValue(WindowHeightRegistryValue);
+            object xValue = windowSizes.GetValue(WindowXRegistryValue);
+            object yValue = windowSizes.GetValue(WindowYRegistryValue);
+            if (widthValue is int width && heightValue is int height
+                && xValue is int x && yValue is int y
+                && width >= MinimumSize.Width && height >= MinimumSize.Height)
+            {
+                Rectangle bounds = WinFormsTheme.ClampToVisibleScreen(new Rectangle(x, y, width, height), MinimumSize);
+                StartPosition = FormStartPosition.Manual;
+                Bounds = bounds;
+            }
+            else if (widthValue is int savedWidth && heightValue is int savedHeight
+                && savedWidth >= MinimumSize.Width && savedHeight >= MinimumSize.Height)
+            {
+                Size = new Size(savedWidth, savedHeight);
+            }
+        }
+        catch
+        {
+            // Ignore persisted-window-bounds read errors.
+        }
+    }
+
+    private void SaveWindowBounds()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            Rectangle bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
+            windowSizes.SetValue(WindowWidthRegistryValue, bounds.Width);
+            windowSizes.SetValue(WindowHeightRegistryValue, bounds.Height);
+            windowSizes.SetValue(WindowXRegistryValue, bounds.X);
+            windowSizes.SetValue(WindowYRegistryValue, bounds.Y);
+        }
+        catch
+        {
+            // Ignore persisted-window-bounds write errors.
+        }
     }
 
     private void InitializeHotkeyProfiles(string hotkeyProfile)
@@ -126,6 +302,7 @@ public partial class SettingsDialog : Form
         txtUndo.Text = UndoKey;
         txtPause.Text = PauseKey;
         txtToggle.Text = ToggleGlobalHotkeys;
+        txtToggleVideoDebugOverlay.Text = ToggleVideoDebugOverlay;
         txtSwitchPrevious.Text = SwitchComparisonPrevious;
         txtSwitchNext.Text = SwitchComparisonNext;
 
@@ -284,6 +461,10 @@ public partial class SettingsDialog : Form
     private void Toggle_Set_Enter(object sender, EventArgs e)
     {
         SetHotkeyHandlers((TextBox)sender, x => Settings.HotkeyProfiles[SelectedHotkeyProfile].ToggleGlobalHotkeys = x);
+    }
+    private void ToggleVideoDebugOverlay_Set_Enter(object sender, EventArgs e)
+    {
+        SetHotkeyHandlers((TextBox)sender, x => Settings.HotkeyProfiles[SelectedHotkeyProfile].ToggleVideoDebugOverlay = x);
     }
     private void Switch_Previous_Set_Enter(object sender, EventArgs e)
     {

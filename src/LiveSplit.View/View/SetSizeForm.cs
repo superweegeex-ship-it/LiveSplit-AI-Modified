@@ -1,5 +1,8 @@
 ﻿using System;
+using System.Drawing;
 using System.Windows.Forms;
+
+using LiveSplit.UI;
 
 namespace LiveSplit.View;
 
@@ -34,6 +37,8 @@ public partial class SetSizeForm : Form
     public SetSizeForm(Form form)
     {
         InitializeComponent();
+        StartPosition = FormStartPosition.CenterParent;
+        DoubleBuffered = true;
 
         TimerForm = form;
         KeepAspectRatio = false;
@@ -44,6 +49,15 @@ public partial class SetSizeForm : Form
         nmHeight.DataBindings.Add("Value", this, "FormHeight", false, DataSourceUpdateMode.OnPropertyChanged);
         chkKeepAspectRatio.DataBindings.Add("Checked", this, "KeepAspectRatio", false, DataSourceUpdateMode.OnPropertyChanged);
 
+        WinFormsTheme.Apply(this);
+        Shown += SetSizeForm_Shown;
+    }
+
+    private void SetSizeForm_Shown(object sender, EventArgs e)
+    {
+        Bounds = WinFormsTheme.ClampToVisibleScreen(Bounds, MinimumSize);
+        Invalidate(true);
+        BeginInvoke(new Action(Refresh));
     }
 
     protected void HeightChanged()
