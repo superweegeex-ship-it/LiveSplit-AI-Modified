@@ -3,8 +3,9 @@ Used AI entirely to write the code, just used my own ideas to steer it in the ri
 
 For any information related to Livesplit not present here, see the original [Livesplit](https://github.com/LiveSplit) github page.
 
+
 List of features: (still updating)
-- Dark mode/system mode
+## - Dark mode/system mode (make sure to check in the main Livesplit settings)
 - Resizable windows everywhere
 - Resizable font box elements
 - 3 color gradient on detailed timer
