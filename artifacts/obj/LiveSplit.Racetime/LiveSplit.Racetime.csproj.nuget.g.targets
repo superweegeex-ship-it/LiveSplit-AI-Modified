@@ -1,9 +1,0 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="no"?>
-<Project ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <ImportGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
-    <Import Project="$(NuGetPackageRoot)system.resources.extensions\6.0.0\buildTransitive\net461\System.Resources.Extensions.targets" Condition="Exists('$(NuGetPackageRoot)system.resources.extensions\6.0.0\buildTransitive\net461\System.Resources.Extensions.targets')" />
-    <Import Project="$(NuGetPackageRoot)polysharp\1.14.1\buildTransitive\PolySharp.targets" Condition="Exists('$(NuGetPackageRoot)polysharp\1.14.1\buildTransitive\PolySharp.targets')" />
-    <Import Project="$(NuGetPackageRoot)system.text.json\9.0.4\buildTransitive\net462\System.Text.Json.targets" Condition="Exists('$(NuGetPackageRoot)system.text.json\9.0.4\buildTransitive\net462\System.Text.Json.targets')" />
-    <Import Project="$(NuGetPackageRoot)microsoft.web.webview2\1.0.2420.47\build\Microsoft.Web.WebView2.targets" Condition="Exists('$(NuGetPackageRoot)microsoft.web.webview2\1.0.2420.47\build\Microsoft.Web.WebView2.targets')" />
-  </ImportGroup>
-</Project>
