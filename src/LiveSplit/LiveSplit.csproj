@@ -41,7 +41,8 @@
       if exist "$(OutputPath)\Microsoft.WindowsAPICodePack.ShellExtensions.dll" del "$(OutputPath)\Microsoft.WindowsAPICodePack.ShellExtensions.dll"
       if exist "$(OutputPath)\x64\asr_capi.dll" del "$(OutputPath)\x64\asr_capi.dll"
       if exist "$(OutputPath)\x86\asr_capi.dll" del "$(OutputPath)\x86\asr_capi.dll"
-      rem libmpv-2.dll: copy first match into output (required for video background). Skip if you already placed one next to LiveSplit.exe.
+      rem libmpv + FFmpeg DLLs: prefer repo bundle (third_party\mpv\x64), then machine installs, then repo root file.
+      if exist "$(MSBuildProjectDirectory)\..\..\third_party\mpv\x64\libmpv-2.dll" xcopy /y /q "$(MSBuildProjectDirectory)\..\..\third_party\mpv\x64\*.dll" "$(OutputPath)\"
       if not exist "$(OutputPath)\libmpv-2.dll" if exist "$(LocalAppData)\Programs\mpv.net\libmpv-2.dll" copy /y "$(LocalAppData)\Programs\mpv.net\libmpv-2.dll" "$(OutputPath)"
       if not exist "$(OutputPath)\libmpv-2.dll" if exist "$(ProgramW6432)\mpv\libmpv-2.dll" copy /y "$(ProgramW6432)\mpv\libmpv-2.dll" "$(OutputPath)"
       if not exist "$(OutputPath)\libmpv-2.dll" if exist "$(MSBuildProjectDirectory)\..\..\libmpv-2.dll" copy /y "$(MSBuildProjectDirectory)\..\..\libmpv-2.dll" "$(OutputPath)"
