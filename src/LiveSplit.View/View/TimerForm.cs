@@ -5244,6 +5244,11 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private int lastInternalReadbackHeight;
     private int inputWidth;
     private int inputHeight;
+    /// <summary>Last <see cref="TryApplyMpvScalerForDecodedVideoSize"/> <c>dwidth</c>/<c>dheight</c> pair; reset on load/stop.</summary>
+    private int lastAppliedMpvScalerSourceW = -1;
+    private int lastAppliedMpvScalerSourceH = -1;
+    /// <summary>GDI+ upscale from readback bitmap to layout: nearest for retro line counts, else bicubic.</summary>
+    private volatile bool readbackBlitUsesNearestNeighbor;
     private double uiVideoPaintHz;
     private double videoFps;
     private double videoBitrateMbps;
@@ -5436,6 +5441,9 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private bool LoadCore(string source)
     {
         loadedSource = source;
+        lastAppliedMpvScalerSourceW = -1;
+        lastAppliedMpvScalerSourceH = -1;
+        readbackBlitUsesNearestNeighbor = false;
         forceTimerSyncResync = false;
         ApplyMpvRuntimeOptions();
         int mpvResult = MpvCommand("loadfile", source, "replace");
@@ -5523,6 +5531,9 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         waitingForTimerStartBeforePlayback = false;
         lastTimerSyncSeekPositionSeconds = double.NaN;
         forceTimerSyncResync = false;
+        lastAppliedMpvScalerSourceW = -1;
+        lastAppliedMpvScalerSourceH = -1;
+        readbackBlitUsesNearestNeighbor = false;
         metricsClock.Restart();
         SyncPresentationWithHost(false, MaxPresentFps);
     }
@@ -5913,6 +5924,77 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         return true;
     }
 
+    private static readonly int[] RetroLineCountDimensionsForNearestScaling = { 224, 240, 448, 480 };
+
+    /// <summary>
+    /// When the coded picture width or height matches one of these line counts, use nearest-neighbor in mpv and for the readback GDI+ blit.
+    /// </summary>
+    private static bool ShouldUseNearestMpvScalingForCodedDimensions(int codedWidth, int codedHeight)
+    {
+        if (codedWidth <= 0 || codedHeight <= 0)
+        {
+            return false;
+        }
+
+        foreach (int v in RetroLineCountDimensionsForNearestScaling)
+        {
+            if (codedWidth == v || codedHeight == v)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private bool TryGetDecodedVideoSize(out int w, out int h)
+    {
+        w = 0;
+        h = 0;
+        if (TryGetMpvIntProperty("dwidth", out long dw) && TryGetMpvIntProperty("dheight", out long dh))
+        {
+            w = (int)Math.Min(int.MaxValue, dw);
+            h = (int)Math.Min(int.MaxValue, dh);
+            return w > 0 && h > 0;
+        }
+
+        if (TryGetMpvIntProperty("width", out long sw) && TryGetMpvIntProperty("height", out long sh))
+        {
+            w = (int)Math.Min(int.MaxValue, sw);
+            h = (int)Math.Min(int.MaxValue, sh);
+            return w > 0 && h > 0;
+        }
+
+        return false;
+    }
+
+    private void TryApplyMpvScalerForDecodedVideoSize()
+    {
+        if (mpvHandle == IntPtr.Zero)
+        {
+            return;
+        }
+
+        if (!TryGetDecodedVideoSize(out int w, out int h))
+        {
+            return;
+        }
+
+        if (w == lastAppliedMpvScalerSourceW && h == lastAppliedMpvScalerSourceH)
+        {
+            return;
+        }
+
+        bool nearest = ShouldUseNearestMpvScalingForCodedDimensions(w, h);
+        lastAppliedMpvScalerSourceW = w;
+        lastAppliedMpvScalerSourceH = h;
+        string scaler = nearest ? "nearest" : "bicubic";
+        _ = MpvCommand("set", "scale", scaler);
+        _ = MpvCommand("set", "cscale", scaler);
+        _ = MpvCommand("set", "dscale", scaler);
+        readbackBlitUsesNearestNeighbor = nearest;
+    }
+
     private static string PtrToStringUtf8(IntPtr nativeUtf8)
     {
         if (nativeUtf8 == IntPtr.Zero)
@@ -6000,9 +6082,10 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             _ = mpv_set_option_string(mpvHandle, "gpu-api", "d3d11");
             _ = mpv_set_option_string(mpvHandle, "hwdec", UseHardwareDecoding ? MpvHwdecWhenEnabled : "no");
             _ = mpv_set_option_string(mpvHandle, "profile", "fast");
-            _ = mpv_set_option_string(mpvHandle, "scale", "nearest");
-            _ = mpv_set_option_string(mpvHandle, "cscale", "nearest");
-            _ = mpv_set_option_string(mpvHandle, "dscale", "nearest");
+            // Default to bicubic; <see cref="TryApplyMpvScalerForDecodedVideoSize"/> switches to nearest for classic line counts.
+            _ = mpv_set_option_string(mpvHandle, "scale", "bicubic");
+            _ = mpv_set_option_string(mpvHandle, "cscale", "bicubic");
+            _ = mpv_set_option_string(mpvHandle, "dscale", "bicubic");
             _ = mpv_set_option_string(mpvHandle, "correct-downscaling", "no");
             _ = mpv_set_option_string(mpvHandle, "deband", "no");
             _ = mpv_set_option_string(mpvHandle, "sigmoid-upscaling", "no");
@@ -6829,6 +6912,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             mpvNativeWindow.ProcessEvents();
 
             ApplyMpvViewportScaling(rh);
+            TryApplyMpvScalerForDecodedVideoSize();
             mpvGraphicsContext.MakeCurrent(mpvNativeWindow.WindowInfo);
 
             // Render/readback only when mpv reports a new frame/update.
@@ -7073,8 +7157,10 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         InterpolationMode savedInterpolation = graphics.InterpolationMode;
         try
         {
-            // Upscale from readback buffer: nearest is fast and acceptable for a blurred video background.
-            graphics.InterpolationMode = InterpolationMode.NearestNeighbor;
+            // Upscale from readback buffer: match mpv scaler (nearest vs bicubic) for retro line counts.
+            graphics.InterpolationMode = readbackBlitUsesNearestNeighbor
+                ? InterpolationMode.NearestNeighbor
+                : InterpolationMode.HighQualityBicubic;
             if (renderOpacity >= 0.999f)
             {
                 graphics.DrawImage(mpvFrameBitmapFront, dest);
