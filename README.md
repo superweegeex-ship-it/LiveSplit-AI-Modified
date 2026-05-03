@@ -1,3 +1,6 @@
+# CURRENTLY REVAMPING, TOTALLY EXPERIMENTAL
+
+
 (If attempting to compile from source code read [this](https://github.com/superweegeex-ship-it/LiveSplit-AI-Modified/tree/master/third_party/mpv/x64), DLLs are included in the release builds but not in source code for copyright reasons. (I believe only libmpv-2.dll is necessary currently).
 
 # Largely modified version of the original Livesplit by wooferzfg.
