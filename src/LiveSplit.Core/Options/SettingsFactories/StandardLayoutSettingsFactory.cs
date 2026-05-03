@@ -1,5 +1,7 @@
 using System.Drawing;
 
+using LiveSplit.UI;
+
 using static System.Drawing.Color;
 
 namespace LiveSplit.Options.SettingsFactories;
@@ -63,7 +65,22 @@ public class StandardLayoutSettingsFactory : ILayoutSettingsFactory
             Opacity = 1,
             MousePassThroughWhileRunning = false,
             AllowResizing = true,
-            AllowMoving = true
+            AllowMoving = true,
+            SeparatorFillMode = CurrentSplitOutlineFillMode.Solid,
+            SeparatorGradientEndColor = FromArgb(255, 80, 200),
+            SeparatorRgbWave = false,
+            SeparatorWaveAxis = CurrentSplitOutlineWaveAxis.Horizontal,
+            SeparatorWaveSpeed = 0,
+            SeparatorOutlineEnabled = false,
+            SeparatorOutlineThickness = 2f,
+            SeparatorOutlineColor = FromArgb(255, 255, 255),
+            SeparatorOutlineTransparency = 0f,
+            SeparatorOutlineFillMode = CurrentSplitOutlineFillMode.Solid,
+            SeparatorOutlineGradientEndColor = FromArgb(255, 80, 200),
+            SeparatorOutlineRgbWave = false,
+            SeparatorOutlineWaveAxis = CurrentSplitOutlineWaveAxis.Horizontal,
+            SeparatorOutlineWaveSpeed = 0,
+            SeparatorOutlineInterpolation = CurrentSplitImageInterpolationFilter.Nearest
         };
     }
 }

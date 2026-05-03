@@ -75,7 +75,8 @@ public class XMLSettingsFactory : ISettingsFactory
         {
             settings.AppTheme = appTheme;
         }
-        settings.AllowDialogPanelResizing = ParseBool(parent["AllowDialogPanelResizing"], settings.AllowDialogPanelResizing);
+        _ = ParseBool(parent["AllowDialogPanelResizing"], settings.AllowDialogPanelResizing);
+        settings.AllowDialogPanelResizing = true;
 
         if (version >= new Version(1, 3))
         {

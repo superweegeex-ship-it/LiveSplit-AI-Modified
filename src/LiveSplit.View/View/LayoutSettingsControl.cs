@@ -58,6 +58,20 @@ public partial class LayoutSettingsControl : UserControl
     private NumericUpDown numThinSeparatorThickness;
     private Label lblSeparatorThickness;
     private NumericUpDown numSeparatorThickness;
+    private TableLayoutPanel separatorThicknessPanel;
+    private GroupBox grpSeparatorAppearance;
+    private Label lblSeparatorFillMode;
+    private ComboBox cmbSeparatorFillMode;
+    private Label lblSeparatorGradientEnd;
+    private Button btnSeparatorGradientEndColor;
+    private CheckBox chkSeparatorRgbWave;
+    private Label lblSeparatorWaveAxis;
+    private RadioButton rdoSeparatorWaveHorizontal;
+    private RadioButton rdoSeparatorWaveVertical;
+    private Label lblSeparatorWaveSpeed;
+    private TrackBar trkSeparatorWaveSpeed;
+    private bool suppressSeparatorWaveAxisEvents;
+    private bool suppressSeparatorFillModeComboEvents;
     private GroupBox grpVideoBlur;
     private TableLayoutPanel tableVideoBlur;
     private Label lblVideoBlurType;
@@ -180,6 +194,8 @@ public partial class LayoutSettingsControl : UserControl
         trkBlur.Scroll += TrkBlur_VideoVolumeLiveApply;
         trkBlur.ValueChanged += TrkBlur_VideoVolumeLiveApply;
         EnsureSeparatorThicknessControls();
+        EnsureSeparatorAppearanceControls();
+        EnsureSeparatorOutlineControls();
         EnsureVideoBlurControls();
         trkVideoBlurScale.DataBindings.Add("Value", this, nameof(VideoBlurScale), false, DataSourceUpdateMode.OnPropertyChanged);
         numVideoBlurDegrees.DataBindings.Add("Value", this, nameof(VideoBlurDegreesDecimal), true, DataSourceUpdateMode.OnPropertyChanged);
@@ -568,32 +584,317 @@ public partial class LayoutSettingsControl : UserControl
                 Margin = new Padding(7, 3, 3, 3)
             };
 
-            var panel = new TableLayoutPanel
+            separatorThicknessPanel = new TableLayoutPanel
             {
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Dock = DockStyle.Fill,
+                // Top (not Fill): in an AutoSize table row, Dock Fill often collapses nested rows to zero height.
+                Dock = DockStyle.Top,
                 ColumnCount = 4,
                 Margin = new Padding(0),
                 Padding = new Padding(0)
             };
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
-            panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
-            panel.Controls.Add(lblThinSeparatorThickness, 0, 0);
-            panel.Controls.Add(numThinSeparatorThickness, 1, 0);
-            panel.Controls.Add(lblSeparatorThickness, 2, 0);
-            panel.Controls.Add(numSeparatorThickness, 3, 0);
+            separatorThicknessPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
+            separatorThicknessPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
+            separatorThicknessPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30f));
+            separatorThicknessPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 20f));
+            separatorThicknessPanel.Controls.Add(lblThinSeparatorThickness, 0, 0);
+            separatorThicknessPanel.Controls.Add(numThinSeparatorThickness, 1, 0);
+            separatorThicknessPanel.Controls.Add(lblSeparatorThickness, 2, 0);
+            separatorThicknessPanel.Controls.Add(numSeparatorThickness, 3, 0);
 
             int row = tableLayoutPanel5.RowCount - 1;
-            tableLayoutPanel5.Controls.Add(panel, 0, row);
-            tableLayoutPanel5.SetColumnSpan(panel, 3);
+            tableLayoutPanel5.Controls.Add(separatorThicknessPanel, 0, row);
+            tableLayoutPanel5.SetColumnSpan(separatorThicknessPanel, 3);
         }
         finally
         {
             tableLayoutPanel5.ResumeLayout();
         }
+    }
+
+    private void EnsureSeparatorAppearanceControls()
+    {
+        if (grpSeparatorAppearance != null || separatorThicknessPanel == null)
+        {
+            return;
+        }
+
+        separatorThicknessPanel.SuspendLayout();
+        try
+        {
+            separatorThicknessPanel.RowCount += 1;
+            separatorThicknessPanel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            lblSeparatorFillMode = new Label
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Text = T("Separator fill:")
+            };
+
+            cmbSeparatorFillMode = new ComboBox
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                FormattingEnabled = false
+            };
+
+            foreach (string name in Enum.GetNames(typeof(CurrentSplitOutlineFillMode)))
+            {
+                cmbSeparatorFillMode.Items.Add(name);
+            }
+
+            lblSeparatorGradientEnd = new Label
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Text = T("2nd color:")
+            };
+
+            btnSeparatorGradientEndColor = new Button
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                FlatStyle = FlatStyle.Popup,
+                UseVisualStyleBackColor = false
+            };
+
+            chkSeparatorRgbWave = new CheckBox
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Text = T("RGB wave (overrides two-color gradient)")
+            };
+
+            lblSeparatorWaveAxis = new Label
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Text = T("Wave / gradient axis:")
+            };
+
+            rdoSeparatorWaveHorizontal = new RadioButton
+            {
+                Anchor = AnchorStyles.Left,
+                AutoSize = true,
+                Text = T("Horizontal")
+            };
+
+            rdoSeparatorWaveVertical = new RadioButton
+            {
+                Anchor = AnchorStyles.Left,
+                AutoSize = true,
+                Text = T("Vertical")
+            };
+
+            lblSeparatorWaveSpeed = new Label
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Text = T("Wave speed:")
+            };
+
+            trkSeparatorWaveSpeed = new TrackBar
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                Minimum = 0,
+                Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum,
+                TickFrequency = 5
+            };
+
+            grpSeparatorAppearance = new GroupBox
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Top,
+                Padding = new Padding(8),
+                Text = T("Separator gradient & wave")
+            };
+
+            var inner = new TableLayoutPanel
+            {
+                AutoSize = true,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                Dock = DockStyle.Top,
+                ColumnCount = 2,
+                Padding = new Padding(0)
+            };
+            inner.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 160F));
+            inner.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            inner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            inner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            inner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            inner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            inner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            inner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            inner.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+
+            inner.Controls.Add(lblSeparatorFillMode, 0, 0);
+            inner.Controls.Add(cmbSeparatorFillMode, 1, 0);
+            inner.Controls.Add(lblSeparatorGradientEnd, 0, 1);
+            inner.Controls.Add(btnSeparatorGradientEndColor, 1, 1);
+            inner.Controls.Add(chkSeparatorRgbWave, 0, 2);
+            inner.SetColumnSpan(chkSeparatorRgbWave, 2);
+            inner.Controls.Add(lblSeparatorWaveAxis, 0, 3);
+            var axisPanel = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Margin = new Padding(0)
+            };
+            axisPanel.Controls.Add(rdoSeparatorWaveHorizontal);
+            axisPanel.Controls.Add(rdoSeparatorWaveVertical);
+            inner.Controls.Add(axisPanel, 1, 3);
+            inner.Controls.Add(lblSeparatorWaveSpeed, 0, 4);
+            inner.Controls.Add(trkSeparatorWaveSpeed, 1, 4);
+
+            grpSeparatorAppearance.Controls.Add(inner);
+            separatorThicknessPanel.Controls.Add(grpSeparatorAppearance, 0, 1);
+            separatorThicknessPanel.SetColumnSpan(grpSeparatorAppearance, 4);
+
+            if (Settings.SeparatorWaveSpeed > CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum)
+            {
+                Settings.SeparatorWaveSpeed = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
+            }
+
+            btnSeparatorGradientEndColor.Click += ColorButtonClick;
+            btnSeparatorGradientEndColor.DataBindings.Add("BackColor", Settings, nameof(LiveSplit.Options.LayoutSettings.SeparatorGradientEndColor), false, DataSourceUpdateMode.OnPropertyChanged);
+            chkSeparatorRgbWave.DataBindings.Add("Checked", Settings, nameof(LiveSplit.Options.LayoutSettings.SeparatorRgbWave), false, DataSourceUpdateMode.OnPropertyChanged);
+            trkSeparatorWaveSpeed.DataBindings.Add("Value", Settings, nameof(LiveSplit.Options.LayoutSettings.SeparatorWaveSpeed), false, DataSourceUpdateMode.OnPropertyChanged);
+
+            cmbSeparatorFillMode.SelectedIndexChanged += SeparatorFillModeCombo_SelectedIndexChanged;
+            chkSeparatorRgbWave.CheckedChanged += SeparatorAppearance_LiveApply;
+            btnSeparatorGradientEndColor.BackColorChanged += SeparatorAppearance_LiveApply;
+            trkSeparatorWaveSpeed.Scroll += SeparatorAppearance_LiveApply;
+            trkSeparatorWaveSpeed.ValueChanged += SeparatorAppearance_LiveApply;
+            rdoSeparatorWaveHorizontal.CheckedChanged += SeparatorWaveAxis_CheckedChanged;
+            rdoSeparatorWaveVertical.CheckedChanged += SeparatorWaveAxis_CheckedChanged;
+
+            SyncSeparatorFillModeComboFromSettings();
+            SyncSeparatorWaveAxisRadiosFromSettings();
+            UpdateSeparatorAppearanceOptionStates();
+        }
+        finally
+        {
+            separatorThicknessPanel.ResumeLayout();
+        }
+    }
+
+    private void SeparatorFillModeCombo_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (suppressSeparatorFillModeComboEvents || cmbSeparatorFillMode?.SelectedItem is not string name)
+        {
+            return;
+        }
+
+        try
+        {
+            Settings.SeparatorFillMode = (CurrentSplitOutlineFillMode)Enum.Parse(typeof(CurrentSplitOutlineFillMode), name, true);
+        }
+        catch (ArgumentException)
+        {
+            Settings.SeparatorFillMode = CurrentSplitOutlineFillMode.Solid;
+        }
+
+        SyncSeparatorFillModeComboFromSettings();
+        UpdateSeparatorAppearanceOptionStates();
+        NotifyLiveApplyRequested();
+    }
+
+    private void SyncSeparatorFillModeComboFromSettings()
+    {
+        if (cmbSeparatorFillMode == null)
+        {
+            return;
+        }
+
+        string canonical = Settings.SeparatorFillMode.ToString();
+        int idx = cmbSeparatorFillMode.FindStringExact(canonical);
+        if (idx < 0)
+        {
+            idx = 0;
+        }
+
+        if (cmbSeparatorFillMode.SelectedIndex == idx)
+        {
+            return;
+        }
+
+        suppressSeparatorFillModeComboEvents = true;
+        try
+        {
+            cmbSeparatorFillMode.SelectedIndex = idx;
+        }
+        finally
+        {
+            suppressSeparatorFillModeComboEvents = false;
+        }
+    }
+
+    private void SeparatorWaveAxis_CheckedChanged(object sender, EventArgs e)
+    {
+        if (suppressSeparatorWaveAxisEvents)
+        {
+            return;
+        }
+
+        if (!rdoSeparatorWaveHorizontal.Checked && !rdoSeparatorWaveVertical.Checked)
+        {
+            return;
+        }
+
+        Settings.SeparatorWaveAxis = rdoSeparatorWaveVertical.Checked
+            ? CurrentSplitOutlineWaveAxis.Vertical
+            : CurrentSplitOutlineWaveAxis.Horizontal;
+        NotifyLiveApplyRequested();
+    }
+
+    private void SyncSeparatorWaveAxisRadiosFromSettings()
+    {
+        if (rdoSeparatorWaveHorizontal == null || rdoSeparatorWaveVertical == null)
+        {
+            return;
+        }
+
+        suppressSeparatorWaveAxisEvents = true;
+        try
+        {
+            if (Settings.SeparatorWaveAxis == CurrentSplitOutlineWaveAxis.Vertical)
+            {
+                rdoSeparatorWaveVertical.Checked = true;
+            }
+            else
+            {
+                rdoSeparatorWaveHorizontal.Checked = true;
+            }
+        }
+        finally
+        {
+            suppressSeparatorWaveAxisEvents = false;
+        }
+    }
+
+    private void SeparatorAppearance_LiveApply(object sender, EventArgs e)
+    {
+        UpdateSeparatorAppearanceOptionStates();
+        NotifyLiveApplyRequested();
+    }
+
+    private void UpdateSeparatorAppearanceOptionStates()
+    {
+        if (lblSeparatorGradientEnd == null)
+        {
+            return;
+        }
+
+        bool gradient = Settings.SeparatorFillMode == CurrentSplitOutlineFillMode.Gradient;
+        bool waveControlsOn = Settings.SeparatorRgbWave || gradient;
+        // Match splits current-split outline: keep 2nd color editable in gradient mode (RGB wave overrides at draw time).
+        lblSeparatorGradientEnd.Enabled = btnSeparatorGradientEndColor.Enabled = gradient;
+        lblSeparatorWaveAxis.Enabled = rdoSeparatorWaveHorizontal.Enabled = rdoSeparatorWaveVertical.Enabled = waveControlsOn;
+        lblSeparatorWaveSpeed.Enabled = trkSeparatorWaveSpeed.Enabled = waveControlsOn;
+        UpdateSeparatorOutlineOptionStates();
     }
 
     private void EnsureVideoBlurControls()

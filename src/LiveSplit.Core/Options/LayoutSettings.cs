@@ -1,6 +1,8 @@
 using System;
 using System.Drawing;
 
+using LiveSplit.UI;
+
 namespace LiveSplit.Options;
 
 public class LayoutSettings : ICloneable
@@ -12,6 +14,41 @@ public class LayoutSettings : ICloneable
     public Color SeparatorsColor { get; set; }
     public float ThinSeparatorThickness { get; set; }
     public float SeparatorThickness { get; set; }
+
+    /// <summary>Solid uses <see cref="SeparatorsColor"/> / <see cref="ThinSeparatorsColor"/> only; gradient uses those as the first stop and <see cref="SeparatorGradientEndColor"/> as the second.</summary>
+    public CurrentSplitOutlineFillMode SeparatorFillMode { get; set; }
+
+    public Color SeparatorGradientEndColor { get; set; }
+
+    public bool SeparatorRgbWave { get; set; }
+
+    public CurrentSplitOutlineWaveAxis SeparatorWaveAxis { get; set; }
+
+    /// <summary>0 = static gradient; higher values animate the gradient / wave (same scale as current-split outline).</summary>
+    public int SeparatorWaveSpeed { get; set; }
+
+    /// <summary>When true, draws a border around each separator strip (same model as the Splits current-split outline).</summary>
+    public bool SeparatorOutlineEnabled { get; set; }
+
+    public float SeparatorOutlineThickness { get; set; }
+
+    public Color SeparatorOutlineColor { get; set; }
+
+    /// <summary>0 = opaque stroke, 100 = invisible (same convention as current-split outline transparency).</summary>
+    public float SeparatorOutlineTransparency { get; set; }
+
+    public CurrentSplitOutlineFillMode SeparatorOutlineFillMode { get; set; }
+
+    public Color SeparatorOutlineGradientEndColor { get; set; }
+
+    public bool SeparatorOutlineRgbWave { get; set; }
+
+    public CurrentSplitOutlineWaveAxis SeparatorOutlineWaveAxis { get; set; }
+
+    public int SeparatorOutlineWaveSpeed { get; set; }
+
+    public CurrentSplitImageInterpolationFilter SeparatorOutlineInterpolation { get; set; }
+
     public Color PersonalBestColor { get; set; }
     public Color AheadGainingTimeColor { get; set; }
     public Color AheadLosingTimeColor { get; set; }
@@ -100,6 +137,21 @@ public class LayoutSettings : ICloneable
         SeparatorsColor = settings.SeparatorsColor;
         ThinSeparatorThickness = settings.ThinSeparatorThickness;
         SeparatorThickness = settings.SeparatorThickness;
+        SeparatorFillMode = settings.SeparatorFillMode;
+        SeparatorGradientEndColor = settings.SeparatorGradientEndColor;
+        SeparatorRgbWave = settings.SeparatorRgbWave;
+        SeparatorWaveAxis = settings.SeparatorWaveAxis;
+        SeparatorWaveSpeed = settings.SeparatorWaveSpeed;
+        SeparatorOutlineEnabled = settings.SeparatorOutlineEnabled;
+        SeparatorOutlineThickness = settings.SeparatorOutlineThickness;
+        SeparatorOutlineColor = settings.SeparatorOutlineColor;
+        SeparatorOutlineTransparency = settings.SeparatorOutlineTransparency;
+        SeparatorOutlineFillMode = settings.SeparatorOutlineFillMode;
+        SeparatorOutlineGradientEndColor = settings.SeparatorOutlineGradientEndColor;
+        SeparatorOutlineRgbWave = settings.SeparatorOutlineRgbWave;
+        SeparatorOutlineWaveAxis = settings.SeparatorOutlineWaveAxis;
+        SeparatorOutlineWaveSpeed = settings.SeparatorOutlineWaveSpeed;
+        SeparatorOutlineInterpolation = settings.SeparatorOutlineInterpolation;
         PersonalBestColor = settings.PersonalBestColor;
         AheadGainingTimeColor = settings.AheadGainingTimeColor;
         AheadLosingTimeColor = settings.AheadLosingTimeColor;

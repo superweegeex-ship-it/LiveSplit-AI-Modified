@@ -4,6 +4,7 @@ using System.IO;
 using System.Xml;
 
 using LiveSplit.Options;
+using LiveSplit.UI;
 using LiveSplit.UI.Components;
 
 namespace LiveSplit.UI.LayoutSavers;
@@ -19,6 +20,21 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "SeparatorsColor", settings.SeparatorsColor) ^
         SettingsHelper.CreateSetting(document, element, "ThinSeparatorThickness", settings.ThinSeparatorThickness) ^
         SettingsHelper.CreateSetting(document, element, "SeparatorThickness", settings.SeparatorThickness) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorFillMode", settings.SeparatorFillMode) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorGradientEndColor", settings.SeparatorGradientEndColor) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorRgbWave", settings.SeparatorRgbWave) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorWaveAxis", settings.SeparatorWaveAxis) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorWaveSpeed", settings.SeparatorWaveSpeed) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineEnabled", settings.SeparatorOutlineEnabled) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineThickness", settings.SeparatorOutlineThickness) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineColor", settings.SeparatorOutlineColor) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineTransparency", settings.SeparatorOutlineTransparency) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineFillMode", settings.SeparatorOutlineFillMode) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineGradientEndColor", settings.SeparatorOutlineGradientEndColor) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineRgbWave", settings.SeparatorOutlineRgbWave) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineWaveAxis", settings.SeparatorOutlineWaveAxis) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineWaveSpeed", settings.SeparatorOutlineWaveSpeed) ^
+        SettingsHelper.CreateSetting(document, element, "SeparatorOutlineInterpolation", settings.SeparatorOutlineInterpolation) ^
         SettingsHelper.CreateSetting(document, element, "PersonalBestColor", settings.PersonalBestColor) ^
         SettingsHelper.CreateSetting(document, element, "AheadGainingTimeColor", settings.AheadGainingTimeColor) ^
         SettingsHelper.CreateSetting(document, element, "AheadLosingTimeColor", settings.AheadLosingTimeColor) ^

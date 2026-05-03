@@ -22,7 +22,7 @@ public class SettingsHelper
             OriginalFont = previousFont,
             MinSize = minSize,
             MaxSize = maxSize,
-            AllowResizablePanels = WinFormsTheme.AllowDialogPanelResizing
+            AllowResizablePanels = true
         };
         WinFormsTheme.Apply(dialog);
         return dialog;
@@ -385,7 +385,7 @@ public static class WinFormsTheme
     private static readonly ToolStripRenderer DarkToolStripRenderer = new ToolStripProfessionalRenderer(new DarkToolStripColorTable());
 
     public static AppTheme CurrentTheme { get; set; } = AppTheme.Light;
-    public static bool AllowDialogPanelResizing { get; set; }
+    public static bool AllowDialogPanelResizing { get; set; } = true;
 
     public static bool IsDarkActive => Resolve(CurrentTheme) == AppTheme.Dark;
 

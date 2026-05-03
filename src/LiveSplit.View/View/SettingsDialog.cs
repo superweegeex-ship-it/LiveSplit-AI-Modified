@@ -25,7 +25,6 @@ public partial class SettingsDialog : Form
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
     private Label lblAppTheme;
     private ComboBox cbxAppTheme;
-    private CheckBox chkAllowDialogPanelResizing;
 
     public ISettings Settings { get; set; }
     public CompositeHook Hook { get; set; }
@@ -70,16 +69,6 @@ public partial class SettingsDialog : Form
         get => Settings.EnableDPIAwareness;
         set => Settings.EnableDPIAwareness = value;
     }
-    public bool AllowDialogPanelResizing
-    {
-        get => Settings.AllowDialogPanelResizing;
-        set
-        {
-            Settings.AllowDialogPanelResizing = value;
-            WinFormsTheme.AllowDialogPanelResizing = value;
-        }
-    }
-
     public int RefreshRate
     {
         get => Settings.RefreshRate;
@@ -141,7 +130,7 @@ public partial class SettingsDialog : Form
 
         UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
         WinFormsTheme.CurrentTheme = Settings.AppTheme;
-        WinFormsTheme.AllowDialogPanelResizing = Settings.AllowDialogPanelResizing;
+        WinFormsTheme.AllowDialogPanelResizing = true;
         WinFormsTheme.Apply(this);
         FormClosing += SettingsDialog_FormClosing;
     }
@@ -194,25 +183,13 @@ public partial class SettingsDialog : Form
 
         int row = tableLayoutPanel1.RowCount;
         tableLayoutPanel1.RowCount = row + 1;
-        tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
+        tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 52F));
         tableLayoutPanel1.Controls.Add(lblAppTheme, 0, row);
         tableLayoutPanel1.Controls.Add(cbxAppTheme, 1, row);
         tableLayoutPanel1.SetColumnSpan(cbxAppTheme, 3);
-
-        chkAllowDialogPanelResizing = new CheckBox
-        {
-            Anchor = AnchorStyles.Left | AnchorStyles.Right,
-            AutoSize = true,
-            Margin = new Padding(7, 3, 3, 3),
-            Text = T("Allow resizable dialog panels (experimental)")
-        };
-        chkAllowDialogPanelResizing.DataBindings.Add("Checked", this, nameof(AllowDialogPanelResizing), false, DataSourceUpdateMode.OnPropertyChanged);
-
-        row = tableLayoutPanel1.RowCount;
-        tableLayoutPanel1.RowCount = row + 1;
-        tableLayoutPanel1.RowStyles.Add(new RowStyle(SizeType.Absolute, 32F));
-        tableLayoutPanel1.Controls.Add(chkAllowDialogPanelResizing, 0, row);
-        tableLayoutPanel1.SetColumnSpan(chkAllowDialogPanelResizing, 4);
+        // Extra scroll extent so the theme row and combo dropdown are not clipped at the bottom.
+        tableLayoutPanel1.AutoScrollMargin = new Size(0, 36);
+        cbxAppTheme.Margin = new Padding(3, 2, 3, 10);
     }
 
     private void cbxAppTheme_SelectedIndexChanged(object sender, EventArgs e)

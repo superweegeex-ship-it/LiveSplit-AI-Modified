@@ -10,12 +10,15 @@ using LiveSplit.Localization;
 using LiveSplit.Model;
 using LiveSplit.Model.Comparisons;
 using LiveSplit.TimeFormatters;
+using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
 public partial class SplitsSettings : UserControl
 {
     private static readonly EventHandler CurrentSplitBackgroundOnFrameChanged = static (_, _) => { };
+
+    private bool _inOutlineFillModeComboSync;
 
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
 
@@ -137,6 +140,84 @@ public partial class SplitsSettings : UserControl
 
     public string CurrentSplitBackgroundImagePath { get; set; }
 
+    public bool CurrentSplitOutlineEnabled { get; set; }
+
+    public decimal CurrentSplitOutlineThickness { get; set; }
+
+    public Color CurrentSplitOutlineColor { get; set; }
+
+    /// <summary>0 = fully opaque outline, 100 = fully transparent (invisible).</summary>
+    public decimal CurrentSplitOutlineTransparency { get; set; }
+
+    public CurrentSplitImageInterpolationFilter CurrentSplitImageInterpolation { get; set; }
+
+    public string CurrentSplitImageInterpolationString
+    {
+        get => CurrentSplitImageInterpolation.ToString();
+        set => CurrentSplitImageInterpolation = (CurrentSplitImageInterpolationFilter)Enum.Parse(typeof(CurrentSplitImageInterpolationFilter), value);
+    }
+
+    public CurrentSplitImageInterpolationFilter CurrentSplitOutlineInterpolation { get; set; }
+
+    public string CurrentSplitOutlineInterpolationString
+    {
+        get => CurrentSplitOutlineInterpolation.ToString();
+        set
+        {
+            try
+            {
+                CurrentSplitOutlineInterpolation = (CurrentSplitImageInterpolationFilter)Enum.Parse(
+                    typeof(CurrentSplitImageInterpolationFilter),
+                    value,
+                    true);
+            }
+            catch (ArgumentException)
+            {
+                CurrentSplitOutlineInterpolation = CurrentSplitImageInterpolationFilter.Nearest;
+            }
+        }
+    }
+
+    public CurrentSplitOutlineFillMode CurrentSplitOutlineFillMode { get; set; }
+
+    public string CurrentSplitOutlineFillModeString
+    {
+        get => CurrentSplitOutlineFillMode.ToString();
+        set
+        {
+            if (string.Equals(value, "GradientHorizontal", StringComparison.OrdinalIgnoreCase))
+            {
+                CurrentSplitOutlineFillMode = CurrentSplitOutlineFillMode.Gradient;
+                CurrentSplitOutlineWaveAxis = CurrentSplitOutlineWaveAxis.Horizontal;
+            }
+            else if (string.Equals(value, "GradientVertical", StringComparison.OrdinalIgnoreCase))
+            {
+                CurrentSplitOutlineFillMode = CurrentSplitOutlineFillMode.Gradient;
+                CurrentSplitOutlineWaveAxis = CurrentSplitOutlineWaveAxis.Vertical;
+            }
+            else
+            {
+                try
+                {
+                    CurrentSplitOutlineFillMode = (CurrentSplitOutlineFillMode)Enum.Parse(typeof(CurrentSplitOutlineFillMode), value, true);
+                }
+                catch (ArgumentException)
+                {
+                    CurrentSplitOutlineFillMode = CurrentSplitOutlineFillMode.Solid;
+                }
+            }
+        }
+    }
+
+    public Color CurrentSplitOutlineGradientEndColor { get; set; }
+
+    public bool CurrentSplitOutlineRgbWave { get; set; }
+
+    public CurrentSplitOutlineWaveAxis CurrentSplitOutlineWaveAxis { get; set; }
+
+    /// <summary>0 = frozen rainbow; higher values scroll the RGB wave faster.</summary>
+    public int CurrentSplitOutlineWaveSpeed { get; set; }
+
     private Image _currentSplitBackgroundImage;
     private string _currentSplitBackgroundImagePathLoaded;
 
@@ -198,6 +279,8 @@ public partial class SplitsSettings : UserControl
     public SplitsSettings(LiveSplitState state)
     {
         InitializeComponent();
+        trkCurrentSplitOutlineWaveSpeed.Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
+        trkCurrentSplitOutlineWaveSpeed.TickFrequency = 5;
 
         CurrentState = state;
 
@@ -231,6 +314,21 @@ public partial class SplitsSettings : UserControl
         OverrideTimesColor = false;
         CurrentSplitGradient = GradientType.Vertical;
         CurrentSplitBackgroundImagePath = string.Empty;
+        CurrentSplitOutlineEnabled = false;
+        CurrentSplitOutlineThickness = 2;
+        CurrentSplitOutlineColor = Color.White;
+        CurrentSplitOutlineTransparency = 0;
+        CurrentSplitImageInterpolation = CurrentSplitImageInterpolationFilter.Bilinear;
+        CurrentSplitOutlineInterpolation = CurrentSplitImageInterpolationFilter.Nearest;
+        CurrentSplitOutlineFillMode = CurrentSplitOutlineFillMode.Solid;
+        CurrentSplitOutlineGradientEndColor = Color.FromArgb(255, 80, 200);
+        CurrentSplitOutlineRgbWave = false;
+        CurrentSplitOutlineWaveAxis = CurrentSplitOutlineWaveAxis.Horizontal;
+        CurrentSplitOutlineWaveSpeed = 25;
+        nudCurrentSplitOutlineThickness.DecimalPlaces = 1;
+        nudCurrentSplitOutlineThickness.Increment = 0.1m;
+        nudCurrentSplitOutlineThickness.Minimum = 0.1m;
+        nudCurrentSplitOutlineThickness.Maximum = 20m;
         cmbSplitGradient.SelectedIndexChanged += cmbSplitGradient_SelectedIndexChanged;
         btnCurrentSplitBackgroundBrowse.Click += btnCurrentSplitBackgroundBrowse_Click;
         Disposed += (_, _) => ReleaseCurrentSplitBackgroundImageResources();
@@ -324,12 +422,27 @@ public partial class SplitsSettings : UserControl
 
         trkIconSize.DataBindings.Add("Value", this, "IconSize", false, DataSourceUpdateMode.OnPropertyChanged);
         EnsureCurrentSplitGradientComboItems();
+        EnsureCurrentSplitImageInterpolationComboItems();
         cmbSplitGradient.DataBindings.Add("SelectedItem", this, "SplitGradientString", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbHeaderComparison.DataBindings.Add("SelectedItem", this, "HeaderComparison", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbHeaderTimingMethod.DataBindings.Add("SelectedItem", this, "HeaderTimingMethod", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbGradientType.DataBindings.Add("SelectedItem", this, "GradientString", false, DataSourceUpdateMode.OnPropertyChanged);
         btnColor1.DataBindings.Add("BackColor", this, "BackgroundColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnColor2.DataBindings.Add("BackColor", this, "BackgroundColor2", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkCurrentSplitOutline.DataBindings.Add("Checked", this, "CurrentSplitOutlineEnabled", false, DataSourceUpdateMode.OnPropertyChanged);
+        nudCurrentSplitOutlineThickness.DataBindings.Add("Value", this, "CurrentSplitOutlineThickness", true, DataSourceUpdateMode.OnPropertyChanged);
+        nudCurrentSplitOutlineTransparency.DataBindings.Add("Value", this, "CurrentSplitOutlineTransparency", true, DataSourceUpdateMode.OnPropertyChanged);
+        btnCurrentSplitOutlineColor.DataBindings.Add("BackColor", this, "CurrentSplitOutlineColor", false, DataSourceUpdateMode.OnPropertyChanged);
+        cmbCurrentSplitImageFilter.DataBindings.Add("SelectedItem", this, "CurrentSplitImageInterpolationString", false, DataSourceUpdateMode.OnPropertyChanged);
+        EnsureCurrentSplitOutlineInterpolationComboItems();
+        cmbCurrentSplitOutlineInterpolation.DataBindings.Add("SelectedItem", this, "CurrentSplitOutlineInterpolationString", false, DataSourceUpdateMode.OnPropertyChanged);
+        EnsureCurrentSplitOutlineFillModeComboItems();
+        btnCurrentSplitOutlineGradientEndColor.DataBindings.Add("BackColor", this, "CurrentSplitOutlineGradientEndColor", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkCurrentSplitOutlineRgbWave.DataBindings.Add("Checked", this, "CurrentSplitOutlineRgbWave", false, DataSourceUpdateMode.OnPropertyChanged);
+        trkCurrentSplitOutlineWaveSpeed.DataBindings.Add("Value", this, "CurrentSplitOutlineWaveSpeed", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkCurrentSplitOutline.CheckedChanged += (_, _) => UpdateCurrentSplitOutlineControlsEnabled();
+        UpdateCurrentSplitOutlineControlsEnabled();
+        UpdateCurrentSplitImageAndOutlineOptionStates();
 
         btnLabelColor.DataBindings.Add("BackColor", this, "LabelsColor", false, DataSourceUpdateMode.OnPropertyChanged);
 
@@ -354,6 +467,130 @@ public partial class SplitsSettings : UserControl
     private void EnsureCurrentSplitGradientComboItems()
     {
         EnsureGradientComboHasAllModes(cmbSplitGradient);
+    }
+
+    private void EnsureCurrentSplitImageInterpolationComboItems()
+    {
+        foreach (string name in Enum.GetNames(typeof(CurrentSplitImageInterpolationFilter)))
+        {
+            if (!cmbCurrentSplitImageFilter.Items.Contains(name))
+            {
+                cmbCurrentSplitImageFilter.Items.Add(name);
+            }
+        }
+    }
+
+    private void EnsureCurrentSplitOutlineFillModeComboItems()
+    {
+        foreach (string name in Enum.GetNames(typeof(CurrentSplitOutlineFillMode)))
+        {
+            if (!cmbCurrentSplitOutlineColorMode.Items.Contains(name))
+            {
+                cmbCurrentSplitOutlineColorMode.Items.Add(name);
+            }
+        }
+    }
+
+    private void EnsureCurrentSplitOutlineInterpolationComboItems()
+    {
+        foreach (string name in Enum.GetNames(typeof(CurrentSplitImageInterpolationFilter)))
+        {
+            if (!cmbCurrentSplitOutlineInterpolation.Items.Contains(name))
+            {
+                cmbCurrentSplitOutlineInterpolation.Items.Add(name);
+            }
+        }
+    }
+
+    private void cmbCurrentSplitOutlineInterpolation_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void cmbCurrentSplitOutlineColorMode_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (_inOutlineFillModeComboSync || cmbCurrentSplitOutlineColorMode.SelectedIndex < 0)
+        {
+            return;
+        }
+
+        if (cmbCurrentSplitOutlineColorMode.SelectedItem is not string rawName)
+        {
+            return;
+        }
+
+        string name = rawName.Trim();
+        try
+        {
+            _inOutlineFillModeComboSync = true;
+            CurrentSplitOutlineFillModeString = name;
+            SyncCurrentSplitOutlineFillModeCombo();
+        }
+        finally
+        {
+            _inOutlineFillModeComboSync = false;
+        }
+
+        UpdateCurrentSplitOutlineAppearanceOptionStates();
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void SyncCurrentSplitOutlineFillModeCombo()
+    {
+        if (cmbCurrentSplitOutlineColorMode == null || cmbCurrentSplitOutlineColorMode.IsDisposed)
+        {
+            return;
+        }
+
+        EnsureCurrentSplitOutlineFillModeComboItems();
+        string canonical = CurrentSplitOutlineFillMode.ToString();
+        if (!cmbCurrentSplitOutlineColorMode.Items.Contains(canonical))
+        {
+            CurrentSplitOutlineFillMode = CurrentSplitOutlineFillMode.Solid;
+            canonical = CurrentSplitOutlineFillMode.ToString();
+        }
+
+        if (cmbCurrentSplitOutlineColorMode.Items.Contains(canonical))
+        {
+            cmbCurrentSplitOutlineColorMode.SelectedItem = canonical;
+        }
+    }
+
+    private void chkCurrentSplitOutlineRgbWave_CheckedChanged(object sender, EventArgs e)
+    {
+        UpdateCurrentSplitOutlineAppearanceOptionStates();
+        SyncOutlineWaveAxisRadios();
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void rdoCurrentSplitOutlineWaveAxis_CheckedChanged(object sender, EventArgs e)
+    {
+        if (!rdoCurrentSplitOutlineWaveHorizontal.Checked && !rdoCurrentSplitOutlineWaveVertical.Checked)
+        {
+            return;
+        }
+
+        CurrentSplitOutlineWaveAxis = rdoCurrentSplitOutlineWaveVertical.Checked
+            ? CurrentSplitOutlineWaveAxis.Vertical
+            : CurrentSplitOutlineWaveAxis.Horizontal;
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void trkCurrentSplitOutlineWaveSpeed_Scroll(object sender, EventArgs e)
+    {
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void SyncOutlineWaveAxisRadios()
+    {
+        if (CurrentSplitOutlineWaveAxis == CurrentSplitOutlineWaveAxis.Vertical)
+        {
+            rdoCurrentSplitOutlineWaveVertical.Checked = true;
+        }
+        else
+        {
+            rdoCurrentSplitOutlineWaveHorizontal.Checked = true;
+        }
     }
 
     private void chkColumnLabels_CheckedChanged(object sender, EventArgs e)
@@ -443,6 +680,8 @@ public partial class SplitsSettings : UserControl
         {
             ReleaseCurrentSplitBackgroundImageResources();
         }
+
+        UpdateCurrentSplitImageAndOutlineOptionStates();
     }
 
     private void btnCurrentSplitBackgroundBrowse_Click(object sender, EventArgs e)
@@ -573,9 +812,88 @@ public partial class SplitsSettings : UserControl
         SplitLayoutChanged(this, null);
     }
 
+    private void UpdateCurrentSplitOutlineControlsEnabled()
+    {
+        bool on = chkCurrentSplitOutline.Checked;
+        lblCurrentSplitOutlineThickness.Enabled = nudCurrentSplitOutlineThickness.Enabled = lblCurrentSplitOutlineColor.Enabled =
+            btnCurrentSplitOutlineColor.Enabled = lblCurrentSplitOutlineTransparency.Enabled = nudCurrentSplitOutlineTransparency.Enabled = on;
+        lblCurrentSplitOutlineColorMode.Enabled = cmbCurrentSplitOutlineColorMode.Enabled = on;
+        UpdateCurrentSplitOutlineAppearanceOptionStates();
+        UpdateCurrentSplitImageAndOutlineOptionStates();
+    }
+
+    private CurrentSplitOutlineFillMode GetCurrentSplitOutlineFillModeFromUi()
+    {
+        if (cmbCurrentSplitOutlineColorMode?.SelectedItem is string name
+            && Enum.TryParse(name, out CurrentSplitOutlineFillMode mode))
+        {
+            return mode;
+        }
+
+        return CurrentSplitOutlineFillMode;
+    }
+
+    private bool IsCurrentSplitOutlineGradientFillFromUi()
+    {
+        CurrentSplitOutlineFillMode mode = GetCurrentSplitOutlineFillModeFromUi();
+        return mode == CurrentSplitOutlineFillMode.Gradient;
+    }
+
+    private void RefreshCurrentSplitOutlineThemedControls()
+    {
+        foreach (Control c in new Control[]
+                 {
+                     lblCurrentSplitOutlineGradientEndColor, lblCurrentSplitOutlineWaveSpeed, lblCurrentSplitOutlineColorMode,
+                     lblCurrentSplitOutlineInterpolation, trkCurrentSplitOutlineWaveSpeed,
+                     rdoCurrentSplitOutlineWaveHorizontal, rdoCurrentSplitOutlineWaveVertical
+                 })
+        {
+            if (c != null)
+            {
+                WinFormsTheme.Apply(c);
+            }
+        }
+    }
+
+    private void UpdateCurrentSplitOutlineAppearanceOptionStates()
+    {
+        bool on = chkCurrentSplitOutline.Checked;
+        bool gradientFillUi = on && IsCurrentSplitOutlineGradientFillFromUi();
+        lblCurrentSplitOutlineGradientEndColor.Enabled = btnCurrentSplitOutlineGradientEndColor.Enabled = gradientFillUi;
+
+        bool wave = on && (chkCurrentSplitOutlineRgbWave.Checked || IsCurrentSplitOutlineGradientFillFromUi());
+        lblCurrentSplitOutlineWaveSpeed.Enabled = trkCurrentSplitOutlineWaveSpeed.Enabled = wave;
+        bool axisMeaningful = on && (chkCurrentSplitOutlineRgbWave.Checked || IsCurrentSplitOutlineGradientFillFromUi());
+        rdoCurrentSplitOutlineWaveHorizontal.Enabled = rdoCurrentSplitOutlineWaveVertical.Enabled = axisMeaningful;
+
+        lblCurrentSplitOutlineInterpolation.Enabled = cmbCurrentSplitOutlineInterpolation.Enabled = on;
+        RefreshCurrentSplitOutlineThemedControls();
+    }
+
+    private void UpdateCurrentSplitImageAndOutlineOptionStates()
+    {
+        bool imageMode = CurrentSplitGradient == GradientType.Image;
+        lblCurrentSplitImageFilter.Enabled = cmbCurrentSplitImageFilter.Enabled = imageMode;
+    }
+
     private void SplitsSettings_Load(object sender, EventArgs e)
     {
         EnsureCurrentSplitGradientComboItems();
+        EnsureCurrentSplitImageInterpolationComboItems();
+        if (cmbCurrentSplitImageFilter.Items.Contains(CurrentSplitImageInterpolationString))
+        {
+            cmbCurrentSplitImageFilter.SelectedItem = CurrentSplitImageInterpolationString;
+        }
+
+        EnsureCurrentSplitOutlineInterpolationComboItems();
+        if (cmbCurrentSplitOutlineInterpolation.Items.Contains(CurrentSplitOutlineInterpolationString))
+        {
+            cmbCurrentSplitOutlineInterpolation.SelectedItem = CurrentSplitOutlineInterpolationString;
+        }
+
+        SyncCurrentSplitOutlineFillModeCombo();
+
+        SyncOutlineWaveAxisRadios();
 
         ResetColumns();
 
@@ -622,6 +940,8 @@ public partial class SplitsSettings : UserControl
         rdoSectionTimerAccuracyMilliseconds.Checked = SectionTimerAccuracy == TimeAccuracy.Milliseconds;
 
         cmbSplitGradient_SelectedIndexChanged(null, null);
+        UpdateCurrentSplitOutlineControlsEnabled();
+        UpdateCurrentSplitImageAndOutlineOptionStates();
 
         if (Mode == LayoutMode.Horizontal)
         {
@@ -704,6 +1024,51 @@ public partial class SplitsSettings : UserControl
         SplitHeight = SettingsHelper.ParseFloat(element["SplitHeight"], 3.6f);
         SplitGradientString = SettingsHelper.ParseString(element["CurrentSplitGradient"], GradientType.Vertical.ToString());
         CurrentSplitBackgroundImagePath = SettingsHelper.ParseString(element["CurrentSplitBackgroundImagePath"], string.Empty);
+        CurrentSplitOutlineEnabled = SettingsHelper.ParseBool(element["CurrentSplitOutlineEnabled"], false);
+        CurrentSplitOutlineThickness = (decimal)SettingsHelper.ParseFloat(element["CurrentSplitOutlineThickness"], 2f);
+        CurrentSplitOutlineColor = SettingsHelper.ParseColor(element["CurrentSplitOutlineColor"], Color.White);
+        CurrentSplitOutlineTransparency = (decimal)SettingsHelper.ParseFloat(element["CurrentSplitOutlineTransparency"], 0f);
+        if (element["CurrentSplitImageInterpolation"] != null)
+        {
+            CurrentSplitImageInterpolationString = SettingsHelper.ParseString(
+                element["CurrentSplitImageInterpolation"],
+                CurrentSplitImageInterpolationFilter.Bilinear.ToString());
+        }
+        else
+        {
+            bool legacyBilinear = SettingsHelper.ParseBool(element["CurrentSplitBackgroundBilinear"], false);
+            CurrentSplitImageInterpolation = legacyBilinear
+                ? CurrentSplitImageInterpolationFilter.Bilinear
+                : CurrentSplitImageInterpolationFilter.Nearest;
+        }
+
+        if (element["CurrentSplitOutlineInterpolation"] != null)
+        {
+            CurrentSplitOutlineInterpolationString = SettingsHelper.ParseString(
+                element["CurrentSplitOutlineInterpolation"],
+                CurrentSplitImageInterpolationFilter.Nearest.ToString());
+        }
+        else
+        {
+            CurrentSplitOutlineInterpolation = SettingsHelper.ParseBool(element["CurrentSplitOutlineAntiAlias"], false)
+                ? CurrentSplitImageInterpolationFilter.Bilinear
+                : CurrentSplitImageInterpolationFilter.Nearest;
+        }
+
+        CurrentSplitOutlineFillModeString = SettingsHelper.ParseString(
+            element["CurrentSplitOutlineFillMode"],
+            CurrentSplitOutlineFillMode.Solid.ToString());
+        CurrentSplitOutlineGradientEndColor = SettingsHelper.ParseColor(
+            element["CurrentSplitOutlineGradientEndColor"],
+            Color.FromArgb(255, 80, 200));
+        CurrentSplitOutlineRgbWave = SettingsHelper.ParseBool(element["CurrentSplitOutlineRgbWave"], false);
+        CurrentSplitOutlineWaveAxis = SettingsHelper.ParseEnum(
+            element["CurrentSplitOutlineWaveAxis"],
+            CurrentSplitOutlineWaveAxis.Horizontal);
+        int parsedOutlineWaveSpeed = SettingsHelper.ParseInt(element["CurrentSplitOutlineWaveSpeed"], 25);
+        CurrentSplitOutlineWaveSpeed = Math.Min(
+            CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum,
+            Math.Max(0, parsedOutlineWaveSpeed));
         BackgroundColor = SettingsHelper.ParseColor(element["BackgroundColor"], Color.Transparent);
         BackgroundColor2 = SettingsHelper.ParseColor(element["BackgroundColor2"], Color.FromArgb(1, 255, 255, 255));
         GradientString = SettingsHelper.ParseString(element["BackgroundGradient"], ExtendedGradientType.Alternating.ToString());
@@ -770,6 +1135,8 @@ public partial class SplitsSettings : UserControl
 
             OverrideTextColor = !SettingsHelper.ParseBool(element["UseTextColor"], true);
         }
+
+        SyncCurrentSplitOutlineFillModeCombo();
     }
 
     public XmlNode GetSettings(XmlDocument document)
@@ -812,6 +1179,17 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "SplitHeight", SplitHeight) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitGradient", CurrentSplitGradient) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitBackgroundImagePath", CurrentSplitBackgroundImagePath ?? string.Empty) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineEnabled", CurrentSplitOutlineEnabled) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineThickness", (float)CurrentSplitOutlineThickness) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineColor", CurrentSplitOutlineColor) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineTransparency", (float)CurrentSplitOutlineTransparency) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageInterpolation", CurrentSplitImageInterpolation) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineInterpolation", CurrentSplitOutlineInterpolation) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineFillMode", CurrentSplitOutlineFillMode) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineGradientEndColor", CurrentSplitOutlineGradientEndColor) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineRgbWave", CurrentSplitOutlineRgbWave) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineWaveAxis", CurrentSplitOutlineWaveAxis) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineWaveSpeed", CurrentSplitOutlineWaveSpeed) ^
         SettingsHelper.CreateSetting(document, parent, "BackgroundColor", BackgroundColor) ^
         SettingsHelper.CreateSetting(document, parent, "BackgroundColor2", BackgroundColor2) ^
         SettingsHelper.CreateSetting(document, parent, "BackgroundGradient", BackgroundGradient) ^

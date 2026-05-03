@@ -1,8 +1,0 @@
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\WinFormsColor.csproj.AssemblyReference.cache
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\Fetze.WinFormsColor.ColorPickerDialog.resources
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\WinFormsColor.Resources.resources
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\WinFormsColor.csproj.GenerateResource.cache
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\WinFormsColor.GeneratedMSBuildEditorConfig.editorconfig
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\WinFormsColor.AssemblyInfoInputs.cache
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\WinFormsColor.AssemblyInfo.cs
-C:\Users\xskil\Desktop\LiveSplit-mpv-experiment\lib\WinForms Color Picker\WinFormsColor\obj\Release\net4.8.1\WinFormsColor.csproj.CoreCompileInputs.cache

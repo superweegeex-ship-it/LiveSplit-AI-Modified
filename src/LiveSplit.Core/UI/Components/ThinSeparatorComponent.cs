@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 
 using LiveSplit.Model;
+using LiveSplit.Options;
 
 namespace LiveSplit.UI.Components;
 
@@ -44,7 +45,7 @@ public class ThinSeparatorComponent : IComponent
         System.Drawing.Drawing2D.SmoothingMode oldMode = g.SmoothingMode;
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
         g.Clip = new Region();
-        Line.LineColor = state.LayoutSettings.ThinSeparatorsColor;
+        Color primary = state.LayoutSettings.ThinSeparatorsColor;
         float scale = g.Transform.Elements.First();
         float targetThickness = Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
         float newHeight = Math.Max((int)((targetThickness * scale) + 0.5f), 1) / scale;
@@ -54,7 +55,8 @@ public class ThinSeparatorComponent : IComponent
             g.TranslateTransform(0, targetThickness - newHeight);
         }
 
-        Line.DrawVertical(g, state, width, clipRegion);
+        SeparatorDrawing.FillSeparatorRect(g, state.LayoutSettings, 0f, 0f, width, newHeight, primary);
+        SeparatorDrawing.DrawSeparatorOutline(g, state.LayoutSettings, 0f, 0f, width, newHeight);
         g.Clip = oldClip;
         g.Transform = oldMatrix;
         g.SmoothingMode = oldMode;
@@ -67,7 +69,7 @@ public class ThinSeparatorComponent : IComponent
         System.Drawing.Drawing2D.SmoothingMode oldMode = g.SmoothingMode;
         g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
         g.Clip = new Region();
-        Line.LineColor = state.LayoutSettings.ThinSeparatorsColor;
+        Color primary = state.LayoutSettings.ThinSeparatorsColor;
         float scale = g.Transform.Elements.First();
         float targetThickness = Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
         float newWidth = Math.Max((int)((targetThickness * scale) + 0.5f), 1) / scale;
@@ -77,7 +79,8 @@ public class ThinSeparatorComponent : IComponent
         }
 
         Line.HorizontalWidth = newWidth;
-        Line.DrawHorizontal(g, state, height, clipRegion);
+        SeparatorDrawing.FillSeparatorRect(g, state.LayoutSettings, 0f, 0f, newWidth, height, primary);
+        SeparatorDrawing.DrawSeparatorOutline(g, state.LayoutSettings, 0f, 0f, newWidth, height);
         g.Clip = oldClip;
         g.Transform = oldMatrix;
         g.SmoothingMode = oldMode;
@@ -118,8 +121,26 @@ public class ThinSeparatorComponent : IComponent
         Cache["LockToBottom"] = LockToBottom;
         separatorThickness = Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
         Cache["SeparatorThickness"] = separatorThickness;
+        var ls = state.LayoutSettings;
+        Cache["SeparatorFillMode"] = ls.SeparatorFillMode;
+        Cache["SeparatorGradientEnd"] = ls.SeparatorGradientEndColor.ToArgb();
+        Cache["SeparatorRgbWave"] = ls.SeparatorRgbWave;
+        Cache["SeparatorWaveAxis"] = ls.SeparatorWaveAxis;
+        Cache["SeparatorWaveSpeed"] = ls.SeparatorWaveSpeed;
+        Cache["SeparatorOutlineEnabled"] = ls.SeparatorOutlineEnabled;
+        Cache["SeparatorOutlineThickness"] = ls.SeparatorOutlineThickness;
+        Cache["SeparatorOutlineColor"] = ls.SeparatorOutlineColor.ToArgb();
+        Cache["SeparatorOutlineTransparency"] = ls.SeparatorOutlineTransparency;
+        Cache["SeparatorOutlineFillMode"] = ls.SeparatorOutlineFillMode;
+        Cache["SeparatorOutlineGradientEnd"] = ls.SeparatorOutlineGradientEndColor.ToArgb();
+        Cache["SeparatorOutlineRgbWave"] = ls.SeparatorOutlineRgbWave;
+        Cache["SeparatorOutlineWaveAxis"] = ls.SeparatorOutlineWaveAxis;
+        Cache["SeparatorOutlineWaveSpeed"] = ls.SeparatorOutlineWaveSpeed;
+        Cache["SeparatorOutlineInterpolation"] = ls.SeparatorOutlineInterpolation;
 
-        if (invalidator != null && Cache.HasChanged)
+        bool separatorAnim = SeparatorDrawing.SeparatorAppearanceIsAnimated(ls)
+            || SeparatorDrawing.SeparatorOutlineIsAnimated(ls);
+        if (invalidator != null && (Cache.HasChanged || separatorAnim))
         {
             invalidator.Invalidate(0, 0, width, height);
         }

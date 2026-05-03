@@ -8,6 +8,7 @@ using System.Windows.Forms;
 
 using LiveSplit.Model;
 using LiveSplit.TimeFormatters;
+using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
@@ -168,8 +169,7 @@ public class SplitComponent : IComponent
                     Image bg = Settings.GetCurrentSplitBackgroundImageForRendering();
                     if (bg != null)
                     {
-                        ImageAnimator.UpdateFrames(bg);
-                        g.DrawImage(bg, new RectangleF(0, 0, width, height));
+                        DrawCurrentSplitBackgroundImageScaled(g, bg, width, height, Settings.CurrentSplitImageInterpolation);
                     }
                 }
                 else
@@ -185,6 +185,8 @@ public class SplitComponent : IComponent
                         : Settings.CurrentSplitBottomColor);
                     g.FillRectangle(currentSplitBrush, 0, 0, width, height);
                 }
+
+                DrawCurrentSplitOutline(g, width, height);
             }
 
             Image icon = Split.Icon;
@@ -302,6 +304,178 @@ public class SplitComponent : IComponent
     {
         MinimumHeight = 0.85f * (g.MeasureString("A", state.LayoutSettings.TimesFont).Height + g.MeasureString("A", state.LayoutSettings.TextFont).Height);
         DrawGeneral(g, state, HorizontalWidth, height, LayoutMode.Horizontal);
+    }
+
+    private static InterpolationMode MapImageInterpolation(CurrentSplitImageInterpolationFilter filter) =>
+        filter switch
+        {
+            CurrentSplitImageInterpolationFilter.Nearest => InterpolationMode.NearestNeighbor,
+            CurrentSplitImageInterpolationFilter.Bilinear => InterpolationMode.Bilinear,
+            CurrentSplitImageInterpolationFilter.Bicubic => InterpolationMode.Bicubic,
+            CurrentSplitImageInterpolationFilter.Area => InterpolationMode.Low,
+            CurrentSplitImageInterpolationFilter.Lanczos => InterpolationMode.HighQualityBicubic,
+            _ => InterpolationMode.Default
+        };
+
+    private static void DrawCurrentSplitBackgroundImageScaled(Graphics g, Image bg, float width, float height, CurrentSplitImageInterpolationFilter filter)
+    {
+        ImageAnimator.UpdateFrames(bg);
+        var dest = new RectangleF(0, 0, width, height);
+        InterpolationMode previous = g.InterpolationMode;
+        try
+        {
+            g.InterpolationMode = MapImageInterpolation(filter);
+            g.DrawImage(bg, dest);
+        }
+        finally
+        {
+            g.InterpolationMode = previous;
+        }
+    }
+
+    private static bool OutlineUsesSmoothStroke(CurrentSplitImageInterpolationFilter filter) =>
+        filter != CurrentSplitImageInterpolationFilter.Nearest;
+
+    private static void ApplyOutlineGraphicsQuality(Graphics g, CurrentSplitImageInterpolationFilter filter)
+    {
+        if (filter == CurrentSplitImageInterpolationFilter.Nearest)
+        {
+            g.SmoothingMode = SmoothingMode.None;
+            g.PixelOffsetMode = PixelOffsetMode.None;
+            g.InterpolationMode = InterpolationMode.NearestNeighbor;
+            return;
+        }
+
+        g.SmoothingMode = SmoothingMode.AntiAlias;
+        // Half can leave a 1px hairline between stacked split rows; Default keeps AA without that gap.
+        g.PixelOffsetMode = filter == CurrentSplitImageInterpolationFilter.Bicubic
+            || filter == CurrentSplitImageInterpolationFilter.Lanczos
+            ? PixelOffsetMode.HighQuality
+            : PixelOffsetMode.Default;
+        g.InterpolationMode = MapImageInterpolation(filter);
+    }
+
+    private static bool OutlineBrushUsesSmoothColorSampling(SplitsSettings settings) =>
+        settings.CurrentSplitOutlineRgbWave
+        || settings.CurrentSplitOutlineFillMode == CurrentSplitOutlineFillMode.Gradient;
+
+    private void DrawCurrentSplitOutline(Graphics g, float width, float height)
+    {
+        if (!Settings.CurrentSplitOutlineEnabled || width <= 1f || height <= 1f)
+        {
+            return;
+        }
+
+        decimal t = Settings.CurrentSplitOutlineTransparency;
+        if (t < 0m)
+        {
+            t = 0m;
+        }
+        else if (t > 100m)
+        {
+            t = 100m;
+        }
+
+        int alpha = (int)Math.Round(255.0 * (double)(1m - t / 100m));
+        if (alpha <= 0)
+        {
+            return;
+        }
+
+        float thickness = (float)Math.Max(0.1m, Settings.CurrentSplitOutlineThickness);
+
+        using (Brush outlineBrush = CurrentSplitOutlinePaint.CreateOutlineBrush(
+            width,
+            height,
+            alpha,
+            Settings.CurrentSplitOutlineRgbWave,
+            Settings.CurrentSplitOutlineWaveAxis,
+            Settings.CurrentSplitOutlineWaveSpeed,
+            Settings.CurrentSplitOutlineFillMode,
+            Settings.CurrentSplitOutlineColor,
+            Settings.CurrentSplitOutlineGradientEndColor))
+        {
+            if (OutlineUsesSmoothStroke(Settings.CurrentSplitOutlineInterpolation))
+            {
+                // Center-aligned stroke on a rectangle inset by pen/2 so the stroke meets the cell edge evenly on all sides.
+                // GDI+ anti-aliasing nearly erases sub-1px widths with Inset + integer rect; use at least 1px width and scale alpha.
+                float requestedW = thickness;
+                float penW = requestedW;
+                int drawAlpha = alpha;
+                if (penW < 1f)
+                {
+                    drawAlpha = alpha > 0 ? Math.Max(1, (int)Math.Round(alpha * penW)) : 0;
+                    penW = 1f;
+                }
+
+                float sizeLimit = Math.Max(0.1f, Math.Min(width, height) - 0.01f);
+                penW = Math.Min(penW, sizeLimit);
+                if (penW < 0.1f || drawAlpha <= 0)
+                {
+                    return;
+                }
+
+                float inset = penW * 0.5f;
+                float rectW = width - penW;
+                float rectH = height - penW;
+                if (rectW < 0.01f || rectH < 0.01f)
+                {
+                    return;
+                }
+
+                using var penAa = new Pen(outlineBrush, penW)
+                {
+                    Alignment = PenAlignment.Center,
+                    LineJoin = LineJoin.Round
+                };
+
+                GraphicsState gs = g.Save();
+                try
+                {
+                    ApplyOutlineGraphicsQuality(g, Settings.CurrentSplitOutlineInterpolation);
+                    // NearestNeighbor on the Graphics object also quantizes gradient-brush lookups, which
+                    // makes two-color outlines look stepped; keep stroke quality settings but smooth brush sampling.
+                    if (OutlineBrushUsesSmoothColorSampling(Settings))
+                    {
+                        g.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                    }
+
+                    // Slight height extension covers the common 1px seam between this row and the next.
+                    g.DrawRectangle(penAa, inset, inset, rectW, rectH + 0.5f);
+                }
+                finally
+                {
+                    g.Restore(gs);
+                }
+            }
+            else
+            {
+                using var pen = new Pen(outlineBrush, thickness) { Alignment = PenAlignment.Inset };
+                GraphicsState gs = g.Save();
+                try
+                {
+                    g.SmoothingMode = SmoothingMode.None;
+                    g.PixelOffsetMode = PixelOffsetMode.None;
+                    if (OutlineBrushUsesSmoothColorSampling(Settings))
+                    {
+                        g.InterpolationMode = InterpolationMode.HighQualityBilinear;
+                    }
+
+                    if (thickness <= 1.05f)
+                    {
+                        g.DrawRectangle(pen, 0.5f, 0.5f, width - 1f, height - 1f);
+                    }
+                    else
+                    {
+                        g.DrawRectangle(pen, 0, 0, width - 1, height - 1);
+                    }
+                }
+                finally
+                {
+                    g.Restore(gs);
+                }
+            }
+        }
     }
 
     public string ComponentName => "Split";
@@ -612,6 +786,17 @@ public class SplitComponent : IComponent
             Cache["CurrentSplitBgPath"] = Settings.CurrentSplitBackgroundImagePath ?? string.Empty;
             Cache["CurrentSplitTopColor"] = Settings.CurrentSplitTopColor.ToArgb();
             Cache["CurrentSplitBottomColor"] = Settings.CurrentSplitBottomColor.ToArgb();
+            Cache["CurrentSplitOutlineEnabled"] = Settings.CurrentSplitOutlineEnabled;
+            Cache["CurrentSplitOutlineThickness"] = Settings.CurrentSplitOutlineThickness;
+            Cache["CurrentSplitOutlineColor"] = Settings.CurrentSplitOutlineColor.ToArgb();
+            Cache["CurrentSplitOutlineTransparency"] = Settings.CurrentSplitOutlineTransparency;
+            Cache["CurrentSplitImageInterpolation"] = Settings.CurrentSplitImageInterpolation;
+            Cache["CurrentSplitOutlineInterpolation"] = Settings.CurrentSplitOutlineInterpolation;
+            Cache["CurrentSplitOutlineFillMode"] = Settings.CurrentSplitOutlineFillMode;
+            Cache["CurrentSplitOutlineGradientEndColor"] = Settings.CurrentSplitOutlineGradientEndColor.ToArgb();
+            Cache["CurrentSplitOutlineRgbWave"] = Settings.CurrentSplitOutlineRgbWave;
+            Cache["CurrentSplitOutlineWaveAxis"] = Settings.CurrentSplitOutlineWaveAxis;
+            Cache["CurrentSplitOutlineWaveSpeed"] = Settings.CurrentSplitOutlineWaveSpeed;
             Cache["NameColor"] = NameLabel.ForeColor.ToArgb();
             Cache["ColumnsCount"] = ColumnsList.Count();
             for (int index = 0; index < LabelsList.Count; index++)
@@ -626,7 +811,16 @@ public class SplitComponent : IComponent
             }
 
             int currentSplitBgFrames = CurrentSplitBackgroundFrameCount();
-            if (invalidator != null && (Cache.HasChanged || FrameCount > 1 || currentSplitBgFrames > 1))
+            bool outlineTwoColorWave = !Settings.CurrentSplitOutlineRgbWave
+                && Settings.CurrentSplitOutlineWaveSpeed > 0
+                && Settings.CurrentSplitOutlineFillMode == CurrentSplitOutlineFillMode.Gradient;
+            bool outlineRgbAnim = Settings.CurrentSplitOutlineRgbWave
+                && Settings.CurrentSplitOutlineFillMode != CurrentSplitOutlineFillMode.Solid;
+            bool outlineWaveAnim = IsActive &&
+                Settings.CurrentSplitOutlineEnabled &&
+                Settings.CurrentSplitOutlineWaveSpeed > 0
+                && (outlineRgbAnim || outlineTwoColorWave);
+            if (invalidator != null && (Cache.HasChanged || FrameCount > 1 || currentSplitBgFrames > 1 || outlineWaveAnim))
             {
                 invalidator.Invalidate(0, 0, width, height);
             }

@@ -4720,7 +4720,7 @@ public partial class TimerForm : Form
     private void ApplyAppUiSettings()
     {
         WinFormsTheme.CurrentTheme = Settings.AppTheme;
-        WinFormsTheme.AllowDialogPanelResizing = Settings.AllowDialogPanelResizing;
+        WinFormsTheme.AllowDialogPanelResizing = true;
         WinFormsTheme.Apply(RightClickMenu);
     }
 

@@ -5,6 +5,7 @@ using System.IO;
 using LiveSplit.Options;
 using LiveSplit.Options.SettingsFactories;
 using LiveSplit.Options.SettingsSavers;
+using LiveSplit.UI;
 using LiveSplit.UI.Components;
 
 using Xunit;
@@ -67,6 +68,21 @@ public class LayoutSettingsMust
             PersonalBestColor = Color.Aqua,
             SeparatorsColor = Color.White,
             SeparatorThickness = 3.5f,
+            SeparatorFillMode = CurrentSplitOutlineFillMode.Gradient,
+            SeparatorGradientEndColor = Color.Teal,
+            SeparatorRgbWave = true,
+            SeparatorWaveAxis = CurrentSplitOutlineWaveAxis.Vertical,
+            SeparatorWaveSpeed = 7,
+            SeparatorOutlineEnabled = true,
+            SeparatorOutlineThickness = 2.5f,
+            SeparatorOutlineColor = Color.Navy,
+            SeparatorOutlineTransparency = 12f,
+            SeparatorOutlineFillMode = CurrentSplitOutlineFillMode.Gradient,
+            SeparatorOutlineGradientEndColor = Color.Lime,
+            SeparatorOutlineRgbWave = false,
+            SeparatorOutlineWaveAxis = CurrentSplitOutlineWaveAxis.Horizontal,
+            SeparatorOutlineWaveSpeed = 3,
+            SeparatorOutlineInterpolation = CurrentSplitImageInterpolationFilter.Bilinear,
             ShadowsColor = Color.Brown,
             ShowBestSegments = true,
             TextFont = new Font("Arial", 8.0F),
@@ -109,6 +125,21 @@ public class LayoutSettingsMust
         Assert.Equal(Color.Aqua, sut.PersonalBestColor);
         Assert.Equal(Color.White, sut.SeparatorsColor);
         Assert.Equal(3.5f, sut.SeparatorThickness);
+        Assert.Equal(CurrentSplitOutlineFillMode.Gradient, sut.SeparatorFillMode);
+        Assert.Equal(Color.Teal, sut.SeparatorGradientEndColor);
+        Assert.True(sut.SeparatorRgbWave);
+        Assert.Equal(CurrentSplitOutlineWaveAxis.Vertical, sut.SeparatorWaveAxis);
+        Assert.Equal(7, sut.SeparatorWaveSpeed);
+        Assert.True(sut.SeparatorOutlineEnabled);
+        Assert.Equal(2.5f, sut.SeparatorOutlineThickness);
+        Assert.Equal(Color.Navy, sut.SeparatorOutlineColor);
+        Assert.Equal(12f, sut.SeparatorOutlineTransparency);
+        Assert.Equal(CurrentSplitOutlineFillMode.Gradient, sut.SeparatorOutlineFillMode);
+        Assert.Equal(Color.Lime, sut.SeparatorOutlineGradientEndColor);
+        Assert.False(sut.SeparatorOutlineRgbWave);
+        Assert.Equal(CurrentSplitOutlineWaveAxis.Horizontal, sut.SeparatorOutlineWaveAxis);
+        Assert.Equal(3, sut.SeparatorOutlineWaveSpeed);
+        Assert.Equal(CurrentSplitImageInterpolationFilter.Bilinear, sut.SeparatorOutlineInterpolation);
         Assert.Equal(Color.Brown, sut.ShadowsColor);
         Assert.True(sut.ShowBestSegments);
         Assert.NotNull(sut.TextFont);

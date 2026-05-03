@@ -5,6 +5,7 @@ using System.Linq;
 using System.Windows.Forms;
 
 using LiveSplit.Model;
+using LiveSplit.Options;
 
 namespace LiveSplit.UI.Components;
 
@@ -50,7 +51,7 @@ public class SeparatorComponent : IComponent
             System.Drawing.Drawing2D.SmoothingMode oldMode = g.SmoothingMode;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
             g.Clip = new Region();
-            Line.LineColor = UseSeparatorColor ? state.LayoutSettings.SeparatorsColor : state.LayoutSettings.ThinSeparatorsColor;
+            Color primary = UseSeparatorColor ? state.LayoutSettings.SeparatorsColor : state.LayoutSettings.ThinSeparatorsColor;
             float targetSize = UseSeparatorColor
                 ? Math.Max(0.1f, state.LayoutSettings.SeparatorThickness)
                 : Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
@@ -66,7 +67,8 @@ public class SeparatorComponent : IComponent
                 g.TranslateTransform(0, (separatorThickness - newHeight) / 2f);
             }
 
-            Line.DrawVertical(g, state, width, clipRegion);
+            SeparatorDrawing.FillSeparatorRect(g, state.LayoutSettings, 0f, 0f, width, newHeight, primary);
+            SeparatorDrawing.DrawSeparatorOutline(g, state.LayoutSettings, 0f, 0f, width, newHeight);
             g.Clip = oldClip;
             g.Transform = oldMatrix;
             g.SmoothingMode = oldMode;
@@ -82,7 +84,7 @@ public class SeparatorComponent : IComponent
             System.Drawing.Drawing2D.SmoothingMode oldMode = g.SmoothingMode;
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.Default;
             g.Clip = new Region();
-            Line.LineColor = UseSeparatorColor ? state.LayoutSettings.SeparatorsColor : state.LayoutSettings.ThinSeparatorsColor;
+            Color primary = UseSeparatorColor ? state.LayoutSettings.SeparatorsColor : state.LayoutSettings.ThinSeparatorsColor;
             float targetSize = UseSeparatorColor
                 ? Math.Max(0.1f, state.LayoutSettings.SeparatorThickness)
                 : Math.Max(0.1f, state.LayoutSettings.ThinSeparatorThickness);
@@ -98,7 +100,8 @@ public class SeparatorComponent : IComponent
             }
 
             Line.HorizontalWidth = newWidth;
-            Line.DrawHorizontal(g, state, height, clipRegion);
+            SeparatorDrawing.FillSeparatorRect(g, state.LayoutSettings, 0f, 0f, newWidth, height, primary);
+            SeparatorDrawing.DrawSeparatorOutline(g, state.LayoutSettings, 0f, 0f, newWidth, height);
             g.Clip = oldClip;
             g.Transform = oldMatrix;
             g.SmoothingMode = oldMode;
@@ -140,8 +143,26 @@ public class SeparatorComponent : IComponent
         Cache["UseSeparatorColor"] = UseSeparatorColor;
         Cache["LockToBottom"] = LockToBottom;
         Cache["SeparatorThickness"] = separatorThickness;
+        var ls = state.LayoutSettings;
+        Cache["SeparatorFillMode"] = ls.SeparatorFillMode;
+        Cache["SeparatorGradientEnd"] = ls.SeparatorGradientEndColor.ToArgb();
+        Cache["SeparatorRgbWave"] = ls.SeparatorRgbWave;
+        Cache["SeparatorWaveAxis"] = ls.SeparatorWaveAxis;
+        Cache["SeparatorWaveSpeed"] = ls.SeparatorWaveSpeed;
+        Cache["SeparatorOutlineEnabled"] = ls.SeparatorOutlineEnabled;
+        Cache["SeparatorOutlineThickness"] = ls.SeparatorOutlineThickness;
+        Cache["SeparatorOutlineColor"] = ls.SeparatorOutlineColor.ToArgb();
+        Cache["SeparatorOutlineTransparency"] = ls.SeparatorOutlineTransparency;
+        Cache["SeparatorOutlineFillMode"] = ls.SeparatorOutlineFillMode;
+        Cache["SeparatorOutlineGradientEnd"] = ls.SeparatorOutlineGradientEndColor.ToArgb();
+        Cache["SeparatorOutlineRgbWave"] = ls.SeparatorOutlineRgbWave;
+        Cache["SeparatorOutlineWaveAxis"] = ls.SeparatorOutlineWaveAxis;
+        Cache["SeparatorOutlineWaveSpeed"] = ls.SeparatorOutlineWaveSpeed;
+        Cache["SeparatorOutlineInterpolation"] = ls.SeparatorOutlineInterpolation;
 
-        if (invalidator != null && Cache.HasChanged)
+        bool separatorAnim = SeparatorDrawing.SeparatorAppearanceIsAnimated(ls)
+            || SeparatorDrawing.SeparatorOutlineIsAnimated(ls);
+        if (invalidator != null && (Cache.HasChanged || separatorAnim))
         {
             invalidator.Invalidate(0, 0, width, height);
         }

@@ -5,6 +5,7 @@ using System.Xml;
 
 using LiveSplit.Model;
 using LiveSplit.Options;
+using LiveSplit.UI;
 using LiveSplit.UI.Components;
 
 namespace LiveSplit.UI.LayoutFactories;
@@ -109,6 +110,93 @@ public class XMLLayoutFactory : ILayoutFactory
             VideoVolumeReductionPercentWhenRunCompletes = SettingsHelper.ParseFloat(element["VideoVolumeReductionPercentWhenRunCompletes"], 0f),
             VideoStartOffsetSeconds = SettingsHelper.ParseFloat(element["VideoStartOffsetSeconds"], 0f)
         };
+
+        if (element["SeparatorFillMode"] != null)
+        {
+            settings.SeparatorFillMode = SettingsHelper.ParseEnum(
+                element["SeparatorFillMode"],
+                CurrentSplitOutlineFillMode.Solid);
+        }
+
+        if (element["SeparatorGradientEndColor"] != null)
+        {
+            settings.SeparatorGradientEndColor = SettingsHelper.ParseColor(element["SeparatorGradientEndColor"]);
+        }
+
+        if (element["SeparatorRgbWave"] != null)
+        {
+            settings.SeparatorRgbWave = SettingsHelper.ParseBool(element["SeparatorRgbWave"], false);
+        }
+
+        if (element["SeparatorWaveAxis"] != null)
+        {
+            settings.SeparatorWaveAxis = SettingsHelper.ParseEnum(
+                element["SeparatorWaveAxis"],
+                CurrentSplitOutlineWaveAxis.Horizontal);
+        }
+
+        if (element["SeparatorWaveSpeed"] != null)
+        {
+            int parsed = SettingsHelper.ParseInt(element["SeparatorWaveSpeed"], 0);
+            settings.SeparatorWaveSpeed = Math.Min(CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum, Math.Max(0, parsed));
+        }
+
+        if (element["SeparatorOutlineEnabled"] != null)
+        {
+            settings.SeparatorOutlineEnabled = SettingsHelper.ParseBool(element["SeparatorOutlineEnabled"], false);
+        }
+
+        if (element["SeparatorOutlineThickness"] != null)
+        {
+            settings.SeparatorOutlineThickness = SettingsHelper.ParseFloat(element["SeparatorOutlineThickness"], 2f);
+        }
+
+        if (element["SeparatorOutlineColor"] != null)
+        {
+            settings.SeparatorOutlineColor = SettingsHelper.ParseColor(element["SeparatorOutlineColor"]);
+        }
+
+        if (element["SeparatorOutlineTransparency"] != null)
+        {
+            settings.SeparatorOutlineTransparency = SettingsHelper.ParseFloat(element["SeparatorOutlineTransparency"], 0f);
+        }
+
+        if (element["SeparatorOutlineFillMode"] != null)
+        {
+            settings.SeparatorOutlineFillMode = SettingsHelper.ParseEnum(
+                element["SeparatorOutlineFillMode"],
+                CurrentSplitOutlineFillMode.Solid);
+        }
+
+        if (element["SeparatorOutlineGradientEndColor"] != null)
+        {
+            settings.SeparatorOutlineGradientEndColor = SettingsHelper.ParseColor(element["SeparatorOutlineGradientEndColor"]);
+        }
+
+        if (element["SeparatorOutlineRgbWave"] != null)
+        {
+            settings.SeparatorOutlineRgbWave = SettingsHelper.ParseBool(element["SeparatorOutlineRgbWave"], false);
+        }
+
+        if (element["SeparatorOutlineWaveAxis"] != null)
+        {
+            settings.SeparatorOutlineWaveAxis = SettingsHelper.ParseEnum(
+                element["SeparatorOutlineWaveAxis"],
+                CurrentSplitOutlineWaveAxis.Horizontal);
+        }
+
+        if (element["SeparatorOutlineWaveSpeed"] != null)
+        {
+            int parsedOutline = SettingsHelper.ParseInt(element["SeparatorOutlineWaveSpeed"], 0);
+            settings.SeparatorOutlineWaveSpeed = Math.Min(CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum, Math.Max(0, parsedOutline));
+        }
+
+        if (element["SeparatorOutlineInterpolation"] != null)
+        {
+            settings.SeparatorOutlineInterpolation = SettingsHelper.ParseEnum(
+                element["SeparatorOutlineInterpolation"],
+                CurrentSplitImageInterpolationFilter.Nearest);
+        }
 
         if (version >= new Version(1, 3))
         {

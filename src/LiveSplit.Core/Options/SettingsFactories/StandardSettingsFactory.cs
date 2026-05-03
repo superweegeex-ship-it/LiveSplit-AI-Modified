@@ -51,7 +51,7 @@ public class StandardSettingsFactory : ISettingsFactory
             EnableDPIAwareness = false,
             UILanguage = string.Empty,
             AppTheme = AppTheme.Light,
-            AllowDialogPanelResizing = false,
+            AllowDialogPanelResizing = true,
             ComparisonGeneratorStates = new Dictionary<string, bool>()
             {
                 { BestSegmentsComparisonGenerator.ComparisonName, true },

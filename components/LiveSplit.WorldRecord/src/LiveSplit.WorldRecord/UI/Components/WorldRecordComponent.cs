@@ -85,6 +85,24 @@ public class WorldRecordComponent : IComponent
     {
     }
 
+    /// <summary>
+    /// Stable cache key for subcategory / variable filters. <see cref="Dictionary{TKey,TValue}.Values"/> order is undefined,
+    /// so joining values alone caused <see cref="GraphicsCache.HasChanged"/> every frame and wiped fetched WR data before it could paint.
+    /// </summary>
+    private static string BuildVariablesFilterFingerprint(RunMetadata metadata)
+    {
+        if (metadata?.VariableValueNames == null || metadata.VariableValueNames.Count == 0)
+        {
+            return null;
+        }
+
+        return string.Join(
+            "|",
+            metadata.VariableValueNames.OrderBy(kv => kv.Key, StringComparer.Ordinal).Select(kv => kv.Key + "=" + kv.Value));
+    }
+
+    private static string NormalizeEmptyToNull(string value) => string.IsNullOrEmpty(value) ? null : value;
+
     private void RefreshWorldRecord()
     {
         lock (refreshSync)
@@ -179,6 +197,8 @@ public class WorldRecordComponent : IComponent
 
     private void ShowWorldRecord(LayoutMode mode)
     {
+        try
+        {
         bool centeredText = Settings.CenteredText && !Settings.Display2Rows && mode == LayoutMode.Vertical;
         if (WorldRecord != null)
         {
@@ -232,7 +252,8 @@ public class WorldRecordComponent : IComponent
             if (IsPBTimeLower(pbTime, wrTime))
             {
                 formatted = PBTimeFormatter.Format(pbTime);
-                runners = State.Run.Metadata.Category.Players.Value > 1 ? "us" : "me";
+                int playerCount = State.Run.Metadata.Category?.Players?.Value ?? 1;
+                runners = playerCount > 1 ? "us" : "me";
                 tieCount = 1;
             }
 
@@ -292,6 +313,11 @@ public class WorldRecordComponent : IComponent
             {
                 InternalComponent.InformationValue = TimeFormatConstants.DASH;
             }
+        }
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex);
         }
     }
 
@@ -385,10 +411,12 @@ public class WorldRecordComponent : IComponent
         Cache.Restart();
         Cache["Game"] = state.Run.GameName;
         Cache["Category"] = state.Run.CategoryName;
-        Cache["PlatformID"] = Settings.FilterPlatform ? state.Run.Metadata.PlatformName : null;
-        Cache["RegionID"] = Settings.FilterRegion ? state.Run.Metadata.RegionName : null;
+        Cache["PlatformID"] = Settings.FilterPlatform ? NormalizeEmptyToNull(state.Run.Metadata.PlatformName) : null;
+        Cache["RegionID"] = Settings.FilterRegion ? NormalizeEmptyToNull(state.Run.Metadata.RegionName) : null;
         Cache["UsesEmulator"] = Settings.FilterPlatform ? (bool?)state.Run.Metadata.UsesEmulator : null;
-        Cache["Variables"] = (Settings.FilterVariables || Settings.FilterSubcategories) ? string.Join(",", state.Run.Metadata.VariableValueNames.Values) : null;
+        Cache["Variables"] = (Settings.FilterVariables || Settings.FilterSubcategories)
+            ? BuildVariablesFilterFingerprint(state.Run.Metadata)
+            : null;
         Cache["FilterVariables"] = Settings.FilterVariables;
         Cache["FilterSubcategories"] = Settings.FilterSubcategories;
         Cache["TimingMethod"] = Settings.TimingMethod;
@@ -490,10 +518,10 @@ public class WorldRecordComponent : IComponent
         }
         else
         {
-            InternalComponent.InformationName = "World Record";
+            InternalComponent.InformationName = T("World Record");
             InternalComponent.AlternateNameText = new[]
             {
-                "WR"
+                T("WR")
             };
             InternalComponent.NameLabel.HorizontalAlignment = StringAlignment.Near;
             InternalComponent.ValueLabel.HorizontalAlignment = StringAlignment.Far;
