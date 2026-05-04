@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
@@ -29,12 +29,18 @@ public class InfoTextComponent : IComponent
 
     public bool DisplayTwoRows { get; set; }
 
+    /// <summary>Extra space reserved on the left for overlays such as a game icon (pixels).</summary>
+    public float ContentInsetLeft { get; set; }
+
+    /// <summary>Extra space reserved on the right for overlays such as a game icon (pixels).</summary>
+    public float ContentInsetRight { get; set; }
+
     public float VerticalHeight { get; set; }
 
     public float MinimumWidth => 20;
 
     public float HorizontalWidth
-        => Math.Max(NameMeasureLabel.ActualWidth, ValueLabel.ActualWidth) + 10;
+        => Math.Max(NameMeasureLabel.ActualWidth, ValueLabel.ActualWidth) + 10 + ContentInsetLeft + ContentInsetRight;
 
     public float MinimumHeight { get; set; }
 
@@ -72,22 +78,27 @@ public class InfoTextComponent : IComponent
             NameLabel.VerticalAlignment = StringAlignment.Near;
             ValueLabel.VerticalAlignment = StringAlignment.Far;
         }
+
+        state.LayoutSettings.ApplyTextShadowTo(NameLabel);
+        state.LayoutSettings.ApplyTextShadowTo(ValueLabel);
     }
 
-    public void DrawVertical(Graphics g, LiveSplitState state, float width, Region clipRegion)
+    /// <summary>
+    /// Positions labels for vertical layout. Call <see cref="DrawVerticalLabels"/> afterward to paint.
+    /// </summary>
+    public void ComputeVerticalLayout(Graphics g, LiveSplitState state, float width)
     {
         if (DisplayTwoRows)
         {
             VerticalHeight = 0.9f * (g.MeasureString("A", ValueLabel.Font).Height + g.MeasureString("A", NameLabel.Font).Height);
             PaddingTop = PaddingBottom = 0;
-            DrawTwoRows(g, state, width, VerticalHeight);
+            LayoutTwoRows(g, state, width, VerticalHeight);
+            PrepareDraw(state, LayoutMode.Horizontal);
         }
         else
         {
             VerticalHeight = 31;
-            NameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
             NameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
-            ValueLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
             ValueLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
 
             float textHeight = 0.75f * Math.Max(g.MeasureString("A", ValueLabel.Font).Height, g.MeasureString("A", NameLabel.Font).Height);
@@ -98,33 +109,55 @@ public class InfoTextComponent : IComponent
             NameMeasureLabel.SetActualWidth(g);
             ValueLabel.SetActualWidth(g);
 
-            NameLabel.Width = width - ValueLabel.ActualWidth - 10;
+            float leftPad = 5f + ContentInsetLeft;
+            float rightPad = 5f + ContentInsetRight;
+            NameLabel.Width = width - ValueLabel.ActualWidth - leftPad - rightPad;
             NameLabel.Height = VerticalHeight;
-            NameLabel.X = 5;
+            NameLabel.X = leftPad;
             NameLabel.Y = 0;
 
-            ValueLabel.Width = ValueLabel.IsMonospaced ? width - 12 : width - 10;
+            ValueLabel.Width = ValueLabel.IsMonospaced ? width - leftPad - rightPad - 2 : width - leftPad - rightPad;
             ValueLabel.Height = VerticalHeight;
             ValueLabel.Y = 0;
-            ValueLabel.X = 5;
+            ValueLabel.X = leftPad;
 
             PrepareDraw(state, LayoutMode.Vertical);
-
-            NameLabel.Draw(g);
-            ValueLabel.Draw(g);
         }
+    }
+
+    public void DrawVerticalLabels(Graphics g)
+    {
+        NameLabel.Draw(g);
+        ValueLabel.Draw(g);
+    }
+
+    public void DrawVertical(Graphics g, LiveSplitState state, float width, Region clipRegion)
+    {
+        ComputeVerticalLayout(g, state, width);
+        DrawVerticalLabels(g);
+    }
+
+    public void ComputeHorizontalLayout(Graphics g, LiveSplitState state, float height)
+    {
+        LayoutTwoRows(g, state, HorizontalWidth, height);
+        PrepareDraw(state, LayoutMode.Horizontal);
+    }
+
+    public void DrawHorizontalLabels(Graphics g)
+    {
+        NameLabel.Draw(g);
+        ValueLabel.Draw(g);
     }
 
     public void DrawHorizontal(Graphics g, LiveSplitState state, float height, Region clipRegion)
     {
-        DrawTwoRows(g, state, HorizontalWidth, height);
+        ComputeHorizontalLayout(g, state, height);
+        DrawHorizontalLabels(g);
     }
 
-    protected void DrawTwoRows(Graphics g, LiveSplitState state, float width, float height)
+    protected void LayoutTwoRows(Graphics g, LiveSplitState state, float width, float height)
     {
-        NameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
         NameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
-        ValueLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
         ValueLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
 
         if (InformationName != null && LongestString != null && InformationName.Length > LongestString.Length)
@@ -138,20 +171,24 @@ public class InfoTextComponent : IComponent
         NameMeasureLabel.SetActualWidth(g);
 
         MinimumHeight = 0.85f * (g.MeasureString("A", ValueLabel.Font).Height + g.MeasureString("A", NameLabel.Font).Height);
-        NameLabel.Width = width - 10;
+        float leftPad = 5f + ContentInsetLeft;
+        float rightPad = 5f + ContentInsetRight;
+        NameLabel.Width = width - leftPad - rightPad;
         NameLabel.Height = height;
-        NameLabel.X = 5;
+        NameLabel.X = leftPad;
         NameLabel.Y = 0;
 
-        ValueLabel.Width = ValueLabel.IsMonospaced ? width - 12 : width - 10;
+        ValueLabel.Width = ValueLabel.IsMonospaced ? width - leftPad - rightPad - 2 : width - leftPad - rightPad;
         ValueLabel.Height = height;
         ValueLabel.Y = 0;
-        ValueLabel.X = 5;
+        ValueLabel.X = leftPad;
+    }
 
+    protected void DrawTwoRows(Graphics g, LiveSplitState state, float width, float height)
+    {
+        LayoutTwoRows(g, state, width, height);
         PrepareDraw(state, LayoutMode.Horizontal);
-
-        NameLabel.Draw(g);
-        ValueLabel.Draw(g);
+        DrawHorizontalLabels(g);
     }
 
     public string ComponentName => throw new NotSupportedException();
@@ -189,6 +226,8 @@ public class InfoTextComponent : IComponent
         Cache["NameColor"] = NameLabel.ForeColor.ToArgb();
         Cache["ValueColor"] = ValueLabel.ForeColor.ToArgb();
         Cache["DisplayTwoRows"] = DisplayTwoRows;
+        Cache["ContentInsetLeft"] = ContentInsetLeft;
+        Cache["ContentInsetRight"] = ContentInsetRight;
 
         if (invalidator != null && Cache.HasChanged)
         {

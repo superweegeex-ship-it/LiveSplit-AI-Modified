@@ -48,12 +48,9 @@ public partial class LayoutSettingsControl : UserControl
     public event EventHandler<BackgroundVideoLiveApplyEventArgs> LiveApplyRequested;
 
     private bool suppressVideoPanZoomEvents;
-    private bool suppressBackgroundVideoBackendEvents;
     private bool suppressVideoTimerSyncUiEvents;
     private bool updatingBackgroundSettingsUi;
     private bool liveApplyHooksReady;
-    private Label lblBackgroundVideoBackend = null;
-    private ComboBox cmbBackgroundVideoBackend = null;
     private Label lblThinSeparatorThickness;
     private NumericUpDown numThinSeparatorThickness;
     private Label lblSeparatorThickness;
@@ -80,16 +77,13 @@ public partial class LayoutSettingsControl : UserControl
     private TrackBar trkVideoBlurScale;
     private Label lblVideoBlurDegrees;
     private NumericUpDown numVideoBlurDegrees;
-    private CheckBox chkObsWindowCaptureCompatibilityMode;
     private readonly ToolTip backgroundVideoToolTip = new ToolTip();
 
     public LayoutSettingsControl()
     {
         InitializeComponent();
         ConfigureAutoSizing();
-        EnsureBackgroundVideoBackendCombo();
         EnsureVideoBlurControls();
-        EnsureObsWindowCaptureCompatibilityControl();
     }
 
     public Options.LayoutSettings Settings { get; set; }
@@ -174,8 +168,6 @@ public partial class LayoutSettingsControl : UserControl
         chkUseHardwareVideoDecoding.DataBindings.Add("Checked", Settings, "UseHardwareVideoDecoding", false, DataSourceUpdateMode.OnPropertyChanged);
         chkLoopVideo.DataBindings.Add("Checked", Settings, "LoopVideo", false, DataSourceUpdateMode.OnPropertyChanged);
         chkPlayVideoAudio.DataBindings.Add("Checked", Settings, "PlayVideoAudio", false, DataSourceUpdateMode.OnPropertyChanged);
-        EnsureObsWindowCaptureCompatibilityControl();
-        chkObsWindowCaptureCompatibilityMode.DataBindings.Add("Checked", Settings, "ObsWindowCaptureCompatibilityMode", false, DataSourceUpdateMode.OnPropertyChanged);
         chkVideoStartWithTimer.DataBindings.Add("Checked", Settings, "VideoStartWithTimer", false, DataSourceUpdateMode.OnPropertyChanged);
         chkVideoKeepPlaybackAcrossTimerResets.DataBindings.Add("Checked", Settings, "VideoKeepPlaybackAcrossTimerResets", false, DataSourceUpdateMode.OnPropertyChanged);
         chkVideoPauseWhenRunCompletes.DataBindings.Add("Checked", Settings, "VideoPauseWhenRunCompletes", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -188,7 +180,6 @@ public partial class LayoutSettingsControl : UserControl
         numVideoVolumeReductionAfterRunCompletes.ValueChanged += VideoVolumeReductionAfterRun_LiveApply;
         chkLoopVideo.CheckedChanged += VideoLoopOption_LiveApply;
         chkPlayVideoAudio.CheckedChanged += VideoOrBackgroundLiveOption_Changed;
-        chkObsWindowCaptureCompatibilityMode.CheckedChanged += VideoOrBackgroundLiveOption_Changed;
         chkUseHardwareVideoDecoding.CheckedChanged += VideoOrBackgroundLiveOption_Changed;
         trkImageOpacity.ValueChanged += VideoOpacityTrack_LiveApply;
         trkBlur.Scroll += TrkBlur_VideoVolumeLiveApply;
@@ -211,8 +202,8 @@ public partial class LayoutSettingsControl : UserControl
 
         cmbBackgroundType.SelectedItem = GetBackgroundTypeString(Settings.BackgroundType);
         originalBackgroundImage = Settings.BackgroundImage;
-        EnsureBackgroundVideoBackendCombo();
         cmbGradientType_SelectedIndexChanged(null, EventArgs.Empty);
+        EnsureLayoutShadowControls();
         liveApplyHooksReady = true;
     }
 
@@ -482,59 +473,12 @@ public partial class LayoutSettingsControl : UserControl
         NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.VideoVisualEffectsOnly);
     }
 
-    private void EnsureBackgroundVideoBackendCombo()
-    {
-        if (lblBackgroundVideoBackend != null)
-        {
-            return;
-        }
-    }
-
-    private void SyncBackgroundVideoBackendComboFromSettings()
-    {
-        if (cmbBackgroundVideoBackend == null || Settings == null)
-        {
-            return;
-        }
-
-        suppressBackgroundVideoBackendEvents = true;
-        try
-        {
-            cmbBackgroundVideoBackend.SelectedIndex = 0;
-        }
-        finally
-        {
-            suppressBackgroundVideoBackendEvents = false;
-        }
-    }
-
-    private void BackgroundVideoBackendCombo_SelectedIndexChanged(object sender, EventArgs e)
-    {
-        if (suppressBackgroundVideoBackendEvents || Settings == null || cmbBackgroundVideoBackend == null)
-        {
-            return;
-        }
-
-        int idx = cmbBackgroundVideoBackend.SelectedIndex;
-        if (idx < 0)
-        {
-            return;
-        }
-
-        UpdateLayoutOpacityControlsEnabled();
-        NotifyLiveApplyRequested();
-    }
-
     private void UpdateLayoutOpacityControlsEnabled()
     {
-        bool embeddedVideo = cmbBackgroundType?.SelectedItem?.ToString() == "Video"
-            && Settings != null
-            && Settings.BackgroundVideoBackend == BackgroundVideoBackend.MpvWindowEmbed;
-        bool enabled = !embeddedVideo;
-        label13.Enabled = enabled;
-        trkOpacity.Enabled = enabled;
-        label13.Visible = enabled;
-        trkOpacity.Visible = enabled;
+        label13.Enabled = true;
+        trkOpacity.Enabled = true;
+        label13.Visible = true;
+        trkOpacity.Visible = true;
     }
 
     private void EnsureSeparatorThicknessControls()
@@ -1000,39 +944,6 @@ public partial class LayoutSettingsControl : UserControl
         }
     }
 
-    private void EnsureObsWindowCaptureCompatibilityControl()
-    {
-        if (chkObsWindowCaptureCompatibilityMode != null)
-        {
-            return;
-        }
-
-        chkObsWindowCaptureCompatibilityMode = new CheckBox
-        {
-            Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right,
-            AutoSize = true,
-            Margin = new Padding(7, 3, 3, 3),
-            Text = T("OBS Window Capture compatibility mode")
-        };
-
-        string helpText = T("Uses a single in-window composited path for better OBS Window Capture reliability. This can use more CPU.");
-        backgroundVideoToolTip.SetToolTip(chkObsWindowCaptureCompatibilityMode, helpText);
-
-        tableLayoutPanel5.SuspendLayout();
-        try
-        {
-            tableLayoutPanel5.RowCount += 1;
-            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.AutoSize));
-            int row = tableLayoutPanel5.RowCount - 1;
-            tableLayoutPanel5.Controls.Add(chkObsWindowCaptureCompatibilityMode, 0, row);
-            tableLayoutPanel5.SetColumnSpan(chkObsWindowCaptureCompatibilityMode, 3);
-        }
-        finally
-        {
-            tableLayoutPanel5.ResumeLayout();
-        }
-    }
-
     private string GetBackgroundTypeString(BackgroundType type)
     {
         return type switch
@@ -1075,8 +986,6 @@ public partial class LayoutSettingsControl : UserControl
         chkUseHardwareVideoDecoding.Enabled = videoBackground;
         chkLoopVideo.Enabled = videoBackground;
         chkPlayVideoAudio.Enabled = videoBackground;
-        chkObsWindowCaptureCompatibilityMode.Visible = videoBackground;
-        chkObsWindowCaptureCompatibilityMode.Enabled = videoBackground;
         grpVideoTimerSync.Visible = videoBackground;
         grpVideoTimerSync.Enabled = videoBackground;
         grpWhenRunCompletes.Visible = videoBackground;
@@ -1100,27 +1009,27 @@ public partial class LayoutSettingsControl : UserControl
         grpVideoBlur.Visible = videoBackground;
         grpVideoBlur.Enabled = videoBackground;
 
-        bool showVideoPanZoom = videoBackground;
+        bool showBackgroundPanZoom = videoBackground || imageBackground;
         lblVideoPanX.Visible = lblVideoPanY.Visible = lblVideoZoom.Visible =
-            trkVideoPanX.Visible = trkVideoPanY.Visible = trkVideoZoom.Visible = showVideoPanZoom;
+            trkVideoPanX.Visible = trkVideoPanY.Visible = trkVideoZoom.Visible = showBackgroundPanZoom;
         lblVideoPanX.Enabled = lblVideoPanY.Enabled = lblVideoZoom.Enabled =
-            trkVideoPanX.Enabled = trkVideoPanY.Enabled = trkVideoZoom.Enabled = showVideoPanZoom;
-        if (showVideoPanZoom)
+            trkVideoPanX.Enabled = trkVideoPanY.Enabled = trkVideoZoom.Enabled = showBackgroundPanZoom;
+        if (showBackgroundPanZoom)
         {
-            lblVideoPanX.Text = T("Video Pan X:");
-            lblVideoPanY.Text = T("Video Pan Y:");
-            lblVideoZoom.Text = T("Video Zoom:");
-            SyncVideoPanZoomTrackbarsFromSettings();
-        }
-
-        if (lblBackgroundVideoBackend != null)
-        {
-            lblBackgroundVideoBackend.Visible = cmbBackgroundVideoBackend.Visible = videoBackground;
-            lblBackgroundVideoBackend.Enabled = cmbBackgroundVideoBackend.Enabled = videoBackground;
             if (videoBackground)
             {
-                SyncBackgroundVideoBackendComboFromSettings();
+                lblVideoPanX.Text = T("Video Pan X:");
+                lblVideoPanY.Text = T("Video Pan Y:");
+                lblVideoZoom.Text = T("Video Zoom:");
             }
+            else
+            {
+                lblVideoPanX.Text = T("Image pan X:");
+                lblVideoPanY.Text = T("Image pan Y:");
+                lblVideoZoom.Text = T("Image zoom:");
+            }
+
+            SyncVideoPanZoomTrackbarsFromSettings();
         }
 
         UpdateLayoutOpacityControlsEnabled();
@@ -1189,12 +1098,24 @@ public partial class LayoutSettingsControl : UserControl
             return;
         }
 
+        string sel = cmbBackgroundType.SelectedItem?.ToString();
+        bool useVideo = sel == "Video";
+
         suppressVideoPanZoomEvents = true;
         try
         {
-            trkVideoPanX.Value = Math.Max(trkVideoPanX.Minimum, Math.Min(trkVideoPanX.Maximum, (int)Math.Round(Settings.VideoPanX * 100.0)));
-            trkVideoPanY.Value = Math.Max(trkVideoPanY.Minimum, Math.Min(trkVideoPanY.Maximum, (int)Math.Round(Settings.VideoPanY * 100.0)));
-            trkVideoZoom.Value = Math.Max(trkVideoZoom.Minimum, Math.Min(trkVideoZoom.Maximum, (int)Math.Round(Settings.VideoZoomExtra * 100.0)));
+            if (useVideo)
+            {
+                trkVideoPanX.Value = Math.Max(trkVideoPanX.Minimum, Math.Min(trkVideoPanX.Maximum, (int)Math.Round(Settings.VideoPanX * 100.0)));
+                trkVideoPanY.Value = Math.Max(trkVideoPanY.Minimum, Math.Min(trkVideoPanY.Maximum, (int)Math.Round(Settings.VideoPanY * 100.0)));
+                trkVideoZoom.Value = Math.Max(trkVideoZoom.Minimum, Math.Min(trkVideoZoom.Maximum, (int)Math.Round(Settings.VideoZoomExtra * 100.0)));
+            }
+            else
+            {
+                trkVideoPanX.Value = Math.Max(trkVideoPanX.Minimum, Math.Min(trkVideoPanX.Maximum, (int)Math.Round(Settings.ImagePanX * 100.0)));
+                trkVideoPanY.Value = Math.Max(trkVideoPanY.Minimum, Math.Min(trkVideoPanY.Maximum, (int)Math.Round(Settings.ImagePanY * 100.0)));
+                trkVideoZoom.Value = Math.Max(trkVideoZoom.Minimum, Math.Min(trkVideoZoom.Maximum, (int)Math.Round(Settings.ImageZoomExtra * 100.0)));
+            }
         }
         finally
         {
@@ -1243,9 +1164,24 @@ public partial class LayoutSettingsControl : UserControl
             return;
         }
 
-        Settings.VideoPanX = trkVideoPanX.Value / 100f;
-        Settings.VideoPanY = trkVideoPanY.Value / 100f;
-        Settings.VideoZoomExtra = trkVideoZoom.Value / 100f;
+        string sel = cmbBackgroundType.SelectedItem?.ToString();
+        if (sel == "Video")
+        {
+            Settings.VideoPanX = trkVideoPanX.Value / 100f;
+            Settings.VideoPanY = trkVideoPanY.Value / 100f;
+            Settings.VideoZoomExtra = trkVideoZoom.Value / 100f;
+        }
+        else if (sel is "Image" or "Animated Image")
+        {
+            Settings.ImagePanX = trkVideoPanX.Value / 100f;
+            Settings.ImagePanY = trkVideoPanY.Value / 100f;
+            Settings.ImageZoomExtra = trkVideoZoom.Value / 100f;
+        }
+        else
+        {
+            return;
+        }
+
         NotifyLiveApplyRequested();
     }
 

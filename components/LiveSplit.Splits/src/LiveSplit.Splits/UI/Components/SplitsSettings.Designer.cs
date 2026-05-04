@@ -113,6 +113,14 @@ namespace LiveSplit.UI.Components
             this.cmbCurrentSplitOutlineInterpolation = new System.Windows.Forms.ComboBox();
             this.lblCurrentSplitImageFilter = new System.Windows.Forms.Label();
             this.cmbCurrentSplitImageFilter = new System.Windows.Forms.ComboBox();
+            this.grpCurrentSplitFillGradientMotion = new System.Windows.Forms.GroupBox();
+            this.tableLayoutPanelCurrentSplitFill = new System.Windows.Forms.TableLayoutPanel();
+            this.chkCurrentSplitFillRgbWave = new System.Windows.Forms.CheckBox();
+            this.lblCurrentSplitFillWaveMotion = new System.Windows.Forms.Label();
+            this.rdoCurrentSplitFillWaveHorizontal = new System.Windows.Forms.RadioButton();
+            this.rdoCurrentSplitFillWaveVertical = new System.Windows.Forms.RadioButton();
+            this.lblCurrentSplitFillWaveSpeed = new System.Windows.Forms.Label();
+            this.trkCurrentSplitFillWaveSpeed = new System.Windows.Forms.TrackBar();
             this.groupBox9 = new System.Windows.Forms.GroupBox();
             this.tableLayoutPanel10 = new System.Windows.Forms.TableLayoutPanel();
             this.groupBox2 = new System.Windows.Forms.GroupBox();
@@ -133,6 +141,9 @@ namespace LiveSplit.UI.Components
             ((System.ComponentModel.ISupportInitialize)(this.nudCurrentSplitOutlineThickness)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudCurrentSplitOutlineTransparency)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkCurrentSplitOutlineWaveSpeed)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkCurrentSplitFillWaveSpeed)).BeginInit();
+            this.grpCurrentSplitFillGradientMotion.SuspendLayout();
+            this.tableLayoutPanelCurrentSplitFill.SuspendLayout();
             this.grpCurrentSplitOutline.SuspendLayout();
             this.tableLayoutPanelCurrentSplitOutline.SuspendLayout();
             this.groupBox3.SuspendLayout();
@@ -177,14 +188,16 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanel1.Controls.Add(this.dmnUpcomingSegments, 1, 2);
             this.tableLayoutPanel1.Controls.Add(this.chkThinSeparators, 0, 3);
             this.tableLayoutPanel1.Controls.Add(this.chkLastSplit, 0, 4);
-            this.tableLayoutPanel1.Controls.Add(this.grpCurrentSplitOutline, 0, 8);
+            this.tableLayoutPanel1.Controls.Add(this.grpCurrentSplitFillGradientMotion, 0, 8);
+            this.tableLayoutPanel1.SetColumnSpan(this.grpCurrentSplitFillGradientMotion, 4);
+            this.tableLayoutPanel1.Controls.Add(this.grpCurrentSplitOutline, 0, 9);
             this.tableLayoutPanel1.SetColumnSpan(this.grpCurrentSplitOutline, 4);
-            this.tableLayoutPanel1.Controls.Add(this.groupBox3, 0, 10);
-            this.tableLayoutPanel1.Controls.Add(this.groupBox4, 0, 12);
+            this.tableLayoutPanel1.Controls.Add(this.groupBox3, 0, 11);
+            this.tableLayoutPanel1.Controls.Add(this.groupBox4, 0, 13);
             this.tableLayoutPanel1.Controls.Add(this.lblSplitSize, 0, 6);
             this.tableLayoutPanel1.Controls.Add(this.trkSize, 1, 6);
             this.tableLayoutPanel1.Controls.Add(this.chkSeparatorLastSplit, 1, 3);
-            this.tableLayoutPanel1.Controls.Add(this.groupBox6, 0, 11);
+            this.tableLayoutPanel1.Controls.Add(this.groupBox6, 0, 12);
             this.tableLayoutPanel1.Controls.Add(this.chkLockLastSplit, 0, 5);
             this.tableLayoutPanel1.Controls.Add(this.chkShowBlankSplits, 1, 4);
             this.tableLayoutPanel1.Controls.Add(this.label11, 0, 0);
@@ -192,12 +205,12 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanel1.Controls.Add(this.btnColor2, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.cmbGradientType, 3, 0);
             this.tableLayoutPanel1.Controls.Add(this.chkDisplayRows, 1, 5);
-            this.tableLayoutPanel1.Controls.Add(this.groupColumns, 0, 13);
-            this.tableLayoutPanel1.Controls.Add(this.groupBox9, 0, 9);
+            this.tableLayoutPanel1.Controls.Add(this.groupColumns, 0, 14);
+            this.tableLayoutPanel1.Controls.Add(this.groupBox9, 0, 10);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(7, 7);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 14;
+            this.tableLayoutPanel1.RowCount = 15;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
@@ -206,12 +219,13 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 110F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 302F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 81F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 187F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 215F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 13F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 54F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(445, 1268);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
@@ -968,9 +982,9 @@ namespace LiveSplit.UI.Components
             // 
             // groupColumns
             // 
-            this.groupColumns.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.tableLayoutPanel1.SetColumnSpan(this.groupColumns, 4);
             this.groupColumns.Controls.Add(this.tableColumns);
+            this.groupColumns.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupColumns.Location = new System.Drawing.Point(3, 914);
             this.groupColumns.Name = "groupColumns";
             this.groupColumns.Size = new System.Drawing.Size(439, 48);
@@ -1041,6 +1055,113 @@ namespace LiveSplit.UI.Components
             this.lblLabelsColor.Size = new System.Drawing.Size(108, 13);
             this.lblLabelsColor.TabIndex = 3;
             this.lblLabelsColor.Text = "Labels Color:";
+            // 
+            // grpCurrentSplitFillGradientMotion
+            // 
+            this.grpCurrentSplitFillGradientMotion.Controls.Add(this.tableLayoutPanelCurrentSplitFill);
+            this.grpCurrentSplitFillGradientMotion.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.grpCurrentSplitFillGradientMotion.Location = new System.Drawing.Point(3, 206);
+            this.grpCurrentSplitFillGradientMotion.Name = "grpCurrentSplitFillGradientMotion";
+            this.grpCurrentSplitFillGradientMotion.Size = new System.Drawing.Size(439, 110);
+            this.grpCurrentSplitFillGradientMotion.TabIndex = 36;
+            this.grpCurrentSplitFillGradientMotion.TabStop = false;
+            this.grpCurrentSplitFillGradientMotion.Text = "Current split row fill (Plain / Vertical / Horizontal)";
+            // 
+            // tableLayoutPanelCurrentSplitFill
+            // 
+            this.tableLayoutPanelCurrentSplitFill.ColumnCount = 6;
+            this.tableLayoutPanelCurrentSplitFill.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanelCurrentSplitFill.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 52F));
+            this.tableLayoutPanelCurrentSplitFill.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanelCurrentSplitFill.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 28F));
+            this.tableLayoutPanelCurrentSplitFill.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.tableLayoutPanelCurrentSplitFill.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 52F));
+            this.tableLayoutPanelCurrentSplitFill.Controls.Add(this.chkCurrentSplitFillRgbWave, 0, 0);
+            this.tableLayoutPanelCurrentSplitFill.Controls.Add(this.lblCurrentSplitFillWaveMotion, 0, 1);
+            this.tableLayoutPanelCurrentSplitFill.Controls.Add(this.rdoCurrentSplitFillWaveHorizontal, 2, 1);
+            this.tableLayoutPanelCurrentSplitFill.Controls.Add(this.rdoCurrentSplitFillWaveVertical, 4, 1);
+            this.tableLayoutPanelCurrentSplitFill.Controls.Add(this.lblCurrentSplitFillWaveSpeed, 0, 2);
+            this.tableLayoutPanelCurrentSplitFill.Controls.Add(this.trkCurrentSplitFillWaveSpeed, 1, 2);
+            this.tableLayoutPanelCurrentSplitFill.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanelCurrentSplitFill.Location = new System.Drawing.Point(3, 16);
+            this.tableLayoutPanelCurrentSplitFill.Name = "tableLayoutPanelCurrentSplitFill";
+            this.tableLayoutPanelCurrentSplitFill.RowCount = 3;
+            this.tableLayoutPanelCurrentSplitFill.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 26F));
+            this.tableLayoutPanelCurrentSplitFill.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 26F));
+            this.tableLayoutPanelCurrentSplitFill.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            this.tableLayoutPanelCurrentSplitFill.SetColumnSpan(this.chkCurrentSplitFillRgbWave, 6);
+            this.tableLayoutPanelCurrentSplitFill.SetColumnSpan(this.trkCurrentSplitFillWaveSpeed, 5);
+            this.tableLayoutPanelCurrentSplitFill.SetColumnSpan(this.rdoCurrentSplitFillWaveHorizontal, 2);
+            this.tableLayoutPanelCurrentSplitFill.SetColumnSpan(this.rdoCurrentSplitFillWaveVertical, 2);
+            this.tableLayoutPanelCurrentSplitFill.Size = new System.Drawing.Size(433, 91);
+            this.tableLayoutPanelCurrentSplitFill.TabIndex = 0;
+            // 
+            // chkCurrentSplitFillRgbWave
+            // 
+            this.chkCurrentSplitFillRgbWave.AutoSize = true;
+            this.chkCurrentSplitFillRgbWave.Location = new System.Drawing.Point(3, 3);
+            this.chkCurrentSplitFillRgbWave.Name = "chkCurrentSplitFillRgbWave";
+            this.chkCurrentSplitFillRgbWave.Size = new System.Drawing.Size(260, 17);
+            this.chkCurrentSplitFillRgbWave.TabIndex = 0;
+            this.chkCurrentSplitFillRgbWave.Text = "RGB spectrum instead of row colors";
+            this.chkCurrentSplitFillRgbWave.UseVisualStyleBackColor = true;
+            this.chkCurrentSplitFillRgbWave.CheckedChanged += new System.EventHandler(this.chkCurrentSplitFillRgbWave_CheckedChanged);
+            // 
+            // lblCurrentSplitFillWaveMotion
+            // 
+            this.lblCurrentSplitFillWaveMotion.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.lblCurrentSplitFillWaveMotion.AutoSize = true;
+            this.lblCurrentSplitFillWaveMotion.Location = new System.Drawing.Point(3, 32);
+            this.lblCurrentSplitFillWaveMotion.Name = "lblCurrentSplitFillWaveMotion";
+            this.lblCurrentSplitFillWaveMotion.Size = new System.Drawing.Size(42, 13);
+            this.lblCurrentSplitFillWaveMotion.TabIndex = 1;
+            this.lblCurrentSplitFillWaveMotion.Text = "Motion:";
+            // 
+            // rdoCurrentSplitFillWaveHorizontal
+            // 
+            this.rdoCurrentSplitFillWaveHorizontal.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.rdoCurrentSplitFillWaveHorizontal.AutoSize = true;
+            this.rdoCurrentSplitFillWaveHorizontal.Location = new System.Drawing.Point(73, 32);
+            this.rdoCurrentSplitFillWaveHorizontal.Name = "rdoCurrentSplitFillWaveHorizontal";
+            this.rdoCurrentSplitFillWaveHorizontal.Size = new System.Drawing.Size(72, 17);
+            this.rdoCurrentSplitFillWaveHorizontal.TabIndex = 2;
+            this.rdoCurrentSplitFillWaveHorizontal.TabStop = true;
+            this.rdoCurrentSplitFillWaveHorizontal.Text = "Horizontal";
+            this.rdoCurrentSplitFillWaveHorizontal.UseVisualStyleBackColor = true;
+            this.rdoCurrentSplitFillWaveHorizontal.CheckedChanged += new System.EventHandler(this.rdoCurrentSplitFillWaveAxis_CheckedChanged);
+            // 
+            // rdoCurrentSplitFillWaveVertical
+            // 
+            this.rdoCurrentSplitFillWaveVertical.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.rdoCurrentSplitFillWaveVertical.AutoSize = true;
+            this.rdoCurrentSplitFillWaveVertical.Location = new System.Drawing.Point(153, 32);
+            this.rdoCurrentSplitFillWaveVertical.Name = "rdoCurrentSplitFillWaveVertical";
+            this.rdoCurrentSplitFillWaveVertical.Size = new System.Drawing.Size(60, 17);
+            this.rdoCurrentSplitFillWaveVertical.TabIndex = 3;
+            this.rdoCurrentSplitFillWaveVertical.Text = "Vertical";
+            this.rdoCurrentSplitFillWaveVertical.UseVisualStyleBackColor = true;
+            this.rdoCurrentSplitFillWaveVertical.CheckedChanged += new System.EventHandler(this.rdoCurrentSplitFillWaveAxis_CheckedChanged);
+            // 
+            // lblCurrentSplitFillWaveSpeed
+            // 
+            this.lblCurrentSplitFillWaveSpeed.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.lblCurrentSplitFillWaveSpeed.AutoSize = true;
+            this.lblCurrentSplitFillWaveSpeed.Location = new System.Drawing.Point(3, 65);
+            this.lblCurrentSplitFillWaveSpeed.Name = "lblCurrentSplitFillWaveSpeed";
+            this.lblCurrentSplitFillWaveSpeed.Size = new System.Drawing.Size(41, 13);
+            this.lblCurrentSplitFillWaveSpeed.TabIndex = 4;
+            this.lblCurrentSplitFillWaveSpeed.Text = "Speed:";
+            // 
+            // trkCurrentSplitFillWaveSpeed
+            // 
+            this.trkCurrentSplitFillWaveSpeed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.trkCurrentSplitFillWaveSpeed.Location = new System.Drawing.Point(73, 58);
+            this.trkCurrentSplitFillWaveSpeed.Maximum = 40;
+            this.trkCurrentSplitFillWaveSpeed.Name = "trkCurrentSplitFillWaveSpeed";
+            this.trkCurrentSplitFillWaveSpeed.Size = new System.Drawing.Size(357, 45);
+            this.trkCurrentSplitFillWaveSpeed.TabIndex = 5;
+            this.trkCurrentSplitFillWaveSpeed.TickFrequency = 5;
+            this.trkCurrentSplitFillWaveSpeed.Scroll += new System.EventHandler(this.trkCurrentSplitFillWaveSpeed_Scroll);
             // 
             // grpCurrentSplitOutline
             // 
@@ -1556,6 +1677,10 @@ namespace LiveSplit.UI.Components
             ((System.ComponentModel.ISupportInitialize)(this.nudCurrentSplitOutlineThickness)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.nudCurrentSplitOutlineTransparency)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkCurrentSplitOutlineWaveSpeed)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkCurrentSplitFillWaveSpeed)).EndInit();
+            this.grpCurrentSplitFillGradientMotion.ResumeLayout(false);
+            this.tableLayoutPanelCurrentSplitFill.ResumeLayout(false);
+            this.tableLayoutPanelCurrentSplitFill.PerformLayout();
             this.grpCurrentSplitOutline.ResumeLayout(false);
             this.tableLayoutPanelCurrentSplitOutline.ResumeLayout(false);
             this.tableLayoutPanelCurrentSplitOutline.PerformLayout();
@@ -1666,6 +1791,14 @@ namespace LiveSplit.UI.Components
         private System.Windows.Forms.ComboBox cmbCurrentSplitImageFilter;
         private System.Windows.Forms.Label lblCurrentSplitOutlineInterpolation;
         private System.Windows.Forms.ComboBox cmbCurrentSplitOutlineInterpolation;
+        private System.Windows.Forms.GroupBox grpCurrentSplitFillGradientMotion;
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanelCurrentSplitFill;
+        private System.Windows.Forms.CheckBox chkCurrentSplitFillRgbWave;
+        private System.Windows.Forms.Label lblCurrentSplitFillWaveMotion;
+        private System.Windows.Forms.RadioButton rdoCurrentSplitFillWaveHorizontal;
+        private System.Windows.Forms.RadioButton rdoCurrentSplitFillWaveVertical;
+        private System.Windows.Forms.Label lblCurrentSplitFillWaveSpeed;
+        private System.Windows.Forms.TrackBar trkCurrentSplitFillWaveSpeed;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel10;
         private System.Windows.Forms.CheckBox chkAutomaticAbbreviations;
         private System.Windows.Forms.RadioButton rdoDeltaMilliseconds;

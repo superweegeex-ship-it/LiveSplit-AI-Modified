@@ -44,7 +44,7 @@ public static class ImageExtensions
             {
                 var attributes = new ImageAttributes();
 
-                graphics.InterpolationMode = InterpolationMode.HighQualityBicubic;
+                graphics.InterpolationMode = InterpolationMode.Bilinear;
                 graphics.DrawImage(
                     image,
                     new Rectangle(0, 0, width, height),

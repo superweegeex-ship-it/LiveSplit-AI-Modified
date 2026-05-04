@@ -78,26 +78,15 @@ public partial class TimerForm : Form
     private Image previousBackground { get; set; }
     private float previousOpacity { get; set; }
     private float previousBlur { get; set; }
+    private float previousImagePanX { get; set; } = float.NaN;
+    private float previousImagePanY { get; set; } = float.NaN;
+    private float previousImageZoomExtra { get; set; } = float.NaN;
     private Image blurredBackground { get; set; }
     private Image bakedBackground { get; set; }
     private Image animatedBackground { get; set; }
     private long lastAnimatedBackgroundFrameTick;
     private IBackgroundVideoPlayer backgroundVideoPlayer;
-    private VideoHostPanel embeddedVideoCompositorHost;
-    private VideoHostPanel embeddedMpvSurface;
-    private EmbeddedLayoutOverlayPanel embeddedLayoutPaintSurface;
-    /// <summary>Top-level layered window painting LiveSplit UI with per-pixel alpha above the embedded video host.</summary>
-    private LayoutOverlayWindow layoutOverlayWindow;
-    private System.Windows.Forms.Timer layoutOverlayPaintTimer;
     private int lastThrottledVideoUiUpdateTick;
-    /// <summary>
-    /// When <see cref="ShouldPaintLayoutOnEmbeddedOverlayOnly"/> is true, drives <see cref="ComponentRenderer.Update"/>
-    /// and embedded surface invalidation at <c>max(RefreshRate, VideoBackgroundPaintFps)</c> (capped) so UI smoothness
-    /// is not limited by the global refresh worker alone.
-    /// </summary>
-    private System.Windows.Forms.Timer embeddedCompatUiTimer;
-    private Bitmap layoutOverlayRenderBitmap;
-    private BackgroundVideoBackend lastBackgroundVideoPlayerBackend = (BackgroundVideoBackend)(-1);
     private string loadedBackgroundVideoSource;
     private bool backgroundVideoDisabledForSession;
     private string failedBackgroundVideoSource;
@@ -113,9 +102,8 @@ public partial class TimerForm : Form
     private System.Windows.Forms.Timer backgroundVideoRunTimerDriftSyncTimer;
     private bool isInsideMoveSizeLoop;
     /// <summary>
-    /// While true, <see cref="OnTimerFormModalOwnerEnabled"/> does not re-show the layered overlay / embedded
-    /// compositor after each modal closes — used during <see cref="TimerForm_FormClosing"/> so multiple
-    /// save prompts do not briefly restore UI on top of the next dialog.
+    /// While true, <see cref="OnTimerFormModalOwnerEnabled"/> skips video control refresh — used during
+    /// <see cref="TimerForm_FormClosing"/> so multiple save prompts do not stack updates.
     /// </summary>
     private bool suppressCompositorRestoreWhileFormClosingModals;
 
@@ -251,51 +239,6 @@ public partial class TimerForm : Form
         GlobalCache = new GraphicsCache();
         Invalidator = new Invalidator(this);
         SetStyle(ControlStyles.SupportsTransparentBackColor, true);
-
-        embeddedVideoCompositorHost = new VideoHostPanel
-        {
-            Name = "embeddedVideoCompositorHost",
-            Dock = DockStyle.Fill,
-            Visible = false,
-            TabStop = false
-        };
-        embeddedMpvSurface = new VideoHostPanel
-        {
-            Name = "embeddedMpvSurface",
-            Dock = DockStyle.Fill,
-            TabStop = false
-        };
-        embeddedLayoutPaintSurface = new EmbeddedLayoutOverlayPanel
-        {
-            Name = "embeddedLayoutPaintSurface",
-            Dock = DockStyle.Fill
-        };
-        embeddedLayoutPaintSurface.Paint += EmbeddedLayoutPaintSurface_Paint;
-        embeddedLayoutPaintSurface.RightClickRequested += EmbeddedLayoutPaintSurface_RightClickRequested;
-        embeddedMpvSurface.MouseDown += EmbeddedCompositor_MouseDown;
-        embeddedMpvSurface.MouseUp += EmbeddedCompositor_MouseUp;
-        embeddedVideoCompositorHost.MouseDown += EmbeddedCompositor_MouseDown;
-        embeddedVideoCompositorHost.MouseUp += EmbeddedCompositor_MouseUp;
-        layoutOverlayWindow = new LayoutOverlayWindow();
-        layoutOverlayPaintTimer = new System.Windows.Forms.Timer { Interval = 33 };
-        layoutOverlayPaintTimer.Tick += LayoutOverlayPaintTimer_Tick;
-        Move += TimerForm_LayoutOverlayWindowSyncPlacement;
-        Resize += TimerForm_LayoutOverlayWindowSyncPlacement;
-        LocationChanged += TimerForm_LayoutOverlayWindowSyncPlacement;
-        SizeChanged += TimerForm_LayoutOverlayWindowSyncPlacement;
-        VisibleChanged += TimerForm_LayoutOverlayWindowSyncPlacement;
-        // Sibling layout inside compositor host:
-        //   videoHost
-        //     embeddedMpvSurface  (mpv wid target — bottom)
-        //     embeddedLayoutPaintSurface (UI overlay — top)
-        // mpv with d3d11/swap-chain present overwrites its target HWND surface, so the overlay
-        // must NOT be a child of the mpv target — it must be a sibling above it via z-order.
-        embeddedVideoCompositorHost.Controls.Add(embeddedMpvSurface);
-        embeddedVideoCompositorHost.Controls.Add(embeddedLayoutPaintSurface);
-        Controls.Add(embeddedVideoCompositorHost);
-        embeddedVideoCompositorHost.SendToBack();
-        embeddedMpvSurface.SendToBack();
-        embeddedLayoutPaintSurface.BringToFront();
 
         ComponentManager.BasePath = BasePath;
 
@@ -1348,6 +1291,7 @@ public partial class TimerForm : Form
         {
             IsInDialogMode = false;
             TopMost = Layout.Settings.AlwaysOnTop;
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -1532,7 +1476,6 @@ public partial class TimerForm : Form
                     }
 
                     bool shouldAnimateVideo = IsVideoBackgroundActive();
-                    bool useEmbeddedOverlayOnly = ShouldPaintLayoutOnEmbeddedOverlayOnly();
                     bool requiresFullRefresh = RefreshesRemaining > 0 || InvalidationRequired;
                     bool throttleVideoUiWork = shouldAnimateVideo && ShouldThrottleVideoUiWork();
 
@@ -1543,49 +1486,25 @@ public partial class TimerForm : Form
                         {
                             InvalidationRequired = false;
                         }
-
-                        // Embedded video mode can sit in "full refresh" for several ticks while layout size
-                        // settles. Keep ComponentRenderer state fresh here so split-row current-state visuals
-                        // (like current split background image/color) still update immediately.
-                        if (shouldAnimateVideo && useEmbeddedOverlayOnly)
-                        {
-                            Invalidator.Restart();
-                            try
-                            {
-                                ComponentRenderer.Update(Invalidator, CurrentState, Width, Height, Layout.Mode);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(ex);
-                            }
-                        }
                     }
                     else if (shouldAnimateVideo && !throttleVideoUiWork)
                     {
-                        if (useEmbeddedOverlayOnly)
-                        {
-                            // OBS Window Capture compatibility: ComponentRenderer.Update + embedded invalidate
-                            // are driven by embeddedCompatUiTimer at max(RefreshRate, VideoBackgroundPaintFps).
-                        }
-                        else
-                        {
-                            // Keep layout components (timer/splits) updating while animating video.
-                            // We still skip expensive full-layout hash checks in this path.
-                            Invalidator.Restart();
+                        // Keep layout components (timer/splits) updating while animating video.
+                        // We still skip expensive full-layout hash checks in this path.
+                        Invalidator.Restart();
 
-                            // Already on the UI thread (RefreshTimerWorker always marshals here with Invoke).
-                            try
-                            {
-                                ComponentRenderer.Update(Invalidator, CurrentState, Width, Height, Layout.Mode);
-                            }
-                            catch (Exception ex)
-                            {
-                                Log.Error(ex);
-                            }
-
-                            // Do not call Update() here: synchronous WM_PAINT stacks with the mpv readback path and caps "Video sample (Hz)".
-                            InvalidateLayoutPaintSurface();
+                        // Already on the UI thread (RefreshTimerWorker always marshals here with Invoke).
+                        try
+                        {
+                            ComponentRenderer.Update(Invalidator, CurrentState, Width, Height, Layout.Mode);
                         }
+                        catch (Exception ex)
+                        {
+                            Log.Error(ex);
+                        }
+
+                        // Do not call Update() here: synchronous WM_PAINT stacks with the mpv readback path and caps "Video sample (Hz)".
+                        InvalidateLayoutPaintSurface();
                     }
                     else if (throttleVideoUiWork)
                     {
@@ -1593,7 +1512,10 @@ public partial class TimerForm : Form
                         // skipping UI updates here makes timer/splits appear frozen (often only updating
                         // on the once-per-second invalidation fallback). Keep a lightweight capped update.
                         int nowTick = Environment.TickCount;
-                        if (unchecked(nowTick - lastThrottledVideoUiUpdateTick) >= 33)
+                        // Slightly faster cadence while the main form is disabled (modal): mpv readback is paused,
+                        // so these paints are mostly layout/timer text and stay cheap.
+                        int throttleMs = !Enabled ? 16 : 33;
+                        if (unchecked(nowTick - lastThrottledVideoUiUpdateTick) >= throttleMs)
                         {
                             lastThrottledVideoUiUpdateTick = nowTick;
                             Invalidator.Restart();
@@ -1663,76 +1585,29 @@ public partial class TimerForm : Form
         bool want = EnableExperimentalBackgroundVideo
             && !backgroundVideoDisabledForSession
             && Layout?.Settings?.BackgroundType == BackgroundType.Video
-            && backgroundVideoPlayer?.IsLoaded == true;
+            && backgroundVideoPlayer?.IsLoaded == true
+            && Enabled;
 
-        int fps = Math.Max(1, Math.Min(120, Settings?.VideoBackgroundPaintFps ?? 30));
+        int refresh = Math.Max(1, Math.Min(300, Settings?.RefreshRate ?? 60));
+        int videoCap = Math.Max(1, Math.Min(120, Settings?.VideoBackgroundPaintFps ?? 60));
+        // At least match layout refresh so readback is not slower than the timer repaint loop.
+        int fps = Math.Min(120, Math.Max(videoCap, refresh));
         backgroundVideoPlayer?.SyncPresentationWithHost(want, fps);
-        SyncEmbeddedCompatUiTimer();
-    }
-
-    private void EnsureEmbeddedCompatUiTimer()
-    {
-        if (embeddedCompatUiTimer != null)
-        {
-            return;
-        }
-
-        embeddedCompatUiTimer = new System.Windows.Forms.Timer { Interval = 16 };
-        embeddedCompatUiTimer.Tick += EmbeddedCompatUiTimer_Tick;
     }
 
     /// <summary>
-    /// Keeps OBS Window Capture compatibility mode responsive by decoupling embedded overlay updates
-    /// from the background refresh thread rate when the user has raised video paint FPS.
+    /// Re-syncs mpv readback presentation after modal dialogs or <see cref="Enabled"/> toggles.
     /// </summary>
-    private void SyncEmbeddedCompatUiTimer()
+    private void SyncVideoBackgroundAfterInteractionModeChange()
     {
-        EnsureEmbeddedCompatUiTimer();
-
-        bool want = ShouldPaintLayoutOnEmbeddedOverlayOnly()
-            && IsVideoBackgroundActive();
-
-        if (!want)
+        if (DesignMode || !IsHandleCreated)
         {
-            embeddedCompatUiTimer.Enabled = false;
-            return;
-        }
-
-        int refreshHz = Math.Max(1, Math.Min(300, Settings?.RefreshRate ?? 60));
-        int videoPaintHz = Math.Max(1, Math.Min(120, Settings?.VideoBackgroundPaintFps ?? 30));
-        // OBS-compat mode should still be able to hit 60 FPS when requested, but avoid runaway
-        // 100+ FPS repaint pressure that causes UI/main-thread contention and visible stutter.
-        int targetHz = Math.Min(60, Math.Max(refreshHz, videoPaintHz));
-        int intervalMs = Math.Max(1, (int)Math.Round(1000.0 / targetHz));
-        if (embeddedCompatUiTimer.Interval != intervalMs)
-        {
-            embeddedCompatUiTimer.Interval = intervalMs;
-        }
-
-        embeddedCompatUiTimer.Enabled = true;
-    }
-
-    private void EmbeddedCompatUiTimer_Tick(object sender, EventArgs e)
-    {
-        if (ShouldThrottleVideoUiWork())
-        {
-            return;
-        }
-
-        if (!ShouldPaintLayoutOnEmbeddedOverlayOnly()
-            || embeddedLayoutPaintSurface == null
-            || !embeddedLayoutPaintSurface.Visible
-            || embeddedLayoutPaintSurface.IsDisposed)
-        {
-            embeddedCompatUiTimer.Enabled = false;
             return;
         }
 
         try
         {
-            Invalidator.Restart();
-            ComponentRenderer.Update(Invalidator, CurrentState, Width, Height, Layout.Mode);
-            embeddedLayoutPaintSurface.Invalidate();
+            SyncVideoBackgroundPoolTimer();
         }
         catch (Exception ex)
         {
@@ -1873,15 +1748,6 @@ public partial class TimerForm : Form
 
     private void InvalidateLayoutPaintSurface()
     {
-        if (ShouldPaintLayoutOnEmbeddedOverlayOnly()
-            && embeddedLayoutPaintSurface != null
-            && embeddedLayoutPaintSurface.Visible
-            && !embeddedLayoutPaintSurface.IsDisposed)
-        {
-            embeddedLayoutPaintSurface.Invalidate();
-            return;
-        }
-
         Invalidate();
     }
 
@@ -1890,6 +1756,14 @@ public partial class TimerForm : Form
         foreach (UI.Components.IComponent component in Layout.Components)
         {
             component.Update(null, CurrentState, Width, Height, Layout.Mode);
+        }
+    }
+
+    private void ReleaseMpvReadbackHostInvalidateGateAfterPaintForm()
+    {
+        if (backgroundVideoPlayer is LibMpvBackgroundPlayer mpvReadback)
+        {
+            mpvReadback.ReleasePendingHostInvalidateAfterHostPaint();
         }
     }
 
@@ -1910,7 +1784,15 @@ public partial class TimerForm : Form
             UpdateRegion.Union(entireClient);
         }
 
-        DrawBackground(g);
+        long backgroundProfilerStart = UiPaintProfiler.Begin();
+        try
+        {
+            DrawBackground(g);
+        }
+        finally
+        {
+            UiPaintProfiler.Record(UiPaintProfilerSection.Background, backgroundProfilerStart);
+        }
 
         Opacity = SupportsWindowOpacityForCurrentLayout()
             ? Layout.Settings.Opacity
@@ -1922,14 +1804,7 @@ public partial class TimerForm : Form
         AllowResizing = Layout.Settings.AllowResizing;
         AllowMoving = Layout.Settings.AllowMoving;
 
-        if (ShouldPaintLayoutOnEmbeddedOverlayOnly())
-        {
-            // ClearType + gamma-correct compositing is noticeably heavier during high-frequency embedded paints
-            // (OBS Window Capture compatibility path).
-            g.TextRenderingHint = TextRenderingHint.AntiAlias;
-            g.CompositingQuality = CompositingQuality.HighSpeed;
-        }
-        else if (Layout.Settings.AntiAliasing)
+        if (Layout.Settings.AntiAliasing)
         {
             g.TextRenderingHint = TextRenderingHint.AntiAlias;
         }
@@ -1938,10 +1813,9 @@ public partial class TimerForm : Form
             g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
         }
 
-        if (!ShouldPaintLayoutOnEmbeddedOverlayOnly())
-        {
-            g.CompositingQuality = CompositingQuality.GammaCorrected;
-        }
+        g.CompositingQuality = IsVideoBackgroundActive()
+            ? CompositingQuality.HighSpeed
+            : CompositingQuality.GammaCorrected;
         g.InterpolationMode = InterpolationMode.Bilinear;
         g.SmoothingMode = SmoothingMode.AntiAlias;
 
@@ -1966,7 +1840,15 @@ public partial class TimerForm : Form
             transformedHeight /= scaleFactor;
         }
 
-        ComponentRenderer.Render(g, CurrentState, transformedWidth, transformedHeight, Layout.Mode, UpdateRegion);
+        long componentsProfilerStart = UiPaintProfiler.Begin();
+        try
+        {
+            ComponentRenderer.Render(g, CurrentState, transformedWidth, transformedHeight, Layout.Mode, UpdateRegion);
+        }
+        finally
+        {
+            UiPaintProfiler.Record(UiPaintProfilerSection.Components, componentsProfilerStart);
+        }
 
         FixSize();
         KeepLayoutSize();
@@ -1975,23 +1857,15 @@ public partial class TimerForm : Form
 
     private bool SupportsWindowOpacityForCurrentLayout()
     {
-        // The embedded mpv compositor is a native child/sibling + layered overlay window path; WinForms
-        // Form.Opacity does not reliably alpha-compose that whole multi-window stack. Readback video and
-        // normal GDI backgrounds still use the single form paint path and can use real window opacity.
-        return Layout?.Settings == null
-            || Layout.Settings.BackgroundType != BackgroundType.Video
-            || Layout.Settings.BackgroundVideoBackend != BackgroundVideoBackend.MpvWindowEmbed;
+        return Layout?.Settings != null;
     }
 
     private void TimerForm_Paint(object sender, PaintEventArgs e)
     {
+        UiPaintProfiler.Enabled = EnableExperimentalVideoDebugOverlay && showVideoDebugOverlay;
+        long profilerStart = UiPaintProfiler.Begin();
         try
         {
-            if (ShouldPaintLayoutOnEmbeddedOverlayOnly())
-            {
-                return;
-            }
-
             Region clip = e.Graphics.Clip;
             e.Graphics.Clip = new Region();
             PaintForm(e.Graphics, clip);
@@ -2001,124 +1875,10 @@ public partial class TimerForm : Form
             Log.Error(ex);
             Invalidate();
         }
-    }
-
-    private bool ShouldPaintLayoutOnEmbeddedOverlayOnly()
-    {
-        return EnableExperimentalBackgroundVideo
-            && !backgroundVideoDisabledForSession
-            && Layout?.Settings != null
-            && Layout.Settings.ObsWindowCaptureCompatibilityMode
-            && Layout.Settings.BackgroundType == BackgroundType.Video
-            && embeddedVideoCompositorHost != null
-            && embeddedVideoCompositorHost.Visible
-            && embeddedLayoutPaintSurface != null
-            && embeddedLayoutPaintSurface.Visible
-            && backgroundVideoPlayer != null
-            && backgroundVideoPlayer.IsLoaded
-            && backgroundVideoPlayer.UsesEmbeddedNativeCompositor;
-    }
-
-    private bool IsObsWindowCaptureCompatibilityModeActive()
-    {
-        return EnableExperimentalBackgroundVideo
-            && !backgroundVideoDisabledForSession
-            && Layout?.Settings != null
-            && Layout.Settings.BackgroundType == BackgroundType.Video
-            && Layout.Settings.ObsWindowCaptureCompatibilityMode;
-    }
-
-    private const int WM_NCLBUTTONDOWN_FORWARD = 0x00A1;
-    private const int HT_CAPTION_FORWARD = 0x2;
-
-    [DllImport("user32.dll", EntryPoint = "ReleaseCapture")]
-    private static extern bool NativeReleaseCaptureForward();
-
-    [DllImport("user32.dll", EntryPoint = "SendMessageW", CharSet = CharSet.Unicode)]
-    private static extern IntPtr NativeSendMessageForward(IntPtr hWnd, int Msg, IntPtr wParam, IntPtr lParam);
-
-    private void EmbeddedCompositor_MouseDown(object sender, MouseEventArgs e)
-    {
-        if (e.Button != MouseButtons.Left || !IsHandleCreated || IsDisposed)
+        finally
         {
-            return;
-        }
-
-        try
-        {
-            _ = NativeReleaseCaptureForward();
-            _ = NativeSendMessageForward(Handle, WM_NCLBUTTONDOWN_FORWARD, (IntPtr)HT_CAPTION_FORWARD, IntPtr.Zero);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex);
-        }
-    }
-
-    private void EmbeddedCompositor_MouseUp(object sender, MouseEventArgs e)
-    {
-        if (e.Button != MouseButtons.Right || !(sender is Control sourceControl))
-        {
-            return;
-        }
-
-        try
-        {
-            Point screen = sourceControl.PointToScreen(new Point(e.X, e.Y));
-            Point inForm = PointToClient(screen);
-            RightClickMenu.Show(this, inForm);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex);
-        }
-    }
-
-    private void TimerForm_LayoutOverlayWindowSyncPlacement(object sender, EventArgs e)
-    {
-        SyncLayoutOverlayWindowPlacement();
-    }
-
-    private void SyncLayoutOverlayWindowPlacement()
-    {
-        if (layoutOverlayWindow == null || layoutOverlayWindow.IsDisposed || !IsHandleCreated || IsDisposed)
-        {
-            return;
-        }
-
-        Point clientScreen = PointToScreen(Point.Empty);
-        Size client = ClientSize;
-        if (client.Width <= 0 || client.Height <= 0)
-        {
-            return;
-        }
-
-        if (layoutOverlayWindow.Bounds.Location != clientScreen
-            || layoutOverlayWindow.Bounds.Size != client)
-        {
-            layoutOverlayWindow.Bounds = new Rectangle(clientScreen, client);
-        }
-    }
-
-    private void HideLayoutOverlayForModalDialog()
-    {
-        if (layoutOverlayWindow == null || layoutOverlayWindow.IsDisposed || !layoutOverlayWindow.Visible)
-        {
-            return;
-        }
-
-        try
-        {
-            if (layoutOverlayPaintTimer != null)
-            {
-                layoutOverlayPaintTimer.Enabled = false;
-            }
-
-            layoutOverlayWindow.Hide();
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex);
+            UiPaintProfiler.Record(UiPaintProfilerSection.Paint, profilerStart);
+            ReleaseMpvReadbackHostInvalidateGateAfterPaintForm();
         }
     }
 
@@ -2126,12 +1886,6 @@ public partial class TimerForm : Form
     {
         try
         {
-            HideLayoutOverlayForModalDialog();
-            if (embeddedVideoCompositorHost != null && embeddedVideoCompositorHost.Visible)
-            {
-                embeddedVideoCompositorHost.Visible = false;
-            }
-
             Refresh();
             bool savedTopMost = TopMost;
             Activate();
@@ -2153,7 +1907,6 @@ public partial class TimerForm : Form
 
         try
         {
-            SyncLayoutOverlayWindowVisibility();
             UpdateBackgroundVideoControl();
         }
         catch (Exception ex)
@@ -2162,68 +1915,17 @@ public partial class TimerForm : Form
         }
     }
 
-    private void SyncLayoutOverlayWindowVisibility()
-    {
-        if (layoutOverlayWindow == null || layoutOverlayWindow.IsDisposed)
-        {
-            return;
-        }
-
-        bool shouldShow = !IsDisposed
-            && Visible
-            && WindowState != FormWindowState.Minimized
-            && !IsObsWindowCaptureCompatibilityModeActive()
-            && IsVideoBackgroundActive()
-            && backgroundVideoPlayer != null
-            && backgroundVideoPlayer.UsesEmbeddedNativeCompositor
-            && backgroundVideoPlayer.IsLoaded;
-
-        bool wasVisible = layoutOverlayWindow.Visible;
-        if (shouldShow)
-        {
-            SyncLayoutOverlayWindowPlacement();
-            if (!wasVisible)
-            {
-                layoutOverlayWindow.Show(this);
-                layoutOverlayWindow.Owner = this;
-                // One-shot render to avoid a "video-only" flash before the paint timer ticks.
-                RenderLayoutOverlayWindow();
-            }
-
-            if (layoutOverlayPaintTimer != null && !layoutOverlayPaintTimer.Enabled)
-            {
-                layoutOverlayPaintTimer.Enabled = true;
-            }
-        }
-        else
-        {
-            if (layoutOverlayPaintTimer != null && layoutOverlayPaintTimer.Enabled)
-            {
-                layoutOverlayPaintTimer.Enabled = false;
-            }
-
-            if (wasVisible)
-            {
-                layoutOverlayWindow.Hide();
-            }
-        }
-    }
-
-    private void LayoutOverlayPaintTimer_Tick(object sender, EventArgs e)
-    {
-        if (ShouldThrottleVideoUiWork())
-        {
-            return;
-        }
-
-        RenderLayoutOverlayWindow();
-    }
-
     private bool ShouldThrottleVideoUiWork()
     {
         if (!IsVideoBackgroundActive())
         {
             return false;
+        }
+
+        // ShowDialog disables the owner; keep readback/present timers from flooding WM_PAINT while a modal is open.
+        if (IsHandleCreated && !Enabled)
+        {
+            return true;
         }
 
         if (isInsideMoveSizeLoop)
@@ -2263,149 +1965,10 @@ public partial class TimerForm : Form
         return false;
     }
 
-    private void RenderLayoutOverlayWindow()
+    protected override void OnEnabledChanged(EventArgs e)
     {
-        if (layoutOverlayWindow == null || !layoutOverlayWindow.Visible || layoutOverlayWindow.IsDisposed)
-        {
-            return;
-        }
-
-        int w = Math.Max(1, ClientSize.Width);
-        int h = Math.Max(1, ClientSize.Height);
-
-        if (layoutOverlayRenderBitmap == null
-            || layoutOverlayRenderBitmap.Width != w
-            || layoutOverlayRenderBitmap.Height != h)
-        {
-            layoutOverlayRenderBitmap?.Dispose();
-            // UpdateLayeredWindow expects premultiplied alpha. This keeps custom PNG split
-            // backgrounds and other translucent layout images visible over native video.
-            layoutOverlayRenderBitmap = new Bitmap(w, h, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
-        }
-
-        try
-        {
-            using (Graphics g = Graphics.FromImage(layoutOverlayRenderBitmap))
-            {
-                g.Clear(Color.Transparent);
-
-                // Must match PaintForm: components are laid out in "natural" OverallSize space and scaled
-                // to fill the client. Rendering at 1:1 client pixels ignores vertical/horizontal resize.
-                if (Layout?.Settings != null)
-                {
-                    if (Layout.Settings.AntiAliasing)
-                    {
-                        g.TextRenderingHint = TextRenderingHint.AntiAlias;
-                    }
-                    else
-                    {
-                        g.TextRenderingHint = TextRenderingHint.ClearTypeGridFit;
-                    }
-                }
-                else
-                {
-                    g.TextRenderingHint = TextRenderingHint.AntiAliasGridFit;
-                }
-
-                g.CompositingQuality = CompositingQuality.GammaCorrected;
-                g.InterpolationMode = InterpolationMode.Bilinear;
-                g.SmoothingMode = SmoothingMode.AntiAlias;
-
-                ComponentRenderer.CalculateOverallSize(Layout.Mode);
-                float scaleFactor = Layout.Mode == LayoutMode.Vertical
-                    ? h / ComponentRenderer.OverallSize
-                    : w / ComponentRenderer.OverallSize;
-
-                g.ResetTransform();
-                g.TranslateTransform(-0.5f, -0.5f);
-                g.ScaleTransform(scaleFactor, scaleFactor);
-                float transformedWidth = w;
-                float transformedHeight = h;
-                if (Layout.Mode == LayoutMode.Vertical)
-                {
-                    transformedWidth /= scaleFactor;
-                }
-                else
-                {
-                    transformedHeight /= scaleFactor;
-                }
-
-                var clip = new Region(new Rectangle(0, 0, w, h));
-                ComponentRenderer.Render(g, CurrentState, transformedWidth, transformedHeight, Layout.Mode, clip);
-
-                g.ResetTransform();
-                if (EnableExperimentalVideoDebugOverlay && showVideoDebugOverlay)
-                {
-                    DrawVideoDebugOverlay(g);
-                }
-            }
-
-            layoutOverlayWindow.RenderArgbBitmap(layoutOverlayRenderBitmap);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex);
-        }
-    }
-
-    private void EmbeddedLayoutPaintSurface_RightClickRequested(object sender, MouseEventArgs e)
-    {
-        try
-        {
-            Point screen = embeddedLayoutPaintSurface.PointToScreen(new Point(e.X, e.Y));
-            Point inForm = PointToClient(screen);
-            RightClickMenu.Show(this, inForm);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex);
-        }
-    }
-
-    private void EmbeddedLayoutPaintSurface_Paint(object sender, PaintEventArgs e)
-    {
-        try
-        {
-            Region clip = new Region(e.ClipRectangle);
-            e.Graphics.Clip = new Region();
-            PaintForm(e.Graphics, clip);
-        }
-        catch (Exception ex)
-        {
-            Log.Error(ex);
-            embeddedLayoutPaintSurface?.Invalidate();
-        }
-    }
-
-    protected override void OnInvalidated(InvalidateEventArgs e)
-    {
-        base.OnInvalidated(e);
-        if (!ShouldPaintLayoutOnEmbeddedOverlayOnly())
-        {
-            return;
-        }
-
-        if (embeddedLayoutPaintSurface == null || !embeddedLayoutPaintSurface.Visible)
-        {
-            return;
-        }
-
-        // Avoid duplicating WM_PAINT work: the compat timer already repaints the full embedded surface each tick.
-        if (embeddedCompatUiTimer != null
-            && embeddedCompatUiTimer.Enabled
-            && !ShouldThrottleVideoUiWork())
-        {
-            return;
-        }
-
-        if (e.InvalidRect.IsEmpty)
-        {
-            embeddedLayoutPaintSurface.Invalidate();
-        }
-        else
-        {
-            embeddedLayoutPaintSurface.Invalidate(e.InvalidRect);
-        }
+        base.OnEnabledChanged(e);
+        SyncVideoBackgroundAfterInteractionModeChange();
     }
 
     private void DrawBackground(Graphics g)
@@ -2430,16 +1993,6 @@ public partial class TimerForm : Form
                 {
                     backgroundVideoPlayer.UpdatePlacement();
                     backgroundVideoPlayer.SetOpacity(Layout.Settings.VideoOpacity);
-                    if (backgroundVideoPlayer.UsesEmbeddedNativeCompositor)
-                    {
-                        if (EnableExperimentalVideoDebugOverlay && showVideoDebugOverlay)
-                        {
-                            DrawVideoDebugOverlay(g);
-                        }
-
-                        return;
-                    }
-
                     backgroundVideoPlayer.Render(g, Width, Height);
                     if (EnableExperimentalVideoDebugOverlay && showVideoDebugOverlay)
                     {
@@ -2479,7 +2032,10 @@ public partial class TimerForm : Form
             {
                 if (Layout.Settings.BackgroundImage != previousBackground
                     || Layout.Settings.ImageOpacity != previousOpacity
-                    || Layout.Settings.ImageBlur != previousBlur)
+                    || Layout.Settings.ImageBlur != previousBlur
+                    || Layout.Settings.ImagePanX != previousImagePanX
+                    || Layout.Settings.ImagePanY != previousImagePanY
+                    || Layout.Settings.ImageZoomExtra != previousImageZoomExtra)
                 {
                     CreateBakedBackground();
                 }
@@ -2524,6 +2080,12 @@ public partial class TimerForm : Form
         }
 
         string debugText = backgroundVideoPlayer.GetDebugOverlayText();
+        string uiDebugText = UiPaintProfiler.GetOverlayText();
+        if (!string.IsNullOrWhiteSpace(uiDebugText))
+        {
+            debugText += Environment.NewLine + Environment.NewLine + uiDebugText;
+        }
+
         if (string.IsNullOrWhiteSpace(debugText))
         {
             return;
@@ -2627,8 +2189,6 @@ public partial class TimerForm : Form
         if (!shouldPlayVideo)
         {
             backgroundVideoPlayer?.Stop();
-            embeddedVideoCompositorHost.Visible = false;
-            embeddedLayoutPaintSurface.Visible = false;
             loadedBackgroundVideoSource = null;
             failedBackgroundVideoSource = null;
             lastBackgroundVideoTimerSyncApplied = false;
@@ -2639,50 +2199,21 @@ public partial class TimerForm : Form
         if (string.IsNullOrWhiteSpace(source))
         {
             backgroundVideoPlayer?.Stop();
-            embeddedVideoCompositorHost.Visible = false;
-            embeddedLayoutPaintSurface.Visible = false;
             loadedBackgroundVideoSource = null;
             failedBackgroundVideoSource = null;
             lastBackgroundVideoTimerSyncApplied = false;
             return;
         }
 
-        // For now, keep backend selection coupled to the OBS compatibility toggle:
-        // checked => embedded wid compositor, unchecked => readback backend.
-        BackgroundVideoBackend currentBackend = Layout.Settings.ObsWindowCaptureCompatibilityMode
-            ? BackgroundVideoBackend.MpvWindowEmbed
-            : BackgroundVideoBackend.MpvReadbackThreaded;
-        Layout.Settings.BackgroundVideoBackend = currentBackend;
-        if (backgroundVideoPlayer != null)
+        if (backgroundVideoPlayer != null
+            && (backgroundVideoPlayer is not LibMpvBackgroundPlayer mpvExisting || !mpvExisting.UsesDedicatedScheduler))
         {
-            bool wrongBackend = currentBackend switch
-            {
-                BackgroundVideoBackend.MpvWindowEmbed => backgroundVideoPlayer is not LibMpvWidEmbeddedPlayer,
-                BackgroundVideoBackend.MpvReadbackThreaded => backgroundVideoPlayer is not LibMpvBackgroundPlayer p || !p.UsesDedicatedScheduler,
-                _ => backgroundVideoPlayer is not LibMpvBackgroundPlayer p || p.UsesDedicatedScheduler,
-            };
-            if (wrongBackend || lastBackgroundVideoPlayerBackend != currentBackend)
-            {
-                TearDownBackgroundVideoControl();
-            }
+            TearDownBackgroundVideoControl();
         }
-
-        bool useEmbeddedCompositor = currentBackend == BackgroundVideoBackend.MpvWindowEmbed;
 
         if (backgroundVideoPlayer == null)
         {
-            backgroundVideoPlayer = currentBackend switch
-            {
-                BackgroundVideoBackend.MpvWindowEmbed => new LibMpvWidEmbeddedPlayer(
-                    this,
-                    embeddedVideoCompositorHost,
-                    embeddedMpvSurface,
-                    embeddedLayoutPaintSurface),
-                BackgroundVideoBackend.MpvReadbackThreaded => new LibMpvBackgroundPlayer(this, useDedicatedScheduler: true),
-                _ => new LibMpvBackgroundPlayer(this, useDedicatedScheduler: false),
-            };
-
-            lastBackgroundVideoPlayerBackend = currentBackend;
+            backgroundVideoPlayer = new LibMpvBackgroundPlayer(this, useDedicatedScheduler: true);
         }
 
         backgroundVideoPlayer.UseHardwareDecoding = Layout.Settings.UseHardwareVideoDecoding;
@@ -2697,7 +2228,9 @@ public partial class TimerForm : Form
         backgroundVideoPlayer.VideoBlurDegrees = Layout.Settings.VideoBlurDegrees;
         backgroundVideoPlayer.StartVideoWithTimer = Layout.Settings.VideoStartWithTimer;
         backgroundVideoPlayer.VideoStartOffsetSeconds = Layout.Settings.VideoStartOffsetSeconds;
-        backgroundVideoPlayer.MaxPresentFps = Math.Max(1, Math.Min(120, Settings?.VideoBackgroundPaintFps ?? 30));
+        int refresh = Math.Max(1, Math.Min(300, Settings?.RefreshRate ?? 60));
+        int videoCap = Math.Max(1, Math.Min(120, Settings?.VideoBackgroundPaintFps ?? 60));
+        backgroundVideoPlayer.MaxPresentFps = Math.Min(120, Math.Max(videoCap, refresh));
         backgroundVideoPlayer.NotifyHostClientSize(Width, Height);
         backgroundVideoPlayer.PingRuntimeOptionsToMpv();
 
@@ -2714,7 +2247,7 @@ public partial class TimerForm : Form
             }
         }
 
-        // If embedded mpv restarted internally (e.g. shutdown event), force re-load even when source string is unchanged.
+        // If mpv restarted internally (e.g. shutdown event), force re-load even when source string is unchanged.
         if (backgroundVideoPlayer.IsInitialized && !backgroundVideoPlayer.IsLoaded)
         {
             loadedBackgroundVideoSource = null;
@@ -2770,37 +2303,12 @@ public partial class TimerForm : Form
             {
                 ApplyBackgroundVideoTimerPhase();
             }
-
-            if (backgroundVideoPlayer.UsesEmbeddedNativeCompositor)
-            {
-                backgroundVideoPlayer.NotifyCompositorActivated();
-                embeddedLayoutPaintSurface.Invalidate();
-            }
-        }
-
-        bool showEmbeddedCompositor = useEmbeddedCompositor
-            && backgroundVideoPlayer != null
-            && backgroundVideoPlayer.UsesEmbeddedNativeCompositor
-            && backgroundVideoPlayer.IsLoaded;
-        embeddedVideoCompositorHost.Visible = showEmbeddedCompositor;
-        // OBS/window-capture compatibility mode keeps composition in a single window by painting
-        // the layout on the embedded overlay panel instead of a separate layered top-level window.
-        bool useObsWindowCaptureCompat = IsObsWindowCaptureCompatibilityModeActive();
-        embeddedLayoutPaintSurface.Visible = showEmbeddedCompositor && useObsWindowCaptureCompat;
-        if (embeddedLayoutPaintSurface != null && !embeddedLayoutPaintSurface.IsDisposed)
-        {
-            // Never use a full-client SetWindowRgn here: it removes hole-punching from the alpha scan,
-            // so "transparent" layout pixels sit on this HWND's DC and do not composite over the embedded
-            // mpv sibling — the background reads as black. OBS compat still uses this same panel; only
-            // the separate layered overlay is disabled.
-            embeddedLayoutPaintSurface.UseFullClientHitRegion = false;
         }
         }
         finally
         {
             SyncVideoBackgroundPoolTimer();
             SyncBackgroundVideoRunTimerDriftSyncTimer();
-            SyncLayoutOverlayWindowVisibility();
         }
     }
 
@@ -2860,22 +2368,8 @@ public partial class TimerForm : Form
             backgroundVideoRunTimerDriftSyncTimer = null;
         }
 
-        if (layoutOverlayPaintTimer != null)
-        {
-            layoutOverlayPaintTimer.Enabled = false;
-        }
-
-        if (layoutOverlayWindow != null && !layoutOverlayWindow.IsDisposed && layoutOverlayWindow.Visible)
-        {
-            layoutOverlayWindow.Hide();
-        }
-
-        backgroundVideoPlayer?.NotifyCompositorDeactivated();
         backgroundVideoPlayer?.Dispose();
         backgroundVideoPlayer = null;
-        lastBackgroundVideoPlayerBackend = (BackgroundVideoBackend)(-1);
-        embeddedVideoCompositorHost.Visible = false;
-        embeddedLayoutPaintSurface.Visible = false;
         loadedBackgroundVideoSource = null;
         failedBackgroundVideoSource = null;
         lastBackgroundVideoTimerSyncApplied = false;
@@ -2979,17 +2473,17 @@ public partial class TimerForm : Form
 
     private void DrawBackgroundImage(Graphics g, Image image, float opacity)
     {
-        float croppedWidth = image.Width;
-        float croppedHeight = image.Height;
-
-        if (image.Width / (float)image.Height > Width / (float)Height)
-        {
-            croppedWidth = image.Height * (Width / (float)Height);
-        }
-        else
-        {
-            croppedHeight = image.Width * (Height / (float)Width);
-        }
+        GetBackgroundImageCoverSourceRect(
+            image,
+            Width,
+            Height,
+            Layout.Settings.ImagePanX,
+            Layout.Settings.ImagePanY,
+            Layout.Settings.ImageZoomExtra,
+            out float srcX,
+            out float srcY,
+            out float srcW,
+            out float srcH);
 
         var matrix = new ColorMatrix
         {
@@ -2998,20 +2492,81 @@ public partial class TimerForm : Form
         var attributes = new ImageAttributes();
         attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
 
-        g.InterpolationMode = InterpolationMode.HighQualityBicubic;
+        g.InterpolationMode = InterpolationMode.Bilinear;
         foreach (RectangleF rectangle in UpdateRegion.GetRegionScans(g.Transform))
         {
             var rect = Rectangle.Round(rectangle);
             g.DrawImage(
                 image,
                 rect,
-                (image.Width - croppedWidth) / 2,
-                (image.Height - croppedHeight) / 2,
-                croppedWidth,
-                croppedHeight,
+                srcX,
+                srcY,
+                srcW,
+                srcH,
                 GraphicsUnit.Pixel,
                 attributes);
         }
+    }
+
+    /// <summary>
+    /// Cover-fit source rectangle in image pixel space (same baseline as the legacy centered crop),
+    /// with optional pan (-1..1) and zoom (0..1) matching layout video controls.
+    /// </summary>
+    internal static void GetBackgroundImageCoverSourceRect(
+        Image image,
+        float clientWidth,
+        float clientHeight,
+        float imagePanX,
+        float imagePanY,
+        float imageZoomExtra,
+        out float srcX,
+        out float srcY,
+        out float srcW,
+        out float srcH)
+    {
+        float iw = image.Width;
+        float ih = image.Height;
+        if (iw <= 0f || ih <= 0f || clientWidth <= 0f || clientHeight <= 0f)
+        {
+            srcX = srcY = 0f;
+            srcW = Math.Max(1f, iw);
+            srcH = Math.Max(1f, ih);
+            return;
+        }
+
+        float croppedWidth;
+        float croppedHeight;
+        if (iw / ih > clientWidth / clientHeight)
+        {
+            croppedHeight = ih;
+            croppedWidth = ih * (clientWidth / clientHeight);
+        }
+        else
+        {
+            croppedWidth = iw;
+            croppedHeight = iw * (clientHeight / clientWidth);
+        }
+
+        float zoom = Math.Max(0f, Math.Min(1f, imageZoomExtra));
+        float shrink = 1f - 0.55f * zoom;
+        croppedWidth *= shrink;
+        croppedHeight *= shrink;
+        croppedWidth = Math.Min(croppedWidth, iw);
+        croppedHeight = Math.Min(croppedHeight, ih);
+
+        float panX = Math.Max(-1f, Math.Min(1f, imagePanX));
+        float panY = Math.Max(-1f, Math.Min(1f, imagePanY));
+
+        float maxShiftX = Math.Max(0f, iw - croppedWidth);
+        float maxShiftY = Math.Max(0f, ih - croppedHeight);
+
+        float sxCenter = maxShiftX * 0.5f + panX * maxShiftX * 0.5f;
+        float syCenter = maxShiftY * 0.5f + panY * maxShiftY * 0.5f;
+
+        srcX = Math.Max(0f, Math.Min(maxShiftX, sxCenter));
+        srcY = Math.Max(0f, Math.Min(maxShiftY, syCenter));
+        srcW = croppedWidth;
+        srcH = croppedHeight;
     }
 
     private void CreateBakedBackground()
@@ -3047,6 +2602,9 @@ public partial class TimerForm : Form
             previousBackground = Layout.Settings.BackgroundImage;
             previousOpacity = opacity;
             previousBlur = blur;
+            previousImagePanX = Layout.Settings.ImagePanX;
+            previousImagePanY = Layout.Settings.ImagePanY;
+            previousImageZoomExtra = Layout.Settings.ImageZoomExtra;
         }
     }
 
@@ -3186,8 +2744,7 @@ public partial class TimerForm : Form
         if (m.Msg == (int)WM_ENABLE)
         {
             bool enabled = m.WParam.ToInt32() != 0;
-            // Tear down layered / native compositor UI before the owner is disabled so the modal
-            // does not paint underneath our UpdateLayeredWindow surface or the embedded mpv host.
+            // Modal dialogs disable the owner; keep layered-window / readback video state consistent.
             if (!enabled)
             {
                 OnTimerFormModalOwnerDisabled();
@@ -3547,6 +3104,7 @@ public partial class TimerForm : Form
         finally
         {
             IsInDialogMode = false;
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -3576,6 +3134,7 @@ public partial class TimerForm : Form
         finally
         {
             IsInDialogMode = false;
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -3748,6 +3307,7 @@ public partial class TimerForm : Form
         {
             TopMost = Layout.Settings.AlwaysOnTop;
             IsInDialogMode = false;
+            SyncVideoBackgroundAfterInteractionModeChange();
 
             editor.RunEdited -= editor_RunEdited;
             editor.ComparisonRenamed -= editor_ComparisonRenamed;
@@ -3846,6 +3406,7 @@ public partial class TimerForm : Form
         try
         {
             TopMost = false;
+            IsInDialogMode = true;
             UiLocalizer.Apply(editor, CurrentLanguage);
             editor.ShowDialog(this);
             if (editor.DialogResult == DialogResult.Cancel)
@@ -3884,15 +3445,13 @@ public partial class TimerForm : Form
         finally
         {
             TopMost = Layout.Settings.AlwaysOnTop;
+            IsInDialogMode = false;
             editor.OrientationSwitched -= editor_OrientationSwitched;
             editor.LayoutResized -= editor_LayoutResized;
             editor.LayoutSettingsAssigned -= editor_LayoutSettingsAssigned;
             editor.LayoutSettingsLiveVideoApply -= editor_LayoutSettingsLiveVideoApply;
 
-            // The embedded compositor (Dock=Fill) often suppresses the form's WM_PAINT, so
-            // UpdateBackgroundVideoControl never runs through the paint path while video plays.
-            // Calling it here propagates layout setting changes (loop, source, zoom, etc.)
-            // immediately when the editor closes, which is the user's primary change moment.
+            // Propagate layout setting changes (loop, source, zoom, etc.) as soon as the editor closes.
             try
             {
                 ApplyVideoBackgroundSettingsImmediate();
@@ -3901,6 +3460,8 @@ public partial class TimerForm : Form
             {
                 Log.Error(ex);
             }
+
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -4080,20 +3641,6 @@ public partial class TimerForm : Form
         }
 
         SyncBackgroundVideoRunTimerDriftSyncTimer();
-
-        if (backgroundVideoPlayer.UsesEmbeddedNativeCompositor
-            && layoutOverlayWindow != null
-            && layoutOverlayWindow.Visible)
-        {
-            try
-            {
-                RenderLayoutOverlayWindow();
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex);
-            }
-        }
     }
 
     /// <summary>
@@ -4109,17 +3656,6 @@ public partial class TimerForm : Form
 
         UpdateBackgroundVideoControl();
         UpdateAnimatedBackgroundSubscription();
-
-        if (Layout.Settings.BackgroundType == BackgroundType.Video
-            && backgroundVideoPlayer != null
-            && backgroundVideoPlayer.UsesEmbeddedNativeCompositor
-            && backgroundVideoPlayer.IsLoaded
-            && layoutOverlayWindow != null
-            && layoutOverlayWindow.Visible)
-        {
-            SyncLayoutOverlayWindowPlacement();
-            RenderLayoutOverlayWindow();
-        }
 
         InvalidationRequired = true;
         InvalidateForm();
@@ -4193,6 +3729,7 @@ public partial class TimerForm : Form
         finally
         {
             IsInDialogMode = false;
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -4232,6 +3769,7 @@ public partial class TimerForm : Form
         finally
         {
             IsInDialogMode = false;
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -4477,65 +4015,16 @@ public partial class TimerForm : Form
 
         suppressCompositorRestoreWhileFormClosingModals = true;
 
-        // Hide embedded video host AND layered overlay before modal save prompts.
-        bool hadEmbeddedHostVisible = embeddedVideoCompositorHost != null && embeddedVideoCompositorHost.Visible;
-        bool hadOverlayVisible = layoutOverlayWindow != null && !layoutOverlayWindow.IsDisposed && layoutOverlayWindow.Visible;
-        if (hadOverlayVisible)
-        {
-            try
-            {
-                if (layoutOverlayPaintTimer != null)
-                {
-                    layoutOverlayPaintTimer.Enabled = false;
-                }
-
-                layoutOverlayWindow.Hide();
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex);
-            }
-        }
-
-        if (hadEmbeddedHostVisible)
-        {
-            try
-            {
-                bool savedTopMost = TopMost;
-                embeddedVideoCompositorHost.Visible = false;
-                Refresh();
-                Activate();
-                BringToFront();
-                TopMost = true;
-                TopMost = savedTopMost;
-            }
-            catch (Exception ex)
-            {
-                Log.Error(ex);
-            }
-        }
-
-        void RestoreEmbeddedAfterCancel()
+        void RestoreAfterClosingDialogCancelled()
         {
             suppressCompositorRestoreWhileFormClosingModals = false;
-
-            if (hadEmbeddedHostVisible && embeddedVideoCompositorHost != null)
-            {
-                embeddedVideoCompositorHost.Visible = true;
-            }
-
-            if (hadOverlayVisible)
-            {
-                SyncLayoutOverlayWindowVisibility();
-            }
-
             UpdateBackgroundVideoControl();
         }
 
         if (!WarnUserAboutSplitsSave())
         {
             File.AppendAllText(shutdownLogPath, $"[{DateTime.Now:O}] Cancelled: WarnUserAboutSplitsSave{Environment.NewLine}");
-            RestoreEmbeddedAfterCancel();
+            RestoreAfterClosingDialogCancelled();
             e.Cancel = true;
             return;
         }
@@ -4543,7 +4032,7 @@ public partial class TimerForm : Form
         if (!WarnUserAboutLayoutSave(true))
         {
             File.AppendAllText(shutdownLogPath, $"[{DateTime.Now:O}] Cancelled: WarnUserAboutLayoutSave{Environment.NewLine}");
-            RestoreEmbeddedAfterCancel();
+            RestoreAfterClosingDialogCancelled();
             e.Cancel = true;
             return;
         }
@@ -4567,35 +4056,6 @@ public partial class TimerForm : Form
         }, shutdownLogPath, 1000);
 
         RunShutdownStep("TearDownBackgroundVideoControl", TearDownBackgroundVideoControl, shutdownLogPath, 1000);
-        RunShutdownStep("DisposeLayoutOverlayWindow", () =>
-        {
-            if (layoutOverlayPaintTimer != null)
-            {
-                layoutOverlayPaintTimer.Enabled = false;
-                layoutOverlayPaintTimer.Tick -= LayoutOverlayPaintTimer_Tick;
-                layoutOverlayPaintTimer.Dispose();
-                layoutOverlayPaintTimer = null;
-            }
-
-            if (embeddedCompatUiTimer != null)
-            {
-                embeddedCompatUiTimer.Enabled = false;
-                embeddedCompatUiTimer.Tick -= EmbeddedCompatUiTimer_Tick;
-                embeddedCompatUiTimer.Dispose();
-                embeddedCompatUiTimer = null;
-            }
-
-            if (layoutOverlayWindow != null && !layoutOverlayWindow.IsDisposed)
-            {
-                layoutOverlayWindow.Hide();
-                layoutOverlayWindow.Close();
-                layoutOverlayWindow.Dispose();
-                layoutOverlayWindow = null;
-            }
-
-            layoutOverlayRenderBitmap?.Dispose();
-            layoutOverlayRenderBitmap = null;
-        }, shutdownLogPath, 500);
         RunShutdownStep("DeactivateAutoSplitter", DeactivateAutoSplitter, shutdownLogPath, 2000);
         RunShutdownStep("Server.StopAll", Server.StopAll, shutdownLogPath, 2000);
         File.AppendAllText(shutdownLogPath, $"[{DateTime.Now:O}] Shutdown end{Environment.NewLine}");
@@ -4654,6 +4114,7 @@ public partial class TimerForm : Form
         try
         {
             TopMost = false;
+            IsInDialogMode = true;
             var oldSettings = (ISettings)Settings.Clone();
             Settings.UnregisterAllHotkeys(Hook);
             UiLocalizer.Apply(editor, CurrentLanguage);
@@ -4685,6 +4146,8 @@ public partial class TimerForm : Form
             editor.SumOfBestModeChanged -= editor_SumOfBestModeChanged;
             SetProgressBar();
             TopMost = Layout.Settings.AlwaysOnTop;
+            IsInDialogMode = false;
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -4778,7 +4241,14 @@ public partial class TimerForm : Form
 
         var drawRegion = new Region(new Rectangle(0, 0, Width, Height));
         UpdateRegion = drawRegion;
-        PaintForm(graphics, drawRegion);
+        try
+        {
+            PaintForm(graphics, drawRegion);
+        }
+        finally
+        {
+            ReleaseMpvReadbackHostInvalidateGateAfterPaintForm();
+        }
 
         return image;
     }
@@ -4802,6 +4272,7 @@ public partial class TimerForm : Form
         {
             TopMost = Layout.Settings.AlwaysOnTop;
             IsInDialogMode = false;
+            SyncVideoBackgroundAfterInteractionModeChange();
         }
     }
 
@@ -5172,7 +4643,6 @@ public partial class TimerForm : Form
 
 internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
 {
-    private static readonly bool EnableMpvWidBackend = false;
     private static readonly bool EnableMpvRenderApiBackend = true;
     /// <summary>
     /// Mpv <c>hwdec</c> when hardware decode is enabled. <c>auto-copy</c> prefers copy-back decoders
@@ -5182,11 +4652,14 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private const string MpvHwdecWhenEnabled = "auto-copy";
     /// <summary>
     /// Each frame does <c>glReadPixels</c> into a <see cref="Bitmap"/>; cost scales with pixel count.
-    /// When the LiveSplit client area exceeds this, mpv renders to a smaller buffer and we upscale in GDI+.
+    /// The final UI blit is now cheap enough that readback resolution should favor image quality.
     /// </summary>
-    private const int MpvReadbackMaxPixelsHighFps = 160_000;
-    private const int MpvReadbackMaxPixelsBalanced = 280_000;
-    private const int MpvReadbackMaxPixelsQuality = 420_000;
+    private const int MpvReadbackMaxPixelsHighFps = 720_000;
+    private const int MpvReadbackMaxPixelsBalanced = 900_000;
+    private const int MpvReadbackMaxPixelsQuality = 1_200_000;
+    /// <summary>Bounds <see cref="dynamicReadbackScale"/> after adaptive nudges (local strong-PC default).</summary>
+    private const float MpvReadbackDynamicScaleMin = 0.85f;
+    private const float MpvReadbackDynamicScaleMax = 1.00f;
     private readonly Form hostForm;
     private readonly bool useDedicatedScheduler;
     private OpenTK.NativeWindow mpvNativeWindow;
@@ -5205,6 +4678,12 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private readonly object mpvFrameBitmapSync = new object();
     private IntPtr mpvHandle;
     private IntPtr mpvRenderContext;
+    /// <summary>Reused native memory for <see cref="TryUpdateMpvVideoTexture"/> (avoids per-frame AllocHGlobal).</summary>
+    private IntPtr mpvRenderScratchNative;
+    private int mpvRenderScratchParamSize;
+    private int mpvRenderScratchFlipOffset;
+    private int mpvRenderScratchBlockOffset;
+    private int mpvRenderScratchParamsOffset;
     private Bitmap mpvFrameBitmapFront;
     private Bitmap mpvFrameBitmapBack;
     private GCHandle mpvApiTypeHandle;
@@ -5217,6 +4696,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private string lastAppliedVideoFilter = null;
     private string loadedSource;
     private float renderOpacity = 1f;
+    private string lastFrameBlitPath = "none";
     private float videoBlurScale;
     private float lastAppliedVideoBlurScale = float.NaN;
     private float videoBlurDegrees;
@@ -5229,7 +4709,6 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private double presentPeriodTicks = Stopwatch.Frequency / 30.0;
     private double nextPresentDueTicks;
     private int presentTargetHz = 30;
-    private int pendingHostInvalidate;
     private int lastRequestedPresentationWant = -1;
     private int lastRequestedPresentationCapHz = -1;
     private float dynamicReadbackScale = 1.0f;
@@ -5247,7 +4726,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     /// <summary>Last <see cref="TryApplyMpvScalerForDecodedVideoSize"/> <c>dwidth</c>/<c>dheight</c> pair; reset on load/stop.</summary>
     private int lastAppliedMpvScalerSourceW = -1;
     private int lastAppliedMpvScalerSourceH = -1;
-    /// <summary>GDI+ upscale from readback bitmap to layout: nearest for retro line counts, else bicubic.</summary>
+    /// <summary>GDI+ upscale from readback bitmap to layout: nearest for retro line counts, else bilinear.</summary>
     private volatile bool readbackBlitUsesNearestNeighbor;
     private double uiVideoPaintHz;
     private double videoFps;
@@ -5273,21 +4752,13 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     public bool IsInitialized { get; private set; }
     public bool IsLoaded { get; private set; }
     public string LastError { get; private set; }
-    public bool UsesEmbeddedNativeCompositor => false;
     public bool UsesDedicatedScheduler => useDedicatedScheduler;
 
-    public void NotifyCompositorActivated()
-    {
-    }
-
-    public void NotifyCompositorDeactivated()
-    {
-    }
     public int TargetPlaybackFps { get; private set; } = 30;
     public bool UseHardwareDecoding { get; set; }
 
     /// <summary>Maximum mpv readback rate (Hz). The layout invalidation loop can run faster (global Refresh Rate setting).</summary>
-    public int MaxPresentFps { get; set; } = 30;
+    public int MaxPresentFps { get; set; } = 60;
     public bool LoopVideo { get; set; }
     public bool PlayAudio { get; set; }
     /// <summary>Horizontal pan (-1..1), passed to mpv video-pan-x.</summary>
@@ -5369,6 +4840,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             $"Video FPS: {(videoFps > 0.05 ? videoFps.ToString("0.0") : "?")} (from file / decoder — not on-screen Hz)" + Environment.NewLine +
             $"Video Duration: {(videoDurationSeconds > 0.0 ? FormatVideoDuration(videoDurationSeconds) : "?")}" + Environment.NewLine +
             $"Video Bitrate: {videoBitrateMbps:0.00} Mbps" + Environment.NewLine +
+            $"Video Opacity: {renderOpacity * 100f:0}% | Blit: {lastFrameBlitPath}" + Environment.NewLine +
             "Perf Mode: always fast" + Environment.NewLine +
             $"Target FPS: {TargetPlaybackFps}" + Environment.NewLine +
             $"hwdec (mpv option): {(string.IsNullOrEmpty(lastHwdecOptionFromMpv) ? "?" : lastHwdecOptionFromMpv)}" + Environment.NewLine +
@@ -5744,6 +5216,11 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         return true;
     }
 
+    /// <summary>Legacy hook kept for call sites; readback invalidation no longer uses a host gate.</summary>
+    internal void ReleasePendingHostInvalidateAfterHostPaint()
+    {
+    }
+
     public void Render(Graphics graphics, int width, int height)
     {
         lastViewWidth = width;
@@ -5768,6 +5245,9 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         // mpv render API path does not need external placement.
     }
 
+    private static float ClampDynamicReadbackScale(float value) =>
+        Math.Min(MpvReadbackDynamicScaleMax, Math.Max(MpvReadbackDynamicScaleMin, value));
+
     private void UpdateDebugMetricsIfNeeded()
     {
         if (metricsClock.Elapsed < TimeSpan.FromSeconds(1))
@@ -5790,15 +5270,15 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             double ratio = workerReadbackHz / presentTargetHz;
             if (ratio < 0.85)
             {
-                dynamicReadbackScale = Math.Max(0.35f, dynamicReadbackScale - 0.10f);
+                dynamicReadbackScale = ClampDynamicReadbackScale(dynamicReadbackScale - 0.10f);
             }
             else if (ratio < 0.95)
             {
-                dynamicReadbackScale = Math.Max(0.35f, dynamicReadbackScale - 0.05f);
+                dynamicReadbackScale = ClampDynamicReadbackScale(dynamicReadbackScale - 0.05f);
             }
             else if (ratio > 1.10)
             {
-                dynamicReadbackScale = Math.Min(1.00f, dynamicReadbackScale + 0.02f);
+                dynamicReadbackScale = ClampDynamicReadbackScale(dynamicReadbackScale + 0.02f);
             }
         }
         if (TryGetMpvIntProperty("width", out long sourceW) && TryGetMpvIntProperty("height", out long sourceH))
@@ -5988,7 +5468,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         bool nearest = ShouldUseNearestMpvScalingForCodedDimensions(w, h);
         lastAppliedMpvScalerSourceW = w;
         lastAppliedMpvScalerSourceH = h;
-        string scaler = nearest ? "nearest" : "bicubic";
+        string scaler = nearest ? "nearest" : "bilinear";
         _ = MpvCommand("set", "scale", scaler);
         _ = MpvCommand("set", "cscale", scaler);
         _ = MpvCommand("set", "dscale", scaler);
@@ -6053,7 +5533,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
 
     private bool TryInitializeMpv()
     {
-        if (!EnableMpvRenderApiBackend && !EnableMpvWidBackend)
+        if (!EnableMpvRenderApiBackend)
         {
             return false;
         }
@@ -6067,25 +5547,20 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
                 return false;
             }
 
-            if (EnableMpvWidBackend)
-            {
-                _ = mpv_set_option_string(mpvHandle, "wid", hostForm.Handle.ToInt64().ToString());
-            }
-
             _ = mpv_set_option_string(mpvHandle, "keep-open", "yes");
             _ = mpv_set_option_string(mpvHandle, "terminal", "no");
             _ = mpv_set_option_string(mpvHandle, "keepaspect", "yes");
             _ = mpv_set_option_string(mpvHandle, "panscan", "1.0");
             // libmpv render API requires vo=libmpv; then we tune libplacebo/scalers for speed.
-            _ = mpv_set_option_string(mpvHandle, "vo", EnableMpvRenderApiBackend ? "libmpv" : "gpu-next");
+            _ = mpv_set_option_string(mpvHandle, "vo", "libmpv");
             _ = mpv_set_option_string(mpvHandle, "gpu-context", "angle");
             _ = mpv_set_option_string(mpvHandle, "gpu-api", "d3d11");
             _ = mpv_set_option_string(mpvHandle, "hwdec", UseHardwareDecoding ? MpvHwdecWhenEnabled : "no");
             _ = mpv_set_option_string(mpvHandle, "profile", "fast");
-            // Default to bicubic; <see cref="TryApplyMpvScalerForDecodedVideoSize"/> switches to nearest for classic line counts.
-            _ = mpv_set_option_string(mpvHandle, "scale", "bicubic");
-            _ = mpv_set_option_string(mpvHandle, "cscale", "bicubic");
-            _ = mpv_set_option_string(mpvHandle, "dscale", "bicubic");
+            // Default bilinear; <see cref="TryApplyMpvScalerForDecodedVideoSize"/> switches to nearest for classic line counts.
+            _ = mpv_set_option_string(mpvHandle, "scale", "bilinear");
+            _ = mpv_set_option_string(mpvHandle, "cscale", "bilinear");
+            _ = mpv_set_option_string(mpvHandle, "dscale", "bilinear");
             _ = mpv_set_option_string(mpvHandle, "correct-downscaling", "no");
             _ = mpv_set_option_string(mpvHandle, "deband", "no");
             _ = mpv_set_option_string(mpvHandle, "sigmoid-upscaling", "no");
@@ -6222,6 +5697,8 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
                 mpv_render_context_free(mpvRenderContext);
                 mpvRenderContext = IntPtr.Zero;
             }
+
+            ReleaseMpvRenderScratchNative();
 
             if (mpvApiTypeHandleAllocated)
             {
@@ -6429,20 +5906,12 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             UpdateDebugMetricsIfNeeded();
             if (hostForm != null && hostForm.IsHandleCreated && !hostForm.IsDisposed)
             {
-                if (Interlocked.CompareExchange(ref pendingHostInvalidate, 1, 0) == 0)
+                // WinForms merges Invalidate() for the same HWND; avoiding a strict gate keeps UI video
+                // draw Hz closer to the worker readback rate on fast machines.
+                hostForm.BeginInvoke((MethodInvoker)delegate
                 {
-                    hostForm.BeginInvoke((MethodInvoker)delegate
-                    {
-                        try
-                        {
-                            hostForm.Invalidate();
-                        }
-                        finally
-                        {
-                            Interlocked.Exchange(ref pendingHostInvalidate, 0);
-                        }
-                    });
-                }
+                    hostForm.Invalidate();
+                });
             }
         }
 
@@ -6857,7 +6326,23 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             basePixels = MpvReadbackMaxPixelsQuality;
         }
 
-        return Math.Max(60_000, (int)(basePixels * dynamicReadbackScale));
+        float blurCost = 1f;
+        if (hostForm is TimerForm timer
+            && timer.Layout?.Settings is { } ls
+            && ls.BackgroundType == BackgroundType.Video)
+        {
+            float blurStrength = Math.Max(0f, Math.Min(1f, ls.VideoBlurScale));
+            if (blurStrength > 0.02f)
+            {
+                // Video blur runs in libavfilter (almost always CPU) at decoded frame size — far more
+                // expensive than GL readback alone. Tighten readback budget so the worker can keep up;
+                // blur itself is additionally capped in <see cref="BuildVideoFilterChain"/>.
+                float t = blurStrength * blurStrength;
+                blurCost = 1f - 0.55f * blurStrength - 0.35f * t;
+            }
+        }
+
+        return Math.Max(45_000, (int)(basePixels * ClampDynamicReadbackScale(dynamicReadbackScale) * blurCost));
     }
 
     private void ComputeInternalReadbackSize(int viewWidth, int viewHeight, out int rw, out int rh)
@@ -6881,6 +6366,32 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         double scale = Math.Sqrt(maxPixels / (double)area);
         rw = Math.Max(1, (int)(viewWidth * scale));
         rh = Math.Max(1, (int)(viewHeight * scale));
+    }
+
+    private void EnsureMpvRenderScratchNative()
+    {
+        if (mpvRenderScratchNative != IntPtr.Zero)
+        {
+            return;
+        }
+
+        int fboSize = Marshal.SizeOf(typeof(mpv_opengl_fbo));
+        mpvRenderScratchParamSize = Marshal.SizeOf(typeof(mpv_render_param));
+        mpvRenderScratchFlipOffset = (fboSize + 3) & ~3;
+        mpvRenderScratchBlockOffset = mpvRenderScratchFlipOffset + 4;
+        int afterBlock = mpvRenderScratchBlockOffset + 4;
+        mpvRenderScratchParamsOffset = (afterBlock + 7) & ~7;
+        int total = mpvRenderScratchParamsOffset + 4 * mpvRenderScratchParamSize;
+        mpvRenderScratchNative = Marshal.AllocHGlobal(Math.Max(256, total));
+    }
+
+    private void ReleaseMpvRenderScratchNative()
+    {
+        if (mpvRenderScratchNative != IntPtr.Zero)
+        {
+            Marshal.FreeHGlobal(mpvRenderScratchNative);
+            mpvRenderScratchNative = IntPtr.Zero;
+        }
     }
 
     /// <summary>OpenGL render + readback only (no GDI+ blit). Must run on the UI thread.</summary>
@@ -6922,6 +6433,8 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
                 return true;
             }
 
+            EnsureMpvRenderScratchNative();
+
             var fbo = new mpv_opengl_fbo
             {
                 fbo = 0,
@@ -6930,80 +6443,44 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
                 internal_format = (int)All.Rgba8
             };
 
-            IntPtr fboPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(mpv_opengl_fbo)));
-            IntPtr flipPtr = Marshal.AllocHGlobal(sizeof(int));
-            IntPtr blockForTargetTimePtr = Marshal.AllocHGlobal(sizeof(int));
-            IntPtr paramArrayPtr = IntPtr.Zero;
-            try
+            Marshal.StructureToPtr(fbo, mpvRenderScratchNative, false);
+            IntPtr flipPtr = IntPtr.Add(mpvRenderScratchNative, mpvRenderScratchFlipOffset);
+            IntPtr blockPtr = IntPtr.Add(mpvRenderScratchNative, mpvRenderScratchBlockOffset);
+            Marshal.WriteInt32(flipPtr, 0);
+            // Never block on target presentation time in the readback worker: it caps observed Hz (~15–20)
+            // with some drivers/files. A/V alignment is handled via mpv video-sync / audio-buffer instead.
+            Marshal.WriteInt32(blockPtr, 0);
+
+            IntPtr paramArrayPtr = IntPtr.Add(mpvRenderScratchNative, mpvRenderScratchParamsOffset);
+            int psz = mpvRenderScratchParamSize;
+            var rp0 = new mpv_render_param { type = MPV_RENDER_PARAM_OPENGL_FBO, data = mpvRenderScratchNative };
+            var rp1 = new mpv_render_param { type = MPV_RENDER_PARAM_FLIP_Y, data = flipPtr };
+            var rp2 = new mpv_render_param { type = MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME, data = blockPtr };
+            var rp3 = new mpv_render_param { type = MPV_RENDER_PARAM_INVALID, data = IntPtr.Zero };
+            Marshal.StructureToPtr(rp0, paramArrayPtr, false);
+            Marshal.StructureToPtr(rp1, IntPtr.Add(paramArrayPtr, psz), false);
+            Marshal.StructureToPtr(rp2, IntPtr.Add(paramArrayPtr, 2 * psz), false);
+            Marshal.StructureToPtr(rp3, IntPtr.Add(paramArrayPtr, 3 * psz), false);
+
+            GL.Viewport(0, 0, rw, rh);
+            mpv_render_context_render(mpvRenderContext, paramArrayPtr);
+            GL.ReadBuffer(ReadBufferMode.Back);
+            // Flush only: Finish() forces a full GPU drain every frame and often caps Paint FPS well below 60.
+            // ReadPixels still blocks until the framebuffer is ready.
+            GL.Flush();
+            lock (mpvFrameBitmapSync)
             {
-                Marshal.StructureToPtr(fbo, fboPtr, false);
-                // We already read back OpenGL pixels in their native orientation for this path.
-                // Requesting mpv flip here results in a double-flip (upside-down output).
-                Marshal.WriteInt32(flipPtr, 0);
-                // Without this, render() can block until target display time and cap readback well below Video paint (Hz).
-                // When layout plays video audio, allow default blocking so A/V stays tighter.
-                Marshal.WriteInt32(blockForTargetTimePtr, PlayAudio ? 1 : 0);
-
-                var renderParams = new mpv_render_param[4];
-                renderParams[0] = new mpv_render_param
+                EnsureMpvFrameBitmap(rw, rh);
+                if (mpvFrameBitmapFront == null || mpvFrameBitmapBack == null)
                 {
-                    type = MPV_RENDER_PARAM_OPENGL_FBO,
-                    data = fboPtr
-                };
-                renderParams[1] = new mpv_render_param
-                {
-                    type = MPV_RENDER_PARAM_FLIP_Y,
-                    data = flipPtr
-                };
-                renderParams[2] = new mpv_render_param
-                {
-                    type = MPV_RENDER_PARAM_BLOCK_FOR_TARGET_TIME,
-                    data = blockForTargetTimePtr
-                };
-                renderParams[3] = new mpv_render_param
-                {
-                    type = MPV_RENDER_PARAM_INVALID,
-                    data = IntPtr.Zero
-                };
-
-                int size = Marshal.SizeOf(typeof(mpv_render_param));
-                paramArrayPtr = Marshal.AllocHGlobal(size * renderParams.Length);
-                for (int i = 0; i < renderParams.Length; i++)
-                {
-                    Marshal.StructureToPtr(renderParams[i], IntPtr.Add(paramArrayPtr, i * size), false);
+                    return false;
                 }
 
-                GL.Viewport(0, 0, rw, rh);
-                mpv_render_context_render(mpvRenderContext, paramArrayPtr);
-                GL.ReadBuffer(ReadBufferMode.Back);
-                // Flush only: Finish() forces a full GPU drain every frame and often caps Paint FPS well below 60.
-                // ReadPixels still blocks until the framebuffer is ready.
-                GL.Flush();
-                lock (mpvFrameBitmapSync)
-                {
-                    EnsureMpvFrameBitmap(rw, rh);
-                    if (mpvFrameBitmapFront == null || mpvFrameBitmapBack == null)
-                    {
-                        return false;
-                    }
-
-                    ReadMpvFrameBitmap(rw, rh);
-                }
-
-                didReadback = true;
-                ReleaseStartupPlaybackHold();
+                ReadMpvFrameBitmap(rw, rh);
             }
-            finally
-            {
-                if (paramArrayPtr != IntPtr.Zero)
-                {
-                    Marshal.FreeHGlobal(paramArrayPtr);
-                }
 
-                Marshal.FreeHGlobal(fboPtr);
-                Marshal.FreeHGlobal(flipPtr);
-                Marshal.FreeHGlobal(blockForTargetTimePtr);
-            }
+            didReadback = true;
+            ReleaseStartupPlaybackHold();
 
             return true;
         }
@@ -7043,14 +6520,40 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         lastAppliedVideoFilter = videoFilter;
     }
 
+    /// <summary>
+    /// Max frame height at which libavfilter blur runs (then mpv scales to the render target).
+    /// Blur cost grows roughly with area; capping this is the largest practical win while keeping blur on.
+    /// </summary>
+    private const int MpvBlurPassMaxHeightGaussian = 480;
+
+    private const int MpvBlurPassMaxHeightBoxDirectional = 432;
+    private const int MpvBlurPassMaxHeightRotational = 320;
+
+    private static int GetBlurPassHeight(int targetHeight, int maxPassHeight)
+    {
+        int cap = Math.Max(200, Math.Min(720, maxPassHeight));
+        if (targetHeight <= 0)
+        {
+            return cap;
+        }
+
+        // When internal readback is already small, avoid an extra upscale/downscale hop larger than needed.
+        return Math.Min(cap, Math.Max(200, targetHeight));
+    }
+
+    private static string BuildLavfiPrefixedBlurGraph(int blurPassHeight, string innerCommaSeparatedFilters)
+    {
+        int h = Math.Max(160, Math.Min(720, blurPassHeight));
+        return "lavfi=[scale=-2:"
+            + h.ToString(CultureInfo.InvariantCulture)
+            + ":flags=bilinear,"
+            + innerCommaSeparatedFilters
+            + "]";
+    }
+
     private static string BuildVideoFilterChain(int targetHeight, float blurScale, BackgroundVideoBlurType blurType, float blurDegrees)
     {
         var filters = new List<string>();
-        if (targetHeight > 0)
-        {
-            // Do not force a lavfi scale stage for readback: mpv already renders into our target FBO
-            // size, and extra filter scaling adds per-frame overhead.
-        }
 
         blurScale = Math.Max(0f, Math.Min(1f, blurScale));
         if (blurScale > 0.0005f)
@@ -7058,42 +6561,62 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             switch (blurType)
             {
                 case BackgroundVideoBlurType.Directional:
+                {
+                    int bh = GetBlurPassHeight(targetHeight, MpvBlurPassMaxHeightBoxDirectional);
                     float directionalRadius = Math.Max(0.1f, blurScale * 20f);
-                    filters.Add("lavfi=[dblur=angle="
+                    string inner = "dblur=angle="
                         + Math.Max(0f, Math.Min(360f, blurDegrees)).ToString("0.###", CultureInfo.InvariantCulture)
                         + ":radius="
-                        + directionalRadius.ToString("0.###", CultureInfo.InvariantCulture)
-                        + "]");
+                        + directionalRadius.ToString("0.###", CultureInfo.InvariantCulture);
+                    filters.Add(BuildLavfiPrefixedBlurGraph(bh, inner));
                     break;
+                }
                 case BackgroundVideoBlurType.Box:
+                {
+                    int bh = GetBlurPassHeight(targetHeight, MpvBlurPassMaxHeightBoxDirectional);
                     float boxRadius = Math.Max(1f, blurScale * 20f);
-                    filters.Add("lavfi=[boxblur=luma_radius="
-                        + boxRadius.ToString("0.###", CultureInfo.InvariantCulture)
-                        + ":luma_power=1:chroma_radius="
-                        + boxRadius.ToString("0.###", CultureInfo.InvariantCulture)
-                        + ":chroma_power=1]");
+                    string boxR = boxRadius.ToString("0.###", CultureInfo.InvariantCulture);
+                    // YUV-style luma/chroma radii on RGB-ish input causes split green/flat corruption; convert to planar RGB first (same as LibMpv path).
+                    string inner = "format=gbrp,boxblur=lr="
+                        + boxR
+                        + ":lp=1:cr="
+                        + boxR
+                        + ":cp=1";
+                    filters.Add(BuildLavfiPrefixedBlurGraph(bh, inner));
                     break;
+                }
                 case BackgroundVideoBlurType.Rotational:
-                    filters.Add(BuildRotationalBlurFilter(blurScale, Math.Max(0f, Math.Min(360f, blurDegrees))));
+                    filters.Add(BuildRotationalBlurFilter(
+                        blurScale,
+                        Math.Max(0f, Math.Min(360f, blurDegrees)),
+                        GetBlurPassHeight(targetHeight, MpvBlurPassMaxHeightRotational)));
                     break;
                 case BackgroundVideoBlurType.Gaussian:
                 default:
+                {
+                    int bh = GetBlurPassHeight(targetHeight, MpvBlurPassMaxHeightGaussian);
                     float sigma = Math.Max(0.1f, blurScale * 10f);
-                    filters.Add("lavfi=[gblur=sigma=" + sigma.ToString("0.###", CultureInfo.InvariantCulture) + "]");
+                    string inner = "gblur=sigma=" + sigma.ToString("0.###", CultureInfo.InvariantCulture);
+                    filters.Add(BuildLavfiPrefixedBlurGraph(bh, inner));
                     break;
+                }
             }
         }
 
         return string.Join(",", filters);
     }
 
-    private static string BuildRotationalBlurFilter(float blurScale, float blurDegrees)
+    private static string BuildRotationalBlurFilter(float blurScale, float blurDegrees, int blurPassHeight)
     {
         float spreadDegrees = Math.Max(0.1f, blurScale * Math.Max(1f, blurDegrees));
         double spreadRadians = spreadDegrees * Math.PI / 180.0;
         string r1 = spreadRadians.ToString("0.######", CultureInfo.InvariantCulture);
         string r2 = (spreadRadians * 0.5).ToString("0.######", CultureInfo.InvariantCulture);
-        return "lavfi=[split=5[o][a][b][c][d];"
+        int h = Math.Max(160, Math.Min(480, blurPassHeight));
+        string pre = "scale=-2:" + h.ToString(CultureInfo.InvariantCulture) + ":flags=bilinear,";
+        return "lavfi=["
+            + pre
+            + "split=5[o][a][b][c][d];"
             + "[a]rotate=" + r1 + ":ow=iw:oh=ih:c=black@0[a1];"
             + "[b]rotate=-" + r1 + ":ow=iw:oh=ih:c=black@0[b1];"
             + "[c]rotate=" + r2 + ":ow=iw:oh=ih:c=black@0[c1];"
@@ -7153,16 +6676,26 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         }
 
         // Caller must hold mpvFrameBitmapSync when invoking from the UI paint path.
+        if (TryDrawMpvFrameWithGdi(graphics, viewWidth, viewHeight))
+        {
+            return;
+        }
+
         var dest = new Rectangle(0, 0, viewWidth, viewHeight);
         InterpolationMode savedInterpolation = graphics.InterpolationMode;
+        CompositingQuality savedCompositingQuality = graphics.CompositingQuality;
         try
         {
-            // Upscale from readback buffer: match mpv scaler (nearest vs bicubic) for retro line counts.
+            // Upscale from readback buffer: nearest for retro line counts; plain bilinear keeps UI paint cheap.
             graphics.InterpolationMode = readbackBlitUsesNearestNeighbor
                 ? InterpolationMode.NearestNeighbor
-                : InterpolationMode.HighQualityBicubic;
+                : InterpolationMode.Bilinear;
+            graphics.CompositingQuality = CompositingQuality.HighSpeed;
             if (renderOpacity >= 0.999f)
             {
+                lastFrameBlitPath = lastFrameBlitPath.StartsWith("gdi dib fail", StringComparison.Ordinal)
+                    ? lastFrameBlitPath + " -> gdi+"
+                    : "gdi+";
                 graphics.DrawImage(mpvFrameBitmapFront, dest);
                 return;
             }
@@ -7176,6 +6709,9 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             };
             using var attributes = new ImageAttributes();
             attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+            lastFrameBlitPath = lastFrameBlitPath.StartsWith("gdi dib fail", StringComparison.Ordinal)
+                ? lastFrameBlitPath + " -> gdi+ matrix"
+                : "gdi+ matrix";
             graphics.DrawImage(
                 mpvFrameBitmapFront,
                 dest,
@@ -7189,7 +6725,118 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         finally
         {
             graphics.InterpolationMode = savedInterpolation;
+            graphics.CompositingQuality = savedCompositingQuality;
         }
+    }
+
+    private bool TryDrawMpvFrameWithGdi(Graphics graphics, int viewWidth, int viewHeight)
+    {
+        if (mpvFrameBitmapFront == null || graphics == null)
+        {
+            return false;
+        }
+
+        IntPtr destDc = IntPtr.Zero;
+        BitmapData data = null;
+        bool drawn = false;
+        try
+        {
+            int sourceWidth = mpvFrameBitmapFront.Width;
+            int sourceHeight = mpvFrameBitmapFront.Height;
+            var sourceRect = new Rectangle(0, 0, sourceWidth, sourceHeight);
+            data = mpvFrameBitmapFront.LockBits(
+                sourceRect,
+                ImageLockMode.ReadOnly,
+                System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+
+            IntPtr bits = data.Scan0;
+            int dibHeight = -sourceHeight;
+            if (data.Stride < 0)
+            {
+                bits = IntPtr.Add(data.Scan0, data.Stride * (sourceHeight - 1));
+                dibHeight = sourceHeight;
+            }
+
+            var bitmapInfo = new BITMAPINFO
+            {
+                bmiHeader = new BITMAPINFOHEADER
+                {
+                    biSize = (uint)Marshal.SizeOf(typeof(BITMAPINFOHEADER)),
+                    biWidth = sourceWidth,
+                    biHeight = dibHeight,
+                    biPlanes = 1,
+                    biBitCount = 32,
+                    biCompression = BI_RGB,
+                    biSizeImage = (uint)Math.Abs(data.Stride * sourceHeight)
+                }
+            };
+
+            bool smoothScale = !readbackBlitUsesNearestNeighbor;
+            destDc = graphics.GetHdc();
+            _ = SetStretchBltMode(destDc, smoothScale ? HALFTONE : COLORONCOLOR);
+            if (smoothScale)
+            {
+                _ = SetBrushOrgEx(destDc, 0, 0, out _);
+            }
+
+            int result = StretchDIBits(
+                destDc,
+                0,
+                0,
+                viewWidth,
+                viewHeight,
+                0,
+                0,
+                sourceWidth,
+                sourceHeight,
+                bits,
+                ref bitmapInfo,
+                DIB_RGB_COLORS,
+                SRCCOPY);
+            drawn = result != 0 && result != GDI_ERROR;
+            if (!drawn)
+            {
+                lastFrameBlitPath = $"gdi dib fail r={result} err={Marshal.GetLastWin32Error()}";
+            }
+        }
+        catch (Exception ex)
+        {
+            lastFrameBlitPath = "gdi dib fail " + ex.GetType().Name;
+            return false;
+        }
+        finally
+        {
+            if (destDc != IntPtr.Zero)
+            {
+                graphics.ReleaseHdc(destDc);
+            }
+
+            if (data != null && mpvFrameBitmapFront != null)
+            {
+                mpvFrameBitmapFront.UnlockBits(data);
+            }
+        }
+
+        if (!drawn)
+        {
+            return false;
+        }
+
+        if (renderOpacity < 0.999f)
+        {
+            int shadeAlpha = Math.Max(0, Math.Min(255, (int)Math.Round((1f - renderOpacity) * 255f)));
+            if (shadeAlpha > 0)
+            {
+                using var shade = new SolidBrush(Color.FromArgb(shadeAlpha, Color.Black));
+                graphics.FillRectangle(shade, 0, 0, viewWidth, viewHeight);
+            }
+        }
+
+        string scaleMode = readbackBlitUsesNearestNeighbor ? "nearest" : "halftone";
+        lastFrameBlitPath = renderOpacity < 0.999f
+            ? $"gdi dib {scaleMode}+shade"
+            : $"gdi dib {scaleMode}";
+        return true;
     }
 
     private static IntPtr GetOpenGlProcAddress(IntPtr _, string name)
@@ -7207,6 +6854,42 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         }
 
         return GetProcAddress(module, name);
+    }
+
+    private const int COLORONCOLOR = 3;
+    private const int HALFTONE = 4;
+    private const int SRCCOPY = 0x00CC0020;
+    private const int GDI_ERROR = -1;
+    private const uint BI_RGB = 0;
+    private const uint DIB_RGB_COLORS = 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BITMAPINFOHEADER
+    {
+        public uint biSize;
+        public int biWidth;
+        public int biHeight;
+        public ushort biPlanes;
+        public ushort biBitCount;
+        public uint biCompression;
+        public uint biSizeImage;
+        public int biXPelsPerMeter;
+        public int biYPelsPerMeter;
+        public uint biClrUsed;
+        public uint biClrImportant;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BITMAPINFO
+    {
+        public BITMAPINFOHEADER bmiHeader;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct POINT
+    {
+        public int X;
+        public int Y;
     }
 
     [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
@@ -7273,6 +6956,29 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
 
     [DllImport("kernel32.dll", SetLastError = true)]
     private static extern bool FreeLibrary(IntPtr hModule);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern int SetStretchBltMode(IntPtr hdc, int mode);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetBrushOrgEx(IntPtr hdc, int x, int y, out POINT lppt);
+
+    [DllImport("gdi32.dll", SetLastError = true)]
+    private static extern int StretchDIBits(
+        IntPtr hdcDest,
+        int xoriginDest,
+        int yoriginDest,
+        int wDest,
+        int hDest,
+        int xoriginSrc,
+        int yoriginSrc,
+        int wSrc,
+        int hSrc,
+        IntPtr lpBits,
+        ref BITMAPINFO lpbmi,
+        uint iUsage,
+        int rop);
 
     private static Rectangle CalculateCoverDestinationRect(int sourceWidth, int sourceHeight, int targetWidth, int targetHeight)
     {

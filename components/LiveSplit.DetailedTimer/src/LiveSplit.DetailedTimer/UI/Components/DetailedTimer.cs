@@ -10,13 +10,17 @@ using System.Xml;
 
 using LiveSplit.Model;
 using LiveSplit.Model.Comparisons;
+using LiveSplit.Options;
 using LiveSplit.TimeFormatters;
+using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
 [GlobalFontConsumer(GlobalFont.TimerFont)]
 public class DetailedTimer : IComponent
 {
+    private static readonly EventHandler IconShadowOnFrameChanged = static (_, _) => { };
+
     public Timer InternalComponent { get; set; }
     public SegmentTimer SegmentTimer { get; set; }
     public SimpleLabel LabelSegment { get; set; }
@@ -33,10 +37,13 @@ public class DetailedTimer : IComponent
     public bool HideComparison { get; set; }
     protected int FrameCount { get; set; }
 
-    protected int IconWidth { get; set; }
-
     public Image ShadowImage { get; set; }
     protected Image OldImage { get; set; }
+    private Image _shadowSourceIcon;
+    private Color _shadowGeneratedForLayoutColor;
+    private float _shadowGeneratedIconOffset = float.NaN;
+    private float _shadowGeneratedIconTransparency = float.NaN;
+    private float _shadowGeneratedIconBlur = float.NaN;
 
     public float PaddingTop => 0f;
     public float PaddingLeft => 7f;
@@ -63,7 +70,6 @@ public class DetailedTimer : IComponent
         {
             CurrentState = state
         };
-        IconWidth = 0;
         Cache = new GraphicsCache();
         LabelSegment = new SimpleLabel();
         LabelBest = new SimpleLabel();
@@ -97,16 +103,23 @@ public class DetailedTimer : IComponent
 
         float originalDrawSize = Math.Min(Settings.IconSize, width - 14);
         Image icon = state.CurrentSplitIndex >= 0 ? state.Run[state.CurrentSplitIndex + lastSplitOffset].Icon : null;
+        float drawWidth = 0f;
+        float drawHeight = 0f;
         if (Settings.DisplayIcon && icon != null)
         {
             if (OldImage != icon)
             {
                 ImageAnimator.Animate(icon, (s, o) => { });
+                if (ShadowImage != null)
+                {
+                    ImageAnimator.Animate(ShadowImage, IconShadowOnFrameChanged);
+                }
+
                 OldImage = icon;
             }
 
-            float drawWidth = originalDrawSize;
-            float drawHeight = originalDrawSize;
+            drawWidth = originalDrawSize;
+            drawHeight = originalDrawSize;
             if (icon.Width > icon.Height)
             {
                 float ratio = icon.Height / (float)icon.Width;
@@ -119,19 +132,6 @@ public class DetailedTimer : IComponent
             }
 
             ImageAnimator.UpdateFrames(icon);
-
-            g.DrawImage(
-                icon,
-                7 + ((originalDrawSize - drawWidth) / 2),
-                ((height - originalDrawSize) / 2.0f) + ((originalDrawSize - drawHeight) / 2),
-                drawWidth,
-                drawHeight);
-
-            IconWidth = (int)(originalDrawSize + 7.5f);
-        }
-        else
-        {
-            IconWidth = 0;
         }
 
         InternalComponent.Settings.ShowGradient = Settings.TimerShowGradient;
@@ -159,16 +159,55 @@ public class DetailedTimer : IComponent
         {
             var labelsFont = new Font(Settings.SegmentLabelsFont.FontFamily, Settings.SegmentLabelsFont.Size, Settings.SegmentLabelsFont.Style, Settings.SegmentLabelsFont.Unit);
             var timesFont = new Font(Settings.SegmentTimesFont.FontFamily, Settings.SegmentTimesFont.Size, Settings.SegmentTimesFont.Style, Settings.SegmentTimesFont.Unit);
+
+            float segmentLabelsAnchorY = height * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
+            const float iconGap = 4f;
+            const float minIconTop = 2f;
+            if (Settings.DisplayIcon && icon != null && drawWidth > 0f && drawHeight > 0f)
+            {
+                // Left edge (same padded column as splits), directly above PB / comparison row — labels stay fixed.
+                float iconX = 7f + ((originalDrawSize - drawWidth) / 2f);
+                float iconY = Math.Max(minIconTop, segmentLabelsAnchorY - iconGap - drawHeight);
+                float shadowWidth = originalDrawSize * (5 / 4f);
+                float shadowHeight = originalDrawSize * (5 / 4f);
+                if (icon.Width > icon.Height)
+                {
+                    float ratio = icon.Height / (float)icon.Width;
+                    shadowHeight *= ratio;
+                }
+                else
+                {
+                    float ratio = icon.Width / (float)icon.Height;
+                    shadowWidth *= ratio;
+                }
+
+                float slotTopY = iconY - ((originalDrawSize - drawHeight) / 2f);
+                Image shadow = ShadowImage;
+                if (shadow != null)
+                {
+                    ImageAnimator.UpdateFrames(shadow);
+                }
+
+                if (Settings.IconShadows && shadow != null)
+                {
+                    float shadowX = 7f + (((originalDrawSize * (5 / 4f)) - shadowWidth) / 2f) - 0.7f;
+                    float shadowY = slotTopY + (((originalDrawSize * (5 / 4f)) - shadowHeight) / 2f) - 0.7f;
+                    g.DrawImage(shadow, shadowX, shadowY, shadowWidth, shadowHeight);
+                }
+
+                g.DrawImage(icon, iconX, iconY, drawWidth, drawHeight);
+            }
+
             LabelSegment.Font = labelsFont;
-            LabelSegment.X = 5 + IconWidth;
-            LabelSegment.Y = height * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
-            LabelSegment.Width = width - SegmentTimer.ActualWidth - 5 - IconWidth;
+            LabelSegment.X = 5;
+            LabelSegment.Y = segmentLabelsAnchorY;
+            LabelSegment.Width = width - SegmentTimer.ActualWidth - 5;
             LabelSegment.Height = height * (Settings.SegmentTimerSizeRatio / 200f) * (!HideComparison ? 1f : 2f);
             LabelSegment.HorizontalAlignment = StringAlignment.Near;
             LabelSegment.VerticalAlignment = StringAlignment.Center;
             LabelSegment.ForeColor = Settings.SegmentLabelsColor;
             LabelSegment.HasShadow = state.LayoutSettings.DropShadows;
-            LabelSegment.ShadowColor = state.LayoutSettings.ShadowsColor;
+            state.LayoutSettings.ApplyTextShadowTo(LabelSegment);
             LabelSegment.OutlineColor = state.LayoutSettings.TextOutlineColor;
             if (Comparison != "None")
             {
@@ -176,15 +215,15 @@ public class DetailedTimer : IComponent
             }
 
             LabelBest.Font = labelsFont;
-            LabelBest.X = 5 + IconWidth;
+            LabelBest.X = 5;
             LabelBest.Y = height * ((100f - (Settings.SegmentTimerSizeRatio / 2f)) / 100f);
-            LabelBest.Width = width - SegmentTimer.ActualWidth - 5 - IconWidth;
+            LabelBest.Width = width - SegmentTimer.ActualWidth - 5;
             LabelBest.Height = height * (Settings.SegmentTimerSizeRatio / 200f);
             LabelBest.HorizontalAlignment = StringAlignment.Near;
             LabelBest.VerticalAlignment = StringAlignment.Center;
             LabelBest.ForeColor = Settings.SegmentLabelsColor;
             LabelBest.HasShadow = state.LayoutSettings.DropShadows;
-            LabelBest.ShadowColor = state.LayoutSettings.ShadowsColor;
+            state.LayoutSettings.ApplyTextShadowTo(LabelBest);
             LabelBest.OutlineColor = state.LayoutSettings.TextOutlineColor;
             if (!HideComparison)
             {
@@ -196,15 +235,15 @@ public class DetailedTimer : IComponent
             if (Comparison != "None")
             {
                 SegmentTime.Font = timesFont;
-                SegmentTime.X = offset + IconWidth;
-                SegmentTime.Y = height * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
-                SegmentTime.Width = width - SegmentTimer.ActualWidth - offset - IconWidth;
+                SegmentTime.X = offset;
+                SegmentTime.Y = segmentLabelsAnchorY;
+                SegmentTime.Width = width - SegmentTimer.ActualWidth - offset;
                 SegmentTime.Height = height * (Settings.SegmentTimerSizeRatio / 200f) * (!HideComparison ? 1f : 2f);
                 SegmentTime.HorizontalAlignment = StringAlignment.Near;
                 SegmentTime.VerticalAlignment = StringAlignment.Center;
                 SegmentTime.ForeColor = Settings.SegmentTimesColor;
                 SegmentTime.HasShadow = state.LayoutSettings.DropShadows;
-                SegmentTime.ShadowColor = state.LayoutSettings.ShadowsColor;
+                state.LayoutSettings.ApplyTextShadowTo(SegmentTime);
                 SegmentTime.OutlineColor = state.LayoutSettings.TextOutlineColor;
                 SegmentTime.IsMonospaced = true;
                 SegmentTime.Draw(g);
@@ -213,30 +252,30 @@ public class DetailedTimer : IComponent
             if (!HideComparison)
             {
                 BestSegmentTime.Font = timesFont;
-                BestSegmentTime.X = offset + IconWidth;
+                BestSegmentTime.X = offset;
                 BestSegmentTime.Y = height * ((100f - (Settings.SegmentTimerSizeRatio / 2f)) / 100f);
-                BestSegmentTime.Width = width - SegmentTimer.ActualWidth - offset - IconWidth;
+                BestSegmentTime.Width = width - SegmentTimer.ActualWidth - offset;
                 BestSegmentTime.Height = height * (Settings.SegmentTimerSizeRatio / 200f);
                 BestSegmentTime.HorizontalAlignment = StringAlignment.Near;
                 BestSegmentTime.VerticalAlignment = StringAlignment.Center;
                 BestSegmentTime.ForeColor = Settings.SegmentTimesColor;
                 BestSegmentTime.HasShadow = state.LayoutSettings.DropShadows;
-                BestSegmentTime.ShadowColor = state.LayoutSettings.ShadowsColor;
+                state.LayoutSettings.ApplyTextShadowTo(BestSegmentTime);
                 BestSegmentTime.OutlineColor = state.LayoutSettings.TextOutlineColor;
                 BestSegmentTime.IsMonospaced = true;
                 BestSegmentTime.Draw(g);
             }
 
             SplitName.Font = Settings.SplitNameFont;
-            SplitName.X = IconWidth + 5;
+            SplitName.X = 5;
             SplitName.Y = 0;
-            SplitName.Width = width - InternalComponent.ActualWidth - IconWidth - 5;
+            SplitName.Width = width - InternalComponent.ActualWidth - 5;
             SplitName.Height = height * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
             SplitName.HorizontalAlignment = StringAlignment.Near;
             SplitName.VerticalAlignment = StringAlignment.Center;
             SplitName.ForeColor = Settings.SplitNameColor;
             SplitName.HasShadow = state.LayoutSettings.DropShadows;
-            SplitName.ShadowColor = state.LayoutSettings.ShadowsColor;
+            state.LayoutSettings.ApplyTextShadowTo(SplitName);
             SplitName.OutlineColor = state.LayoutSettings.TextOutlineColor;
             if (Settings.ShowSplitName)
             {
@@ -416,6 +455,7 @@ public class DetailedTimer : IComponent
         InternalComponent.Update(null, state, width, height, mode);
 
         Image icon = state.CurrentSplitIndex >= 0 ? state.Run[state.CurrentSplitIndex + lastSplitOffset].Icon : null;
+        EnsureIconShadowBitmap(state, icon);
 
         Cache.Restart();
         Cache["SplitIcon"] = icon;
@@ -438,6 +478,11 @@ public class DetailedTimer : IComponent
         Cache["BestSegmentTime"] = BestSegmentTime.Text;
         Cache["SegmentTimerText"] = SegmentTimer.BigTextLabel.Text + SegmentTimer.SmallTextLabel.Text;
         Cache["InternalComponentText"] = InternalComponent.BigTextLabel.Text + InternalComponent.SmallTextLabel.Text;
+        Cache["IconShadows"] = Settings.IconShadows;
+        Cache["LayoutShadowsColor"] = state.LayoutSettings.ShadowsColor.ToArgb();
+        Cache["LayoutIconShadowOffset"] = state.LayoutSettings.IconShadowOffset;
+        Cache["LayoutIconShadowTransparency"] = state.LayoutSettings.IconShadowTransparency;
+        Cache["LayoutIconShadowBlur"] = state.LayoutSettings.IconShadowBlur;
         if (InternalComponent.BigTextLabel.Brush != null && invalidator != null)
         {
             if (InternalComponent.BigTextLabel.Brush is LinearGradientBrush brush)
@@ -458,6 +503,54 @@ public class DetailedTimer : IComponent
 
     public void Dispose()
     {
+        DisposeIconShadowBitmap();
+    }
+
+    private void EnsureIconShadowBitmap(LiveSplitState state, Image icon)
+    {
+        if (!Settings.DisplayIcon || !Settings.IconShadows || icon == null)
+        {
+            DisposeIconShadowBitmap();
+            return;
+        }
+
+        Color layoutShadow = state.LayoutSettings.ShadowsColor;
+        float o = state.LayoutSettings.IconShadowOffset;
+        float t = state.LayoutSettings.IconShadowTransparency;
+        float b = state.LayoutSettings.IconShadowBlur;
+        if (ShadowImage != null
+            && ReferenceEquals(_shadowSourceIcon, icon)
+            && _shadowGeneratedForLayoutColor == layoutShadow
+            && _shadowGeneratedIconOffset == o
+            && _shadowGeneratedIconTransparency == t
+            && _shadowGeneratedIconBlur == b)
+        {
+            return;
+        }
+
+        DisposeIconShadowBitmap();
+        ShadowImage = IconShadow.Generate(icon, layoutShadow, o, t, b);
+        _shadowSourceIcon = icon;
+        _shadowGeneratedForLayoutColor = layoutShadow;
+        _shadowGeneratedIconOffset = o;
+        _shadowGeneratedIconTransparency = t;
+        _shadowGeneratedIconBlur = b;
+        ImageAnimator.Animate(ShadowImage, IconShadowOnFrameChanged);
+    }
+
+    private void DisposeIconShadowBitmap()
+    {
+        if (ShadowImage != null)
+        {
+            ImageAnimator.StopAnimate(ShadowImage, IconShadowOnFrameChanged);
+            ShadowImage.Dispose();
+            ShadowImage = null;
+        }
+
+        _shadowSourceIcon = null;
+        _shadowGeneratedIconOffset = float.NaN;
+        _shadowGeneratedIconTransparency = float.NaN;
+        _shadowGeneratedIconBlur = float.NaN;
     }
 
     public int GetSettingsHashCode()

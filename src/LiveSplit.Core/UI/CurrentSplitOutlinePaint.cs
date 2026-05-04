@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.Drawing;
 using System.Drawing.Drawing2D;
 
@@ -6,6 +7,32 @@ namespace LiveSplit.UI;
 
 public static class CurrentSplitOutlinePaint
 {
+    /// <summary>Monotonic clock for smooth gradient scroll; avoids 16 ms <see cref="Environment.TickCount"/> steps that look like broken transparency at high speed.</summary>
+    private static readonly long AnimationEpochTicks = Stopwatch.GetTimestamp();
+
+    private static float AnimationPhasePixels(float waveSpeed)
+    {
+        if (waveSpeed <= 0.0001f)
+        {
+            return 0f;
+        }
+
+        double elapsed = (Stopwatch.GetTimestamp() - AnimationEpochTicks) / (double)Stopwatch.Frequency;
+        return (float)(elapsed * waveSpeed * 35.0);
+    }
+
+    private static float WrappedPhaseOffset(float waveSpeed, int tile)
+    {
+        if (tile <= 0)
+        {
+            return 0f;
+        }
+
+        double phase = AnimationPhasePixels(waveSpeed);
+        double wrapped = phase - Math.Floor(phase / tile) * tile;
+        return (float)wrapped;
+    }
+
     /// <summary>
     /// Upper bound for outline wave speed in layout and splits UI (0 = static). Same numeric scale as passed to
     /// <see cref="CreateOutlineBrush"/>; previously sliders went to 100, which was faster than needed for most layouts.
@@ -63,6 +90,46 @@ public static class CurrentSplitOutlinePaint
         return new SolidBrush(MultiplyAlpha(outlineColor, alpha255));
     }
 
+    /// <summary>
+    /// Brush for the current-split row background when using a non-image gradient. Lets the fill scroll on an axis
+    /// independent of whether the row gradient runs horizontally or vertically (unlike <see cref="CreateOutlineBrush"/>,
+    /// which ties both to one wave axis).
+    /// </summary>
+    public static Brush CreateRowFillBrush(
+        float width,
+        float height,
+        int alpha255,
+        bool rgbWave,
+        CurrentSplitOutlineWaveAxis motionAxis,
+        int waveSpeed,
+        bool rowGradientHorizontal,
+        Color topColor,
+        Color bottomColor)
+    {
+        float speed = waveSpeed;
+        bool motionHorizontal = motionAxis == CurrentSplitOutlineWaveAxis.Horizontal;
+
+        if (rgbWave)
+        {
+            return CreateRainbowBrush(width, height, alpha255, motionHorizontal, speed);
+        }
+
+        if (speed > 0.0001f)
+        {
+            return CreateTwoColorTiledWaveBrush(
+                width,
+                height,
+                alpha255,
+                rowGradientHorizontal,
+                motionHorizontal,
+                speed,
+                topColor,
+                bottomColor);
+        }
+
+        return CreateTwoPointGradient(width, height, alpha255, topColor, bottomColor, rowGradientHorizontal);
+    }
+
     private static Brush CreateTwoPointGradient(
         float width,
         float height,
@@ -95,25 +162,26 @@ public static class CurrentSplitOutlinePaint
             Color.Black,
             LinearGradientMode.Horizontal);
 
-        var blend = new ColorBlend();
-        blend.Positions = new float[] { 0f, 1f / 6f, 2f / 6f, 3f / 6f, 4f / 6f, 5f / 6f, 1f };
-        var colors = new Color[7];
-        for (int i = 0; i < 7; i++)
+        brush.GammaCorrection = true;
+
+        const int hueStops = 32;
+        var positions = new float[hueStops];
+        var colors = new Color[hueStops];
+        for (int i = 0; i < hueStops; i++)
         {
-            colors[i] = MultiplyAlpha(ColorFromHsv(i * 60f, 1f, 1f), alpha255);
+            positions[i] = i / (float)(hueStops - 1);
+            colors[i] = MultiplyAlpha(ColorFromHsv(i * 360f / (hueStops - 1), 1f, 1f), alpha255);
         }
 
-        blend.Colors = colors;
-        brush.InterpolationColors = blend;
+        colors[^1] = colors[0];
+        brush.InterpolationColors = new ColorBlend
+        {
+            Positions = positions,
+            Colors = colors
+        };
         brush.WrapMode = WrapMode.Tile;
 
-        float phase = 0f;
-        if (waveSpeed > 0.0001f)
-        {
-            phase = Environment.TickCount * 0.001f * waveSpeed * 35f;
-        }
-
-        float offset = phase % tile;
+        float offset = WrappedPhaseOffset(waveSpeed, tile);
         brush.ResetTransform();
         brush.TranslateTransform(-offset, 0f, MatrixOrder.Append);
         if (!horizontal)
@@ -155,13 +223,7 @@ public static class CurrentSplitOutlinePaint
         ApplySeamlessSymmetricTwoColorTileBlend(brush, a, b);
         brush.WrapMode = WrapMode.Tile;
 
-        float phase = 0f;
-        if (waveSpeed > 0.0001f)
-        {
-            phase = Environment.TickCount * 0.001f * waveSpeed * 35f;
-        }
-
-        float offset = phase % tile;
+        float offset = WrappedPhaseOffset(waveSpeed, tile);
         brush.ResetTransform();
         brush.TranslateTransform(-offset, 0f, MatrixOrder.Append);
         if (!waveMotionHorizontal)
@@ -180,16 +242,15 @@ public static class CurrentSplitOutlinePaint
     {
         try
         {
-            var positions = new float[]
+            const int stopCount = 32;
+            var positions = new float[stopCount];
+            var colors = new Color[stopCount];
+            for (int i = 0; i < stopCount; i++)
             {
-                0f, 0.06f, 0.12f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.88f, 0.94f, 1f
-            };
-            var colors = new Color[positions.Length];
-            for (int i = 0; i < positions.Length; i++)
-            {
-                float t = positions[i];
+                float t = i / (float)(stopCount - 1);
                 float tri = t <= 0.5f ? t * 2f : (1f - t) * 2f;
                 float s = tri * tri * (3f - 2f * tri);
+                positions[i] = t;
                 colors[i] = LerpRgb(a, b, s);
             }
 
@@ -212,28 +273,23 @@ public static class CurrentSplitOutlinePaint
     {
         try
         {
-            var blend = new ColorBlend
+            const int stopCount = 32;
+            var positions = new float[stopCount];
+            var colors = new Color[stopCount];
+            for (int i = 0; i < stopCount; i++)
             {
-                Positions = new float[]
-                {
-                    0f, 0.06f, 0.14f, 0.24f, 0.36f, 0.5f, 0.64f, 0.76f, 0.86f, 0.94f, 1f
-                },
-                Colors = new[]
-                {
-                    a,
-                    LerpRgb(a, b, 0.05f),
-                    LerpRgb(a, b, 0.12f),
-                    LerpRgb(a, b, 0.22f),
-                    LerpRgb(a, b, 0.35f),
-                    LerpRgb(a, b, 0.5f),
-                    LerpRgb(a, b, 0.65f),
-                    LerpRgb(a, b, 0.78f),
-                    LerpRgb(a, b, 0.88f),
-                    LerpRgb(a, b, 0.95f),
-                    b
-                }
+                float t = i / (float)(stopCount - 1);
+                positions[i] = t;
+                colors[i] = LerpRgb(a, b, t);
+            }
+
+            colors[0] = a;
+            colors[^1] = b;
+            brush.InterpolationColors = new ColorBlend
+            {
+                Positions = positions,
+                Colors = colors
             };
-            brush.InterpolationColors = blend;
         }
         catch (ArgumentException)
         {

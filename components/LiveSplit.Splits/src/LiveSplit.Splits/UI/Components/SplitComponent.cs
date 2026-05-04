@@ -99,11 +99,11 @@ public class SplitComponent : IComponent
                 ), 0, 0, width, height);
         }
 
-        NameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(NameLabel);
         NameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         foreach (SimpleLabel label in LabelsList)
         {
-            label.ShadowColor = state.LayoutSettings.ShadowsColor;
+            state.LayoutSettings.ApplyTextShadowTo(label);
             label.OutlineColor = state.LayoutSettings.TextOutlineColor;
         }
 
@@ -174,16 +174,51 @@ public class SplitComponent : IComponent
                 }
                 else
                 {
-                    using var currentSplitBrush = new LinearGradientBrush(
-                        new PointF(0, 0),
-                        Settings.CurrentSplitGradient == GradientType.Horizontal
-                        ? new PointF(width, 0)
-                        : new PointF(0, height),
-                        Settings.CurrentSplitTopColor,
-                        Settings.CurrentSplitGradient == GradientType.Plain
+                    bool rowGradientHorizontal = Settings.CurrentSplitGradient == GradientType.Horizontal;
+                    Color fillEnd = Settings.CurrentSplitGradient == GradientType.Plain
                         ? Settings.CurrentSplitTopColor
-                        : Settings.CurrentSplitBottomColor);
-                    g.FillRectangle(currentSplitBrush, 0, 0, width, height);
+                        : Settings.CurrentSplitBottomColor;
+                    bool animatedFill = Settings.CurrentSplitGradientFillRgbWave
+                        || Settings.CurrentSplitGradientFillWaveSpeed > 0;
+
+                    if (animatedFill)
+                    {
+                        using Brush fillBrush = CurrentSplitOutlinePaint.CreateRowFillBrush(
+                            width,
+                            height,
+                            255,
+                            Settings.CurrentSplitGradientFillRgbWave,
+                            Settings.CurrentSplitGradientFillWaveAxis,
+                            Settings.CurrentSplitGradientFillWaveSpeed,
+                            rowGradientHorizontal,
+                            Settings.CurrentSplitTopColor,
+                            fillEnd);
+                        CompositingQuality oldQuality = g.CompositingQuality;
+                        PixelOffsetMode oldPixelOffset = g.PixelOffsetMode;
+                        SmoothingMode oldSmoothing = g.SmoothingMode;
+                        try
+                        {
+                            g.CompositingQuality = CompositingQuality.HighQuality;
+                            g.PixelOffsetMode = PixelOffsetMode.Half;
+                            g.SmoothingMode = SmoothingMode.None;
+                            g.FillRectangle(fillBrush, 0, 0, width, height);
+                        }
+                        finally
+                        {
+                            g.CompositingQuality = oldQuality;
+                            g.PixelOffsetMode = oldPixelOffset;
+                            g.SmoothingMode = oldSmoothing;
+                        }
+                    }
+                    else
+                    {
+                        using var currentSplitBrush = new LinearGradientBrush(
+                            new PointF(0, 0),
+                            rowGradientHorizontal ? new PointF(width, 0) : new PointF(0, height),
+                            Settings.CurrentSplitTopColor,
+                            fillEnd);
+                        g.FillRectangle(currentSplitBrush, 0, 0, width, height);
+                    }
                 }
 
                 DrawCurrentSplitOutline(g, width, height);
@@ -797,6 +832,9 @@ public class SplitComponent : IComponent
             Cache["CurrentSplitOutlineRgbWave"] = Settings.CurrentSplitOutlineRgbWave;
             Cache["CurrentSplitOutlineWaveAxis"] = Settings.CurrentSplitOutlineWaveAxis;
             Cache["CurrentSplitOutlineWaveSpeed"] = Settings.CurrentSplitOutlineWaveSpeed;
+            Cache["CurrentSplitGradientFillRgbWave"] = Settings.CurrentSplitGradientFillRgbWave;
+            Cache["CurrentSplitGradientFillWaveAxis"] = Settings.CurrentSplitGradientFillWaveAxis;
+            Cache["CurrentSplitGradientFillWaveSpeed"] = Settings.CurrentSplitGradientFillWaveSpeed;
             Cache["NameColor"] = NameLabel.ForeColor.ToArgb();
             Cache["ColumnsCount"] = ColumnsList.Count();
             for (int index = 0; index < LabelsList.Count; index++)
@@ -820,7 +858,15 @@ public class SplitComponent : IComponent
                 Settings.CurrentSplitOutlineEnabled &&
                 Settings.CurrentSplitOutlineWaveSpeed > 0
                 && (outlineRgbAnim || outlineTwoColorWave);
-            if (invalidator != null && (Cache.HasChanged || FrameCount > 1 || currentSplitBgFrames > 1 || outlineWaveAnim))
+            bool fillTwoColorWave = !Settings.CurrentSplitGradientFillRgbWave
+                && Settings.CurrentSplitGradientFillWaveSpeed > 0
+                && Settings.CurrentSplitGradient != GradientType.Plain;
+            bool fillRgbAnim = Settings.CurrentSplitGradientFillRgbWave;
+            bool fillWaveAnim = IsActive
+                && Settings.CurrentSplitGradient != GradientType.Image
+                && Settings.CurrentSplitGradientFillWaveSpeed > 0
+                && (fillRgbAnim || fillTwoColorWave);
+            if (invalidator != null && (Cache.HasChanged || FrameCount > 1 || currentSplitBgFrames > 1 || outlineWaveAnim || fillWaveAnim))
             {
                 invalidator.Invalidate(0, 0, width, height);
             }

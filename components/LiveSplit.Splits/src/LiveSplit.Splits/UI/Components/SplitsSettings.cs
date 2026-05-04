@@ -19,6 +19,7 @@ public partial class SplitsSettings : UserControl
 
     /// <summary>Avoids re-entrancy when syncing the outline fill combo from <see cref="CurrentSplitOutlineFillModeString"/>.</summary>
     private bool _inOutlineFillModeComboSync;
+    private bool _parentScrollRefreshPending;
 
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
 
@@ -176,6 +177,15 @@ public partial class SplitsSettings : UserControl
     /// <summary>0 = frozen rainbow; higher values scroll the RGB wave faster.</summary>
     public int CurrentSplitOutlineWaveSpeed { get; set; }
 
+    /// <summary>When true, the current-split row fill uses a scrolling spectrum instead of top/bottom colors (non-image modes only).</summary>
+    public bool CurrentSplitGradientFillRgbWave { get; set; }
+
+    /// <summary>Axis along which the row fill pattern scrolls (independent of Plain / Vertical / Horizontal gradient direction).</summary>
+    public CurrentSplitOutlineWaveAxis CurrentSplitGradientFillWaveAxis { get; set; }
+
+    /// <summary>0 = static fill; higher values scroll the two-color or RGB fill faster.</summary>
+    public int CurrentSplitGradientFillWaveSpeed { get; set; }
+
     private Image _currentSplitBackgroundImage;
     private string _currentSplitBackgroundImagePathLoaded;
 
@@ -232,6 +242,7 @@ public partial class SplitsSettings : UserControl
     public IList<ColumnSettings> ColumnsList { get; set; }
     public Size StartingSize { get; set; }
     public Size StartingTableLayoutSize { get; set; }
+    public Size StartingGroupColumnsSize { get; set; }
     public int StartingColumnSettingHeight { get; set; }
 
     public SplitsSettings(LiveSplitState state)
@@ -239,11 +250,14 @@ public partial class SplitsSettings : UserControl
         InitializeComponent();
         trkCurrentSplitOutlineWaveSpeed.Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
         trkCurrentSplitOutlineWaveSpeed.TickFrequency = 5;
+        trkCurrentSplitFillWaveSpeed.Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
+        trkCurrentSplitFillWaveSpeed.TickFrequency = 5;
 
         CurrentState = state;
 
         StartingSize = Size;
         StartingTableLayoutSize = tableColumns.Size;
+        StartingGroupColumnsSize = groupColumns.Size;
 
         VisualSplitCount = 8;
         SplitPreviewCount = 1;
@@ -282,6 +296,9 @@ public partial class SplitsSettings : UserControl
         CurrentSplitOutlineRgbWave = false;
         CurrentSplitOutlineWaveAxis = CurrentSplitOutlineWaveAxis.Horizontal;
         CurrentSplitOutlineWaveSpeed = 25;
+        CurrentSplitGradientFillRgbWave = false;
+        CurrentSplitGradientFillWaveAxis = CurrentSplitOutlineWaveAxis.Horizontal;
+        CurrentSplitGradientFillWaveSpeed = 0;
         nudCurrentSplitOutlineThickness.DecimalPlaces = 1;
         nudCurrentSplitOutlineThickness.Increment = 0.1m;
         nudCurrentSplitOutlineThickness.Minimum = 0.1m;
@@ -343,6 +360,8 @@ public partial class SplitsSettings : UserControl
         btnCurrentSplitOutlineGradientEndColor.DataBindings.Add("BackColor", this, "CurrentSplitOutlineGradientEndColor", false, DataSourceUpdateMode.OnPropertyChanged);
         chkCurrentSplitOutlineRgbWave.DataBindings.Add("Checked", this, "CurrentSplitOutlineRgbWave", false, DataSourceUpdateMode.OnPropertyChanged);
         trkCurrentSplitOutlineWaveSpeed.DataBindings.Add("Value", this, "CurrentSplitOutlineWaveSpeed", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkCurrentSplitFillRgbWave.DataBindings.Add("Checked", this, "CurrentSplitGradientFillRgbWave", false, DataSourceUpdateMode.OnPropertyChanged);
+        trkCurrentSplitFillWaveSpeed.DataBindings.Add("Value", this, "CurrentSplitGradientFillWaveSpeed", false, DataSourceUpdateMode.OnPropertyChanged);
         chkCurrentSplitOutline.CheckedChanged += (_, _) => UpdateCurrentSplitOutlineControlsEnabled();
         UpdateCurrentSplitOutlineControlsEnabled();
         UpdateCurrentSplitImageAndOutlineOptionStates();
@@ -352,6 +371,7 @@ public partial class SplitsSettings : UserControl
         ColumnsList.Add(new ColumnSettings(CurrentState, T("Time"), ColumnsList) { Data = new ColumnData(T("Time"), ColumnType.SplitTime, "Current Comparison", "Current Timing Method") });
 
         StartingColumnSettingHeight = ColumnsList[0].Height;
+        ResetColumns();
     }
 
     private void EnsureCurrentSplitImageInterpolationComboItems()
@@ -461,6 +481,42 @@ public partial class SplitsSettings : UserControl
     private void trkCurrentSplitOutlineWaveSpeed_Scroll(object sender, EventArgs e)
     {
         SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void chkCurrentSplitFillRgbWave_CheckedChanged(object sender, EventArgs e)
+    {
+        RefreshCurrentSplitFillGradientThemedControls();
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void rdoCurrentSplitFillWaveAxis_CheckedChanged(object sender, EventArgs e)
+    {
+        if (!rdoCurrentSplitFillWaveHorizontal.Checked && !rdoCurrentSplitFillWaveVertical.Checked)
+        {
+            return;
+        }
+
+        CurrentSplitGradientFillWaveAxis = rdoCurrentSplitFillWaveVertical.Checked
+            ? CurrentSplitOutlineWaveAxis.Vertical
+            : CurrentSplitOutlineWaveAxis.Horizontal;
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void trkCurrentSplitFillWaveSpeed_Scroll(object sender, EventArgs e)
+    {
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void SyncFillWaveAxisRadios()
+    {
+        if (CurrentSplitGradientFillWaveAxis == CurrentSplitOutlineWaveAxis.Vertical)
+        {
+            rdoCurrentSplitFillWaveVertical.Checked = true;
+        }
+        else
+        {
+            rdoCurrentSplitFillWaveHorizontal.Checked = true;
+        }
     }
 
     private void SyncOutlineWaveAxisRadios()
@@ -730,6 +786,21 @@ public partial class SplitsSettings : UserControl
         }
     }
 
+    private void RefreshCurrentSplitFillGradientThemedControls()
+    {
+        foreach (Control c in new Control[]
+                 {
+                     chkCurrentSplitFillRgbWave, lblCurrentSplitFillWaveMotion, lblCurrentSplitFillWaveSpeed,
+                     trkCurrentSplitFillWaveSpeed, rdoCurrentSplitFillWaveHorizontal, rdoCurrentSplitFillWaveVertical
+                 })
+        {
+            if (c != null)
+            {
+                WinFormsTheme.Apply(c);
+            }
+        }
+    }
+
     private void UpdateCurrentSplitOutlineAppearanceOptionStates()
     {
         bool on = chkCurrentSplitOutline.Checked;
@@ -751,6 +822,12 @@ public partial class SplitsSettings : UserControl
     {
         bool imageMode = CurrentSplitGradient == GradientType.Image;
         lblCurrentSplitImageFilter.Enabled = cmbCurrentSplitImageFilter.Enabled = imageMode;
+        if (grpCurrentSplitFillGradientMotion != null && !grpCurrentSplitFillGradientMotion.IsDisposed)
+        {
+            grpCurrentSplitFillGradientMotion.Enabled = !imageMode;
+        }
+
+        RefreshCurrentSplitFillGradientThemedControls();
     }
 
     private void SplitsSettings_Load(object sender, EventArgs e)
@@ -764,6 +841,7 @@ public partial class SplitsSettings : UserControl
         SelectComboItem(cmbCurrentSplitOutlineInterpolation, CurrentSplitOutlineInterpolationString);
         SyncCurrentSplitOutlineFillModeCombo();
         SyncOutlineWaveAxisRadios();
+        SyncFillWaveAxisRadios();
 
         ResetColumns();
 
@@ -916,6 +994,14 @@ public partial class SplitsSettings : UserControl
         CurrentSplitOutlineWaveSpeed = Math.Min(
             CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum,
             Math.Max(0, parsedOutlineWaveSpeed));
+        CurrentSplitGradientFillRgbWave = SettingsHelper.ParseBool(element["CurrentSplitGradientFillRgbWave"], false);
+        CurrentSplitGradientFillWaveAxis = SettingsHelper.ParseEnum(
+            element["CurrentSplitGradientFillWaveAxis"],
+            CurrentSplitOutlineWaveAxis.Horizontal);
+        int parsedFillWaveSpeed = SettingsHelper.ParseInt(element["CurrentSplitGradientFillWaveSpeed"], 0);
+        CurrentSplitGradientFillWaveSpeed = Math.Min(
+            CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum,
+            Math.Max(0, parsedFillWaveSpeed));
         BackgroundColor = SettingsHelper.ParseColor(element["BackgroundColor"], Color.Transparent);
         BackgroundColor2 = SettingsHelper.ParseColor(element["BackgroundColor2"], Color.Transparent);
         GradientString = SettingsHelper.ParseString(element["BackgroundGradient"], ExtendedGradientType.Plain.ToString());
@@ -980,6 +1066,7 @@ public partial class SplitsSettings : UserControl
         }
 
         SyncCurrentSplitOutlineFillModeCombo();
+        ResetColumns();
     }
 
     public XmlNode GetSettings(XmlDocument document)
@@ -996,7 +1083,7 @@ public partial class SplitsSettings : UserControl
 
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
-        int hashCode = SettingsHelper.CreateSetting(document, parent, "Version", "1.7") ^
+        int hashCode = SettingsHelper.CreateSetting(document, parent, "Version", "1.8") ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitTopColor", CurrentSplitTopColor) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitBottomColor", CurrentSplitBottomColor) ^
         SettingsHelper.CreateSetting(document, parent, "VisualSplitCount", VisualSplitCount) ^
@@ -1033,6 +1120,9 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineRgbWave", CurrentSplitOutlineRgbWave) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineWaveAxis", CurrentSplitOutlineWaveAxis) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineWaveSpeed", CurrentSplitOutlineWaveSpeed) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitGradientFillRgbWave", CurrentSplitGradientFillRgbWave) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitGradientFillWaveAxis", CurrentSplitGradientFillWaveAxis) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitGradientFillWaveSpeed", CurrentSplitGradientFillWaveSpeed) ^
         SettingsHelper.CreateSetting(document, parent, "BackgroundColor", BackgroundColor) ^
         SettingsHelper.CreateSetting(document, parent, "BackgroundColor2", BackgroundColor2) ^
         SettingsHelper.CreateSetting(document, parent, "BackgroundGradient", BackgroundGradient) ^
@@ -1085,6 +1175,8 @@ public partial class SplitsSettings : UserControl
             column.UpdateEnabledButtons();
             index++;
         }
+
+        RefreshParentScrollExtent();
     }
 
     private void AddColumnToLayout(ColumnSettings column, int index)
@@ -1147,7 +1239,9 @@ public partial class SplitsSettings : UserControl
             tableColumns.Controls.Remove(control);
         }
 
+        groupColumns.Size = new Size(groupColumns.Size.Width, StartingGroupColumnsSize.Height);
         Size = StartingSize;
+        SyncColumnsGroupLayout();
     }
 
     private void UpdateLayoutForColumn()
@@ -1155,8 +1249,143 @@ public partial class SplitsSettings : UserControl
         tableColumns.RowCount++;
         tableColumns.RowStyles.Add(new RowStyle(SizeType.Absolute, StartingColumnSettingHeight));
         tableColumns.Size = new Size(tableColumns.Size.Width, tableColumns.Size.Height + StartingColumnSettingHeight);
-        Size = new Size(Size.Width, Size.Height + StartingColumnSettingHeight);
-        groupColumns.Size = new Size(groupColumns.Size.Width, groupColumns.Size.Height + StartingColumnSettingHeight);
+        SyncColumnsGroupLayout();
+    }
+
+    private void SyncColumnsGroupLayout()
+    {
+        int groupChromeHeight = Math.Max(0, StartingGroupColumnsSize.Height - StartingTableLayoutSize.Height);
+        int desiredTableHeight = tableColumns.RowStyles
+            .Cast<RowStyle>()
+            .Where(rowStyle => rowStyle.SizeType == SizeType.Absolute)
+            .Sum(rowStyle => (int)Math.Ceiling(rowStyle.Height));
+        desiredTableHeight = Math.Max(StartingTableLayoutSize.Height, desiredTableHeight);
+        int desiredGroupHeight = desiredTableHeight + groupChromeHeight;
+        if (tableColumns.MinimumSize.Height != desiredTableHeight)
+        {
+            tableColumns.MinimumSize = new Size(tableColumns.MinimumSize.Width, desiredTableHeight);
+        }
+
+        if (groupColumns.MinimumSize.Height != desiredGroupHeight)
+        {
+            groupColumns.MinimumSize = new Size(groupColumns.MinimumSize.Width, desiredGroupHeight);
+        }
+
+        if (groupColumns.Height != desiredGroupHeight)
+        {
+            groupColumns.Height = desiredGroupHeight;
+        }
+
+        int row = tableLayoutPanel1.GetRow(groupColumns);
+        if (row >= 0 && row < tableLayoutPanel1.RowStyles.Count)
+        {
+            RowStyle rowStyle = tableLayoutPanel1.RowStyles[row];
+            rowStyle.SizeType = SizeType.Absolute;
+            rowStyle.Height = desiredGroupHeight + groupColumns.Margin.Vertical;
+        }
+
+        int desiredHeight = Math.Max(
+            StartingSize.Height,
+            tableLayoutPanel1.Top + groupColumns.Top + desiredGroupHeight + groupColumns.Margin.Bottom + Padding.Bottom);
+        if (Height != desiredHeight)
+        {
+            Height = desiredHeight;
+        }
+
+        if (MinimumSize.Height != desiredHeight)
+        {
+            MinimumSize = new Size(MinimumSize.Width, desiredHeight);
+        }
+
+        tableLayoutPanel1.PerformLayout();
+        PerformLayout();
+        for (Control parent = Parent; parent != null; parent = parent.Parent)
+        {
+            parent.PerformLayout();
+        }
+
+        RefreshParentScrollExtent();
+    }
+
+    private void RefreshParentScrollExtent()
+    {
+        if (_parentScrollRefreshPending || IsDisposed || !IsHandleCreated)
+        {
+            return;
+        }
+
+        _parentScrollRefreshPending = true;
+        try
+        {
+            BeginInvoke(new Action(() =>
+            {
+                _parentScrollRefreshPending = false;
+                if (IsDisposed)
+                {
+                    return;
+                }
+
+                UpdateParentPanelExtents();
+            }));
+        }
+        catch (InvalidOperationException)
+        {
+            _parentScrollRefreshPending = false;
+        }
+    }
+
+    private void UpdateParentPanelExtents()
+    {
+        for (Control ancestor = Parent; ancestor != null; ancestor = ancestor.Parent)
+        {
+            if (ancestor is not Panel panel)
+            {
+                continue;
+            }
+
+            int contentHeight = MeasureDescendantBottom(panel, panel) + panel.Padding.Bottom + 8;
+            if (!panel.AutoScroll && panel.Dock != DockStyle.Fill && contentHeight > 0)
+            {
+                int panelHeight = Math.Max(panel.MinimumSize.Height, contentHeight);
+                if (panel.Height != panelHeight)
+                {
+                    panel.Height = panelHeight;
+                }
+            }
+
+            if (panel.AutoScroll)
+            {
+                int minHeight = Math.Max(panel.ClientSize.Height, contentHeight);
+                var minSize = new Size(0, minHeight);
+                if (!panel.AutoScrollMinSize.Equals(minSize))
+                {
+                    panel.AutoScrollMinSize = minSize;
+                }
+
+                panel.HorizontalScroll.Enabled = false;
+                panel.HorizontalScroll.Visible = false;
+                panel.HorizontalScroll.Maximum = 0;
+            }
+        }
+    }
+
+    private static int MeasureDescendantBottom(Panel origin, Control current)
+    {
+        int bottom = 0;
+        int scrollY = Math.Abs(origin.AutoScrollPosition.Y);
+        foreach (Control child in current.Controls)
+        {
+            if (!child.Visible)
+            {
+                continue;
+            }
+
+            Point childLocation = origin.PointToClient(child.Parent.PointToScreen(child.Location));
+            bottom = Math.Max(bottom, childLocation.Y + scrollY + child.Height + child.Margin.Bottom);
+            bottom = Math.Max(bottom, MeasureDescendantBottom(origin, child));
+        }
+
+        return bottom;
     }
 
     private void btnAddColumn_Click(object sender, EventArgs e)
@@ -1171,5 +1400,7 @@ public partial class SplitsSettings : UserControl
         {
             column.UpdateEnabledButtons();
         }
+
+        RefreshParentScrollExtent();
     }
 }

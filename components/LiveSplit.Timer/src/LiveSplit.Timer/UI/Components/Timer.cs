@@ -6,6 +6,7 @@ using System.Linq;
 using System.Windows.Forms;
 
 using LiveSplit.Model;
+using LiveSplit.Options;
 using LiveSplit.TimeFormatters;
 
 namespace LiveSplit.UI.Components;
@@ -163,12 +164,12 @@ public class Timer : IComponent
 
     public void DrawUnscaled(Graphics g, LiveSplitState state, float width, float height)
     {
-        BigTextLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
         BigTextLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         BigTextLabel.HasShadow = state.LayoutSettings.DropShadows;
-        SmallTextLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(BigTextLabel);
         SmallTextLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         SmallTextLabel.HasShadow = state.LayoutSettings.DropShadows;
+        state.LayoutSettings.ApplyTextShadowTo(SmallTextLabel);
         Font smallFont = TimerDecimalPlacesFont;
         Font bigFont = TimerFont;
         float sizeMultiplier = bigFont.Size / bigFont.FontFamily.GetEmHeight(bigFont.Style);

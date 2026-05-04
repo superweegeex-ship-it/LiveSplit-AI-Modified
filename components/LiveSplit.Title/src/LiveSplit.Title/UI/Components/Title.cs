@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -8,6 +8,7 @@ using System.Windows.Forms;
 using System.Xml;
 
 using LiveSplit.Model;
+using LiveSplit.Options;
 
 namespace LiveSplit.UI.Components;
 
@@ -162,7 +163,7 @@ public class Title : IComponent
         CategoryNameLabel.Font = TitleFont;
         CategoryNameLabel.Brush = new SolidBrush(Settings.OverrideTitleColor ? Settings.TitleColor : state.LayoutSettings.TextColor);
         CategoryNameLabel.HasShadow = state.LayoutSettings.DropShadows;
-        CategoryNameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(CategoryNameLabel);
         CategoryNameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         CategoryNameLabel.Height = height;
         CategoryNameLabel.Draw(g);
@@ -181,7 +182,7 @@ public class Title : IComponent
             AttemptCountLabel.Font = TitleFont;
             AttemptCountLabel.Brush = new SolidBrush(Settings.OverrideTitleColor ? Settings.TitleColor : state.LayoutSettings.TextColor);
             AttemptCountLabel.HasShadow = state.LayoutSettings.DropShadows;
-            AttemptCountLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+            state.LayoutSettings.ApplyTextShadowTo(AttemptCountLabel);
             AttemptCountLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
             AttemptCountLabel.Draw(g);
         }
@@ -210,7 +211,7 @@ public class Title : IComponent
         GameNameLabel.Font = TitleFont;
         GameNameLabel.Brush = new SolidBrush(Settings.OverrideTitleColor ? Settings.TitleColor : state.LayoutSettings.TextColor);
         GameNameLabel.HasShadow = state.LayoutSettings.DropShadows;
-        GameNameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(GameNameLabel);
         GameNameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         GameNameLabel.Draw(g);
     }

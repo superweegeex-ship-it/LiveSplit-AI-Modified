@@ -19,6 +19,7 @@ public partial class SplitsSettings : UserControl
     private static readonly EventHandler CurrentSplitBackgroundOnFrameChanged = static (_, _) => { };
 
     private bool _inOutlineFillModeComboSync;
+    private bool _parentScrollRefreshPending;
 
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
 
@@ -274,6 +275,7 @@ public partial class SplitsSettings : UserControl
     public IList<ColumnSettings> ColumnsList { get; set; }
     public Size StartingSize { get; set; }
     public Size StartingTableLayoutSize { get; set; }
+    public Size StartingGroupColumnsSize { get; set; }
     private readonly int startingColumnSettingHeight;
 
     public SplitsSettings(LiveSplitState state)
@@ -286,6 +288,7 @@ public partial class SplitsSettings : UserControl
 
         StartingSize = Size;
         StartingTableLayoutSize = tableColumns.Size;
+        StartingGroupColumnsSize = groupColumns.Size;
 
         AutomaticAbbreviation = false;
         VisualSplitCount = 8;
@@ -451,6 +454,7 @@ public partial class SplitsSettings : UserControl
         ColumnsList.Add(new ColumnSettings(CurrentState, "Time", ColumnsList) { Data = new ColumnData("Time", ColumnType.SplitTime, "Current Comparison", "Current Timing Method") });
 
         startingColumnSettingHeight = ColumnsList[0].Height;
+        ResetColumns();
     }
 
     private static void EnsureGradientComboHasAllModes(ComboBox combo)
@@ -1137,6 +1141,7 @@ public partial class SplitsSettings : UserControl
         }
 
         SyncCurrentSplitOutlineFillModeCombo();
+        ResetColumns();
     }
 
     public XmlNode GetSettings(XmlDocument document)
@@ -1411,6 +1416,8 @@ public partial class SplitsSettings : UserControl
             column.UpdateEnabledButtons();
             index++;
         }
+
+        RefreshParentScrollExtent();
     }
 
     private void AddColumnToLayout(ColumnSettings column, int index)
@@ -1472,7 +1479,9 @@ public partial class SplitsSettings : UserControl
             tableColumns.Controls.Remove(control);
         }
 
+        groupColumns.Size = new Size(groupColumns.Size.Width, StartingGroupColumnsSize.Height);
         Size = StartingSize;
+        SyncColumnsGroupLayout();
     }
 
     private void UpdateLayoutForColumn()
@@ -1480,8 +1489,143 @@ public partial class SplitsSettings : UserControl
         tableColumns.RowCount++;
         tableColumns.RowStyles.Add(new RowStyle(SizeType.Absolute, startingColumnSettingHeight));
         tableColumns.Size = new Size(tableColumns.Size.Width, tableColumns.Size.Height + startingColumnSettingHeight);
-        Size = new Size(Size.Width, Size.Height + startingColumnSettingHeight);
-        groupColumns.Size = new Size(groupColumns.Size.Width, groupColumns.Size.Height + startingColumnSettingHeight);
+        SyncColumnsGroupLayout();
+    }
+
+    private void SyncColumnsGroupLayout()
+    {
+        int groupChromeHeight = Math.Max(0, StartingGroupColumnsSize.Height - StartingTableLayoutSize.Height);
+        int desiredTableHeight = tableColumns.RowStyles
+            .Cast<RowStyle>()
+            .Where(rowStyle => rowStyle.SizeType == SizeType.Absolute)
+            .Sum(rowStyle => (int)Math.Ceiling(rowStyle.Height));
+        desiredTableHeight = Math.Max(StartingTableLayoutSize.Height, desiredTableHeight);
+        int desiredGroupHeight = desiredTableHeight + groupChromeHeight;
+        if (tableColumns.MinimumSize.Height != desiredTableHeight)
+        {
+            tableColumns.MinimumSize = new Size(tableColumns.MinimumSize.Width, desiredTableHeight);
+        }
+
+        if (groupColumns.MinimumSize.Height != desiredGroupHeight)
+        {
+            groupColumns.MinimumSize = new Size(groupColumns.MinimumSize.Width, desiredGroupHeight);
+        }
+
+        if (groupColumns.Height != desiredGroupHeight)
+        {
+            groupColumns.Height = desiredGroupHeight;
+        }
+
+        int row = tableLayoutPanel1.GetRow(groupColumns);
+        if (row >= 0 && row < tableLayoutPanel1.RowStyles.Count)
+        {
+            RowStyle rowStyle = tableLayoutPanel1.RowStyles[row];
+            rowStyle.SizeType = SizeType.Absolute;
+            rowStyle.Height = desiredGroupHeight + groupColumns.Margin.Vertical;
+        }
+
+        int desiredHeight = Math.Max(
+            StartingSize.Height,
+            tableLayoutPanel1.Top + groupColumns.Top + desiredGroupHeight + groupColumns.Margin.Bottom + Padding.Bottom);
+        if (Height != desiredHeight)
+        {
+            Height = desiredHeight;
+        }
+
+        if (MinimumSize.Height != desiredHeight)
+        {
+            MinimumSize = new Size(MinimumSize.Width, desiredHeight);
+        }
+
+        tableLayoutPanel1.PerformLayout();
+        PerformLayout();
+        for (Control parent = Parent; parent != null; parent = parent.Parent)
+        {
+            parent.PerformLayout();
+        }
+
+        RefreshParentScrollExtent();
+    }
+
+    private void RefreshParentScrollExtent()
+    {
+        if (_parentScrollRefreshPending || IsDisposed || !IsHandleCreated)
+        {
+            return;
+        }
+
+        _parentScrollRefreshPending = true;
+        try
+        {
+            BeginInvoke(new Action(() =>
+            {
+                _parentScrollRefreshPending = false;
+                if (IsDisposed)
+                {
+                    return;
+                }
+
+                UpdateParentPanelExtents();
+            }));
+        }
+        catch (InvalidOperationException)
+        {
+            _parentScrollRefreshPending = false;
+        }
+    }
+
+    private void UpdateParentPanelExtents()
+    {
+        for (Control ancestor = Parent; ancestor != null; ancestor = ancestor.Parent)
+        {
+            if (ancestor is not Panel panel)
+            {
+                continue;
+            }
+
+            int contentHeight = MeasureDescendantBottom(panel, panel) + panel.Padding.Bottom + 8;
+            if (!panel.AutoScroll && panel.Dock != DockStyle.Fill && contentHeight > 0)
+            {
+                int panelHeight = Math.Max(panel.MinimumSize.Height, contentHeight);
+                if (panel.Height != panelHeight)
+                {
+                    panel.Height = panelHeight;
+                }
+            }
+
+            if (panel.AutoScroll)
+            {
+                int minHeight = Math.Max(panel.ClientSize.Height, contentHeight);
+                var minSize = new Size(0, minHeight);
+                if (!panel.AutoScrollMinSize.Equals(minSize))
+                {
+                    panel.AutoScrollMinSize = minSize;
+                }
+
+                panel.HorizontalScroll.Enabled = false;
+                panel.HorizontalScroll.Visible = false;
+                panel.HorizontalScroll.Maximum = 0;
+            }
+        }
+    }
+
+    private static int MeasureDescendantBottom(Panel origin, Control current)
+    {
+        int bottom = 0;
+        int scrollY = Math.Abs(origin.AutoScrollPosition.Y);
+        foreach (Control child in current.Controls)
+        {
+            if (!child.Visible)
+            {
+                continue;
+            }
+
+            Point childLocation = origin.PointToClient(child.Parent.PointToScreen(child.Location));
+            bottom = Math.Max(bottom, childLocation.Y + scrollY + child.Height + child.Margin.Bottom);
+            bottom = Math.Max(bottom, MeasureDescendantBottom(origin, child));
+        }
+
+        return bottom;
     }
 
     private void btnAddColumn_Click(object sender, EventArgs e)
@@ -1496,6 +1640,8 @@ public partial class SplitsSettings : UserControl
         {
             column.UpdateEnabledButtons();
         }
+
+        RefreshParentScrollExtent();
     }
 
     private void chkAutomaticAbbreviation_CheckedChanged(object sender, EventArgs e)

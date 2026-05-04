@@ -8,6 +8,7 @@ using System.Text.RegularExpressions;
 using System.Windows.Forms;
 
 using LiveSplit.Model;
+using LiveSplit.Options;
 using LiveSplit.TimeFormatters;
 using LiveSplit.UI;
 
@@ -170,11 +171,11 @@ public class SplitComponent : IComponent
         TimeLabel.SetActualWidth(g);
         DeltaLabel.SetActualWidth(g);
 
-        NameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(NameLabel);
         NameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         foreach (SimpleLabel label in LabelsList)
         {
-            label.ShadowColor = state.LayoutSettings.ShadowsColor;
+            state.LayoutSettings.ApplyTextShadowTo(label);
             label.OutlineColor = state.LayoutSettings.TextOutlineColor;
         }
 
@@ -394,11 +395,11 @@ public class SplitComponent : IComponent
         TimeLabel.SetActualWidth(g);
         DeltaLabel.SetActualWidth(g);
 
-        NameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(NameLabel);
         NameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
-        TimeLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(TimeLabel);
         TimeLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
-        DeltaLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(DeltaLabel);
         DeltaLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
 
         if (Settings.SplitTimesAccuracy != CurrentAccuracy)

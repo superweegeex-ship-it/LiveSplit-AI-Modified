@@ -44,7 +44,7 @@ public class StandardSettingsFactory : ISettingsFactory
             SimpleSumOfBest = false,
             RaceProvider = ComponentManager.RaceProviderFactories.Values.ToList().Select(x => x.CreateSettings()).ToList(),
             RefreshRate = 60,
-            VideoBackgroundPaintFps = 30,
+            VideoBackgroundPaintFps = 60,
             ServerPort = 16834,
             ServerStartup = ServerStartupType.Off,
             ServerState = ServerStateType.Off,

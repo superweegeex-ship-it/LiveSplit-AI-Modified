@@ -6,6 +6,7 @@ using System.Windows.Forms;
 
 using LiveSplit.Model;
 using LiveSplit.Model.Comparisons;
+using LiveSplit.Options;
 
 namespace LiveSplit.UI.Components;
 
@@ -58,7 +59,7 @@ public class LabelsComponent : IComponent
 
         foreach (SimpleLabel label in LabelsList)
         {
-            label.ShadowColor = state.LayoutSettings.ShadowsColor;
+            state.LayoutSettings.ApplyTextShadowTo(label);
             label.OutlineColor = state.LayoutSettings.TextOutlineColor;
             label.Y = 0;
             label.Height = height;

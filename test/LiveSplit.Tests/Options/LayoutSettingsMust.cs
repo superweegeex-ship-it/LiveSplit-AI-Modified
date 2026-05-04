@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 
@@ -84,6 +84,12 @@ public class LayoutSettingsMust
             SeparatorOutlineWaveSpeed = 3,
             SeparatorOutlineInterpolation = CurrentSplitImageInterpolationFilter.Bilinear,
             ShadowsColor = Color.Brown,
+            IconShadowOffset = 6f,
+            IconShadowTransparency = 80f,
+            IconShadowBlur = 35f,
+            TextShadowOffset = 5f,
+            TextShadowTransparency = 90f,
+            TextShadowBlur = 40f,
             ShowBestSegments = true,
             TextFont = new Font("Arial", 8.0F),
             TextOutlineColor = Color.CadetBlue,
@@ -141,6 +147,12 @@ public class LayoutSettingsMust
         Assert.Equal(3, sut.SeparatorOutlineWaveSpeed);
         Assert.Equal(CurrentSplitImageInterpolationFilter.Bilinear, sut.SeparatorOutlineInterpolation);
         Assert.Equal(Color.Brown, sut.ShadowsColor);
+        Assert.Equal(6f, sut.IconShadowOffset);
+        Assert.Equal(80f, sut.IconShadowTransparency);
+        Assert.Equal(35f, sut.IconShadowBlur);
+        Assert.Equal(5f, sut.TextShadowOffset);
+        Assert.Equal(90f, sut.TextShadowTransparency);
+        Assert.Equal(40f, sut.TextShadowBlur);
         Assert.True(sut.ShowBestSegments);
         Assert.NotNull(sut.TextFont);
         Assert.Equal("Arial", sut.TextFont.Name);

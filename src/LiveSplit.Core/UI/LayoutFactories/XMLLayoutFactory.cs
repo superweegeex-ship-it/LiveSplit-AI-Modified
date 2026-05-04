@@ -19,41 +19,45 @@ public class XMLLayoutFactory : ILayoutFactory
         Stream = stream;
     }
 
-    /// <summary>
-    /// Layout XML stores <see cref="BackgroundVideoBackend"/> as <see cref="object.ToString"/> or a legacy numeric value.
-    /// Readback and removed VLC values are migrated to the embedded mpv backend while preserving XML compatibility.
-    /// </summary>
-    private static BackgroundVideoBackend ParseBackgroundVideoBackend(XmlElement element)
+    /// <summary>Reads <c>IconShadowOffset</c> / <c>IconShadowBlur</c> (and text equivalents), or migrates legacy radius/sharpness keys.</summary>
+    private static void ApplyShadowXmlMigration(XmlElement e, LayoutSettings s)
     {
-        if (element == null || string.IsNullOrWhiteSpace(element.InnerText))
+        if (e["IconShadowOffset"] != null)
         {
-            return BackgroundVideoBackend.MpvReadback;
+            s.IconShadowOffset = SettingsHelper.ParseFloat(e["IconShadowOffset"], s.IconShadowOffset);
+        }
+        else if (e["IconShadowRadius"] != null)
+        {
+            float legacy = SettingsHelper.ParseFloat(e["IconShadowRadius"], 4f) * 0.45f;
+            s.IconShadowOffset = Math.Min(10f, Math.Max(-10f, legacy - 2f));
         }
 
-        string t = element.InnerText.Trim();
-        if (int.TryParse(t, out int n))
+        if (e["IconShadowBlur"] != null)
         {
-            return n switch
-            {
-                1 => BackgroundVideoBackend.MpvWindowEmbed,
-                2 => BackgroundVideoBackend.MpvReadbackThreaded,
-                0 => BackgroundVideoBackend.MpvReadback,
-                _ => BackgroundVideoBackend.MpvReadback,
-            };
+            s.IconShadowBlur = SettingsHelper.ParseFloat(e["IconShadowBlur"], s.IconShadowBlur);
+        }
+        else if (e["IconShadowSharpness"] != null)
+        {
+            s.IconShadowBlur = Math.Min(100f, Math.Max(0f, 100f - SettingsHelper.ParseFloat(e["IconShadowSharpness"], 0f)));
         }
 
-        if (string.Equals(t, "VlcWindowEmbed", StringComparison.OrdinalIgnoreCase))
+        if (e["TextShadowOffset"] != null)
         {
-            return BackgroundVideoBackend.MpvWindowEmbed;
+            s.TextShadowOffset = SettingsHelper.ParseFloat(e["TextShadowOffset"], s.TextShadowOffset);
+        }
+        else if (e["TextShadowRadius"] != null)
+        {
+            s.TextShadowOffset = Math.Min(16f, Math.Max(0f, SettingsHelper.ParseFloat(e["TextShadowRadius"], 2f)));
         }
 
-        if (Enum.TryParse(t, ignoreCase: true, out BackgroundVideoBackend parsed)
-            && Enum.IsDefined(typeof(BackgroundVideoBackend), parsed))
+        if (e["TextShadowBlur"] != null)
         {
-            return parsed;
+            s.TextShadowBlur = SettingsHelper.ParseFloat(e["TextShadowBlur"], s.TextShadowBlur);
         }
-
-        return BackgroundVideoBackend.MpvReadback;
+        else if (e["TextShadowSharpness"] != null)
+        {
+            s.TextShadowBlur = Math.Min(100f, Math.Max(0f, 100f - SettingsHelper.ParseFloat(e["TextShadowSharpness"], 100f)));
+        }
     }
 
     private static LayoutSettings ParseSettings(XmlElement element, Version version)
@@ -83,6 +87,12 @@ public class XMLLayoutFactory : ILayoutFactory
             AllowMoving = SettingsHelper.ParseBool(element["AllowMoving"], true),
             TextOutlineColor = SettingsHelper.ParseColor(element["TextOutlineColor"], Color.FromArgb(0, 0, 0, 0)),
             ShadowsColor = SettingsHelper.ParseColor(element["ShadowsColor"], Color.FromArgb(128, 0, 0, 0)),
+            IconShadowOffset = 0f,
+            IconShadowTransparency = SettingsHelper.ParseFloat(element["IconShadowTransparency"], 100f),
+            IconShadowBlur = 28f,
+            TextShadowOffset = 2f,
+            TextShadowTransparency = SettingsHelper.ParseFloat(element["TextShadowTransparency"], 100f),
+            TextShadowBlur = 26f,
             ShowBestSegments = SettingsHelper.ParseBool(element["ShowBestSegments"]),
             AlwaysOnTop = SettingsHelper.ParseBool(element["AlwaysOnTop"]),
             TimerFont = SettingsHelper.GetFontFromElement(element["TimerFont"]),
@@ -95,21 +105,24 @@ public class XMLLayoutFactory : ILayoutFactory
             BackgroundVideoPath = SettingsHelper.ParseString(element["BackgroundVideoPath"]),
             BackgroundVideoSource = SettingsHelper.ParseString(element["BackgroundVideoSource"]),
             BackgroundVideoInputType = SettingsHelper.ParseEnum(element["BackgroundVideoInputType"], BackgroundVideoInputType.File),
-            BackgroundVideoBackend = ParseBackgroundVideoBackend(element["BackgroundVideoBackend"]),
             UseHardwareVideoDecoding = SettingsHelper.ParseBool(element["UseHardwareVideoDecoding"], false),
             LoopVideo = SettingsHelper.ParseBool(element["LoopVideo"], false),
             PlayVideoAudio = SettingsHelper.ParseBool(element["PlayVideoAudio"], false),
             VideoAudioVolume = SettingsHelper.ParseFloat(element["VideoAudioVolume"], 1f),
-            ObsWindowCaptureCompatibilityMode = SettingsHelper.ParseBool(element["ObsWindowCaptureCompatibilityMode"], true),
             VideoPanX = SettingsHelper.ParseFloat(element["VideoPanX"], 0f),
             VideoPanY = SettingsHelper.ParseFloat(element["VideoPanY"], 0f),
             VideoZoomExtra = SettingsHelper.ParseFloat(element["VideoZoomExtra"], 0f),
+            ImagePanX = SettingsHelper.ParseFloat(element["ImagePanX"], 0f),
+            ImagePanY = SettingsHelper.ParseFloat(element["ImagePanY"], 0f),
+            ImageZoomExtra = SettingsHelper.ParseFloat(element["ImageZoomExtra"], 0f),
             VideoStartWithTimer = SettingsHelper.ParseBool(element["VideoStartWithTimer"], false),
             VideoKeepPlaybackAcrossTimerResets = SettingsHelper.ParseBool(element["VideoKeepPlaybackAcrossTimerResets"], true),
             VideoPauseWhenRunCompletes = SettingsHelper.ParseBool(element["VideoPauseWhenRunCompletes"], false),
             VideoVolumeReductionPercentWhenRunCompletes = SettingsHelper.ParseFloat(element["VideoVolumeReductionPercentWhenRunCompletes"], 0f),
             VideoStartOffsetSeconds = SettingsHelper.ParseFloat(element["VideoStartOffsetSeconds"], 0f)
         };
+
+        ApplyShadowXmlMigration(element, settings);
 
         if (element["SeparatorFillMode"] != null)
         {

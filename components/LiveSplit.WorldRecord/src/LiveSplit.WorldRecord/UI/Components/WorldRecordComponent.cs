@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Drawing;
 using System.Drawing.Drawing2D;
+using System.Drawing.Imaging;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -45,6 +46,11 @@ public class WorldRecordComponent : IComponent
     private bool IsLoading { get; set; }
     private SpeedrunComClient Client { get; set; }
 
+    private Image OldGameIcon { get; set; }
+
+    /// <summary>Last layout height from <see cref="Update"/> used for icon sizing when drawing.</summary>
+    private float LastLayoutHeight { get; set; } = 31f;
+
     public string ComponentName => T("World Record");
 
     public float PaddingTop => InternalComponent.PaddingTop;
@@ -54,6 +60,7 @@ public class WorldRecordComponent : IComponent
 
     public float VerticalHeight => InternalComponent.VerticalHeight;
     public float MinimumWidth => InternalComponent.MinimumWidth;
+
     public float HorizontalWidth => InternalComponent.HorizontalWidth;
     public float MinimumHeight => InternalComponent.MinimumHeight;
 
@@ -421,6 +428,13 @@ public class WorldRecordComponent : IComponent
         Cache["FilterSubcategories"] = Settings.FilterSubcategories;
         Cache["TimingMethod"] = Settings.TimingMethod;
         Cache["PrecisionType"] = Settings.WRPrecision;
+        Cache["DisplayGameIcon"] = Settings.DisplayGameIcon;
+        Cache["GameIconSide"] = Settings.GameIconSide;
+        Cache["GameIconPlacing"] = Settings.GameIconPlacing;
+        Cache["TextHorizontalOffset"] = Settings.TextHorizontalOffset;
+        Cache["IconHorizontalOffset"] = Settings.IconHorizontalOffset;
+
+        LastLayoutHeight = Math.Max(18f, height);
 
         if (Cache.HasChanged)
         {
@@ -478,7 +492,143 @@ public class WorldRecordComponent : IComponent
             }
         }
 
+        ApplyGameIconInsets(state, mode);
         InternalComponent.Update(invalidator, state, width, height, mode);
+    }
+
+    private void ApplyGameIconInsets(LiveSplitState state, LayoutMode mode)
+    {
+        InternalComponent.ContentInsetLeft = 0f;
+        InternalComponent.ContentInsetRight = 0f;
+
+        if (!Settings.DisplayGameIcon || state?.Run?.GameIcon == null)
+        {
+            return;
+        }
+
+        Image icon = state.Run.GameIcon;
+        float boxOuter = mode == LayoutMode.Vertical && !Settings.Display2Rows
+            ? Math.Max(24f, Math.Min(LastLayoutHeight - 2f, 40f))
+            : Math.Max(20f, LastLayoutHeight - 4f);
+        boxOuter = Math.Max(boxOuter, 22f);
+        GetIconDrawSize(icon, boxOuter, out float drawW, out _);
+        float gap = Settings.GameIconPlacing == WorldRecordGameIconPlacing.WindowEdge ? 10f : 3f;
+        float inset = drawW + gap;
+
+        // Centered single-row: full width for text so it stays centered in the component; icon is drawn beside measured text when NextToText.
+        bool symmetricBand = Settings.CenteredText && !Settings.Display2Rows && mode == LayoutMode.Vertical;
+        if (symmetricBand)
+        {
+            if (Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText)
+            {
+                InternalComponent.ContentInsetLeft = 0f;
+                InternalComponent.ContentInsetRight = 0f;
+            }
+            else
+            {
+                InternalComponent.ContentInsetLeft = inset;
+                InternalComponent.ContentInsetRight = inset;
+            }
+        }
+        else if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
+        {
+            InternalComponent.ContentInsetLeft = inset;
+        }
+        else
+        {
+            InternalComponent.ContentInsetRight = inset;
+        }
+    }
+
+    private static void GetIconDrawSize(Image icon, float boxOuter, out float drawW, out float drawH)
+    {
+        float inner = Math.Max(4f, boxOuter - 4f);
+        drawW = inner;
+        drawH = inner;
+        if (icon.Width > icon.Height)
+        {
+            float ratio = icon.Height / (float)icon.Width;
+            drawH *= ratio;
+        }
+        else
+        {
+            float ratio = icon.Width / (float)icon.Height;
+            drawW *= ratio;
+        }
+    }
+
+    private void ApplyWorldRecordHorizontalTextShift()
+    {
+        float dx = Settings.TextHorizontalOffset;
+        InternalComponent.NameLabel.X += dx;
+        InternalComponent.ValueLabel.X += dx;
+    }
+
+    private void DrawWorldRecordGameIcon(Graphics g, LiveSplitState state, float width, float height, bool anchorIconToCenteredText)
+    {
+        if (!Settings.DisplayGameIcon || state?.Run?.GameIcon == null)
+        {
+            return;
+        }
+
+        float iconDx = Settings.IconHorizontalOffset;
+        Image icon = state.Run.GameIcon;
+
+        if (OldGameIcon != icon)
+        {
+            ImageAnimator.Animate(icon, (_, _) => { });
+            OldGameIcon = icon;
+        }
+
+        GetIconDrawSize(icon, height, out float drawW, out float drawH);
+        ImageAnimator.UpdateFrames(icon);
+
+        float band = Math.Max(4f, height - 4f);
+        float y = 2f + (band - drawH) / 2f;
+
+        if (anchorIconToCenteredText
+            && Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText)
+        {
+            var name = InternalComponent.NameLabel;
+            float tw = name.MeasureDisplayedTextWidth(g, name.Width);
+            float textLeft = name.X + (name.Width - tw) * 0.5f;
+            float textRight = textLeft + tw;
+            const float emojiGap = 2f;
+
+            if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
+            {
+                float x = textLeft - emojiGap - drawW;
+                if (x < 2f)
+                {
+                    x = 2f;
+                }
+
+                g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+            }
+            else
+            {
+                float x = textRight + emojiGap;
+                if (x + drawW > width - 2f)
+                {
+                    x = width - 2f - drawW;
+                }
+
+                g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+            }
+
+            return;
+        }
+
+        if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
+        {
+            float x = 7f + (band - drawW) / 2f;
+            g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+        }
+        else
+        {
+            float x = width - 7f - drawW - (band - drawW) / 2f;
+            g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+        }
     }
 
     private void DrawBackground(Graphics g, LiveSplitState state, float width, float height)
@@ -539,14 +689,37 @@ public class WorldRecordComponent : IComponent
     {
         DrawBackground(g, state, HorizontalWidth, height);
         PrepareDraw(state, LayoutMode.Horizontal);
-        InternalComponent.DrawHorizontal(g, state, height, clipRegion);
+        InternalComponent.ComputeHorizontalLayout(g, state, height);
+        ApplyWorldRecordHorizontalTextShift();
+        DrawWorldRecordGameIcon(g, state, HorizontalWidth, height, anchorIconToCenteredText: false);
+        InternalComponent.DrawHorizontalLabels(g);
     }
 
     public void DrawVertical(Graphics g, LiveSplitState state, float width, System.Drawing.Region clipRegion)
     {
         DrawBackground(g, state, width, VerticalHeight);
         PrepareDraw(state, LayoutMode.Vertical);
-        InternalComponent.DrawVertical(g, state, width, clipRegion);
+
+        bool anchorToText = Settings.CenteredText
+            && !Settings.Display2Rows
+            && Settings.DisplayGameIcon
+            && state?.Run?.GameIcon != null
+            && Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText;
+
+        InternalComponent.ComputeVerticalLayout(g, state, width);
+        float iconRowHeight = Settings.Display2Rows ? InternalComponent.VerticalHeight : 31f;
+        ApplyWorldRecordHorizontalTextShift();
+
+        if (anchorToText)
+        {
+            DrawWorldRecordGameIcon(g, state, width, iconRowHeight, anchorIconToCenteredText: true);
+        }
+        else
+        {
+            DrawWorldRecordGameIcon(g, state, width, iconRowHeight, anchorIconToCenteredText: false);
+        }
+
+        InternalComponent.DrawVerticalLabels(g);
     }
 
     public Control GetSettingsControl(LayoutMode mode)

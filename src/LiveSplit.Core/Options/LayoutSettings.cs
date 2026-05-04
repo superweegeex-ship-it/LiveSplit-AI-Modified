@@ -60,6 +60,24 @@ public class LayoutSettings : ICloneable
     public Color TextOutlineColor { get; set; }
     public Color ShadowsColor { get; set; }
 
+    /// <summary>How far the icon shadow is shifted on the 30x30 bitmap: positive = south-east (+x,+y), negative = north-west.</summary>
+    public float IconShadowOffset { get; set; }
+
+    /// <summary>0–100: icon shadow opacity (100 = full strength after color curve).</summary>
+    public float IconShadowTransparency { get; set; }
+
+    /// <summary>0–100: icon shadow blur (0 = sharp, 100 = soft); scales Gaussian sigma linearly.</summary>
+    public float IconShadowBlur { get; set; }
+
+    /// <summary>How far text/number shadows sit to the south-east (+x, +y), in pixels (fractional values allowed).</summary>
+    public float TextShadowOffset { get; set; }
+
+    /// <summary>0–100: scales text shadow opacity relative to <see cref="ShadowsColor"/> alpha.</summary>
+    public float TextShadowTransparency { get; set; }
+
+    /// <summary>0–100: text shadow blur (0 = sharp, 100 = soft); scales Gaussian sample spread linearly.</summary>
+    public float TextShadowBlur { get; set; }
+
     public BackgroundType BackgroundType { get; set; }
 
     public Image BackgroundImage { get; set; }
@@ -72,22 +90,25 @@ public class LayoutSettings : ICloneable
     public string BackgroundVideoPath { get; set; }
     public string BackgroundVideoSource { get; set; }
     public BackgroundVideoInputType BackgroundVideoInputType { get; set; }
-    public BackgroundVideoBackend BackgroundVideoBackend { get; set; }
     public bool UseHardwareVideoDecoding { get; set; }
     public bool LoopVideo { get; set; }
     public bool PlayVideoAudio { get; set; }
     public float VideoAudioVolume { get; set; }
-    /// <summary>
-    /// Prefer a single in-window compositor path for better OBS Window Capture reliability.
-    /// This may increase CPU usage versus the layered overlay window path.
-    /// </summary>
-    public bool ObsWindowCaptureCompatibilityMode { get; set; }
     /// <summary>Horizontal pan for video background (-1..1, mpv video-pan-x).</summary>
     public float VideoPanX { get; set; }
     /// <summary>Vertical pan for video background (-1..1, mpv video-pan-y).</summary>
     public float VideoPanY { get; set; }
     /// <summary>Extra zoom for video background (0..1 maps to mpv video-zoom).</summary>
     public float VideoZoomExtra { get; set; }
+
+    /// <summary>Horizontal pan for image / animated GIF backgrounds (-1..1, same scale as video).</summary>
+    public float ImagePanX { get; set; }
+
+    /// <summary>Vertical pan for image / animated GIF backgrounds (-1..1).</summary>
+    public float ImagePanY { get; set; }
+
+    /// <summary>Extra zoom for image / animated backgrounds (0..1, same convention as <see cref="VideoZoomExtra"/>).</summary>
+    public float ImageZoomExtra { get; set; }
     /// <summary>When true, background video stays paused at the start until the run timer starts, then seeks to <see cref="VideoStartOffsetSeconds"/>.</summary>
     public bool VideoStartWithTimer { get; set; }
     /// <summary>
@@ -163,6 +184,12 @@ public class LayoutSettings : ICloneable
         PausedColor = settings.PausedColor;
         TextOutlineColor = settings.TextOutlineColor;
         ShadowsColor = settings.ShadowsColor;
+        IconShadowOffset = settings.IconShadowOffset;
+        IconShadowTransparency = settings.IconShadowTransparency;
+        IconShadowBlur = settings.IconShadowBlur;
+        TextShadowOffset = settings.TextShadowOffset;
+        TextShadowTransparency = settings.TextShadowTransparency;
+        TextShadowBlur = settings.TextShadowBlur;
         TimerFont = settings.TimerFont.Clone() as Font;
         TimesFont = settings.TimesFont.Clone() as Font;
         TextFont = settings.TextFont.Clone() as Font;
@@ -183,15 +210,16 @@ public class LayoutSettings : ICloneable
         BackgroundVideoPath = settings.BackgroundVideoPath;
         BackgroundVideoSource = settings.BackgroundVideoSource;
         BackgroundVideoInputType = settings.BackgroundVideoInputType;
-        BackgroundVideoBackend = settings.BackgroundVideoBackend;
         UseHardwareVideoDecoding = settings.UseHardwareVideoDecoding;
         LoopVideo = settings.LoopVideo;
         PlayVideoAudio = settings.PlayVideoAudio;
         VideoAudioVolume = settings.VideoAudioVolume;
-        ObsWindowCaptureCompatibilityMode = settings.ObsWindowCaptureCompatibilityMode;
         VideoPanX = settings.VideoPanX;
         VideoPanY = settings.VideoPanY;
         VideoZoomExtra = settings.VideoZoomExtra;
+        ImagePanX = settings.ImagePanX;
+        ImagePanY = settings.ImagePanY;
+        ImageZoomExtra = settings.ImageZoomExtra;
         VideoStartWithTimer = settings.VideoStartWithTimer;
         VideoKeepPlaybackAcrossTimerResets = settings.VideoKeepPlaybackAcrossTimerResets;
         VideoPauseWhenRunCompletes = settings.VideoPauseWhenRunCompletes;
@@ -199,5 +227,14 @@ public class LayoutSettings : ICloneable
         VideoStartOffsetSeconds = settings.VideoStartOffsetSeconds;
         AllowResizing = settings.AllowResizing;
         AllowMoving = settings.AllowMoving;
+    }
+
+    /// <summary>Applies layout text/number shadow tint and shape to a <see cref="SimpleLabel"/>.</summary>
+    public void ApplyTextShadowTo(SimpleLabel label)
+    {
+        label.ShadowColor = ShadowsColor;
+        label.TextShadowOffset = TextShadowOffset;
+        label.TextShadowTransparency = TextShadowTransparency;
+        label.TextShadowBlur = TextShadowBlur;
     }
 }

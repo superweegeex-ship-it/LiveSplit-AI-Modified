@@ -148,16 +148,54 @@ public partial class LayoutSettingsDialog : Form
                     // Both: stack font panel above settings
                     var container = new Panel
                     {
-                        Dock = DockStyle.Top,
-                        AutoSize = true,
-                        AutoSizeMode = AutoSizeMode.GrowAndShrink
+                        Dock = DockStyle.Top
                     };
                     var fontPanel = new FontOverridePanel();
                     fontPanel.Bind(lc.FontOverrides, Layout.Settings, usedFonts);
-                    fontPanel.Dock = DockStyle.Top;
+                    fontPanel.Location = Point.Empty;
+                    fontPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                    settingsControl.Dock = DockStyle.None;
+                    settingsControl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+
+                    void UpdateStackedSettingsHeight()
+                    {
+                        int width = Math.Max(0, container.ClientSize.Width);
+                        if (width > 0)
+                        {
+                            if (fontPanel.Width != width)
+                            {
+                                fontPanel.Width = width;
+                            }
+
+                            if (settingsControl.Width != width)
+                            {
+                                settingsControl.Width = width;
+                            }
+                        }
+
+                        if (settingsControl.Top != fontPanel.Bottom)
+                        {
+                            settingsControl.Top = fontPanel.Bottom;
+                        }
+
+                        int height = settingsControl.Bottom + settingsControl.Margin.Bottom;
+                        if (container.Height != height)
+                        {
+                            container.Height = height;
+                        }
+
+                        if (container.MinimumSize.Height != height)
+                        {
+                            container.MinimumSize = new Size(container.MinimumSize.Width, height);
+                        }
+                    }
+
+                    container.Resize += (_, _) => UpdateStackedSettingsHeight();
+                    fontPanel.SizeChanged += (_, _) => UpdateStackedSettingsHeight();
+                    settingsControl.SizeChanged += (_, _) => UpdateStackedSettingsHeight();
                     container.Controls.Add(settingsControl);
-                    settingsControl.Dock = DockStyle.Top;
                     container.Controls.Add(fontPanel);
+                    UpdateStackedSettingsHeight();
                     tabContent = container;
                 }
                 else if (showFontPanel)
@@ -193,35 +231,168 @@ public partial class LayoutSettingsDialog : Form
             AutoScroll = true,
             Padding = new Padding(3, 3, SystemInformation.VerticalScrollBarWidth + 8, 8)
         };
+        var scrollContent = new Panel
+        {
+            Location = new Point(contentPanel.Padding.Left, contentPanel.Padding.Top),
+            Margin = Padding.Empty
+        };
 
-        control.Location = new Point(contentPanel.Padding.Left, contentPanel.Padding.Top);
-        control.Dock = DockStyle.Top;
+        control.Location = Point.Empty;
+        control.Dock = DockStyle.None;
+        control.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
         control.Margin = new Padding(0, 0, 0, 8);
-        if (control is Panel panelControl)
-        {
-            panelControl.AutoSize = true;
-            panelControl.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-        }
 
-        contentPanel.Controls.Add(control);
-        page.Layout += (_, _) =>
+        scrollContent.Controls.Add(control);
+        contentPanel.Controls.Add(scrollContent);
+        bool updatingScrollExtent = false;
+        bool scrollExtentUpdatePending = false;
+        bool suppressScrollExtentUpdate = false;
+        var scrollExtentHooks = new HashSet<Control>();
+        int MeasureNestedHeight(Control current)
         {
-            int availableWidth = Math.Max(0, contentPanel.ClientSize.Width - contentPanel.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth);
-            if (availableWidth > 0)
+            int height = current.Controls.Count == 0 ? current.Height : current.Padding.Vertical;
+            foreach (Control child in current.Controls)
             {
-                control.Width = availableWidth;
+                if (!child.Visible)
+                {
+                    continue;
+                }
+
+                height = Math.Max(height, child.Top + MeasureNestedHeight(child) + child.Margin.Bottom);
             }
 
-            control.PerformLayout();
-            Size preferredSize = control.GetPreferredSize(new Size(availableWidth, 0));
-            int actualHeight = Math.Max(preferredSize.Height, control.Height);
-            int contentHeight = Math.Max(TabContentMinHeight, actualHeight + contentPanel.Padding.Vertical + control.Margin.Bottom);
-            contentPanel.AutoScrollMinSize = new Size(preferredSize.Width + contentPanel.Padding.Horizontal, contentHeight);
+            return Math.Max(height, current.MinimumSize.Height);
+        }
+
+        void ScheduleScrollExtentUpdate()
+        {
+            if (suppressScrollExtentUpdate || updatingScrollExtent || scrollExtentUpdatePending
+                || contentPanel.IsDisposed || scrollContent.IsDisposed)
+            {
+                return;
+            }
+
+            if (!contentPanel.IsHandleCreated)
+            {
+                UpdateScrollExtent();
+                return;
+            }
+
+            scrollExtentUpdatePending = true;
+            contentPanel.BeginInvoke(new Action(() =>
+            {
+                scrollExtentUpdatePending = false;
+                if (!contentPanel.IsDisposed && !scrollContent.IsDisposed)
+                {
+                    UpdateScrollExtent();
+                }
+            }));
+        }
+
+        void HookScrollExtentRefresh(Control current)
+        {
+            if (current == null || !scrollExtentHooks.Add(current))
+            {
+                return;
+            }
+
+            current.SizeChanged += (_, _) => ScheduleScrollExtentUpdate();
+            current.ControlAdded += (_, e) =>
+            {
+                HookScrollExtentRefresh(e.Control);
+                ScheduleScrollExtentUpdate();
+            };
+
+            foreach (Control child in current.Controls)
+            {
+                HookScrollExtentRefresh(child);
+            }
+        }
+
+        void UpdateScrollExtent()
+        {
+            if (updatingScrollExtent)
+            {
+                return;
+            }
+
+            updatingScrollExtent = true;
+            try
+            {
+                contentPanel.SuspendLayout();
+                scrollContent.SuspendLayout();
+                suppressScrollExtentUpdate = true;
+
+                int availableWidth = Math.Max(0, contentPanel.ClientSize.Width - contentPanel.Padding.Horizontal - SystemInformation.VerticalScrollBarWidth);
+                if (scrollContent.Width != availableWidth)
+                {
+                    scrollContent.Width = availableWidth;
+                }
+
+                if (availableWidth > 0 && control.Width != availableWidth)
+                {
+                    control.Width = availableWidth;
+                }
+
+                control.PerformLayout();
+                HookScrollExtentRefresh(control);
+                Size preferredSize = control.GetPreferredSize(new Size(availableWidth, 0));
+                int actualHeight = Math.Max(control.Height, Math.Max(preferredSize.Height, MeasureNestedHeight(control)));
+                if (control.Height != actualHeight)
+                {
+                    control.Height = actualHeight;
+                }
+
+                int scrollContentHeight = actualHeight + control.Margin.Bottom;
+                if (scrollContent.Height != scrollContentHeight)
+                {
+                    scrollContent.Height = scrollContentHeight;
+                }
+
+                int contentHeight = Math.Max(TabContentMinHeight, scrollContent.Bottom + contentPanel.Padding.Bottom);
+                var scrollMinSize = new Size(0, contentHeight);
+                if (!contentPanel.AutoScrollMinSize.Equals(scrollMinSize))
+                {
+                    contentPanel.AutoScrollMinSize = scrollMinSize;
+                }
+
+                contentPanel.HorizontalScroll.Enabled = false;
+                contentPanel.HorizontalScroll.Visible = false;
+                contentPanel.HorizontalScroll.Maximum = 0;
+                if (contentPanel.AutoScrollPosition.X != 0)
+                {
+                    int scrollY = Math.Abs(contentPanel.AutoScrollPosition.Y);
+                    contentPanel.AutoScrollPosition = new Point(0, scrollY);
+                }
+            }
+            finally
+            {
+                suppressScrollExtentUpdate = false;
+                scrollContent.ResumeLayout(false);
+                contentPanel.ResumeLayout(false);
+                updatingScrollExtent = false;
+            }
+        }
+
+        HookScrollExtentRefresh(control);
+        control.HandleCreated += (_, _) => ScheduleScrollExtentUpdate();
+        control.VisibleChanged += (_, _) => ScheduleScrollExtentUpdate();
+        control.Layout += (_, _) => ScheduleScrollExtentUpdate();
+        contentPanel.HandleCreated += (_, _) => ScheduleScrollExtentUpdate();
+        page.Layout += (_, _) => ScheduleScrollExtentUpdate();
+        contentPanel.Layout += (_, _) => ScheduleScrollExtentUpdate();
+        tabControl.SelectedIndexChanged += (_, _) =>
+        {
+            if (tabControl.SelectedTab == page)
+            {
+                ScheduleScrollExtentUpdate();
+            }
         };
         page.Controls.Add(contentPanel);
         page.Name = name;
         tabControl.TabPages.Add(page);
         WinFormsTheme.Apply(page);
+        UpdateScrollExtent();
     }
 
     private void RestoreWindowSize()

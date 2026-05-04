@@ -36,6 +36,7 @@ namespace LiveSplit.UI.Components
             this.groupBox9 = new System.Windows.Forms.GroupBox();
             this.tableLayoutPanel10 = new System.Windows.Forms.TableLayoutPanel();
             this.chkDisplayIcon = new System.Windows.Forms.CheckBox();
+            this.chkIconShadows = new System.Windows.Forms.CheckBox();
             this.label7 = new System.Windows.Forms.Label();
             this.trkIconSize = new System.Windows.Forms.TrackBar();
             this.trkSegmentTimerRatio = new System.Windows.Forms.TrackBar();
@@ -242,6 +243,7 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanel10.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 34.41109F));
             this.tableLayoutPanel10.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 65.58891F));
             this.tableLayoutPanel10.Controls.Add(this.chkDisplayIcon, 0, 0);
+            this.tableLayoutPanel10.Controls.Add(this.chkIconShadows, 1, 0);
             this.tableLayoutPanel10.Controls.Add(this.label7, 0, 1);
             this.tableLayoutPanel10.Controls.Add(this.trkIconSize, 1, 1);
             this.tableLayoutPanel10.Dock = System.Windows.Forms.DockStyle.Fill;
@@ -265,6 +267,17 @@ namespace LiveSplit.UI.Components
             this.chkDisplayIcon.Text = "Display Icon";
             this.chkDisplayIcon.UseVisualStyleBackColor = true;
             this.chkDisplayIcon.CheckedChanged += new System.EventHandler(this.chkDisplayIcon_CheckedChanged);
+            // 
+            // chkIconShadows
+            // 
+            this.chkIconShadows.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.chkIconShadows.AutoSize = true;
+            this.chkIconShadows.Location = new System.Drawing.Point(152, 6);
+            this.chkIconShadows.Name = "chkIconShadows";
+            this.chkIconShadows.Size = new System.Drawing.Size(278, 17);
+            this.chkIconShadows.TabIndex = 2;
+            this.chkIconShadows.Text = "Show Icon Shadows";
+            this.chkIconShadows.UseVisualStyleBackColor = true;
             // 
             // label7
             // 
@@ -1206,6 +1219,7 @@ namespace LiveSplit.UI.Components
         private System.Windows.Forms.GroupBox groupBox9;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel10;
         private System.Windows.Forms.CheckBox chkDisplayIcon;
+        private System.Windows.Forms.CheckBox chkIconShadows;
         private System.Windows.Forms.Label label7;
         private System.Windows.Forms.TrackBar trkIconSize;
         private System.Windows.Forms.GroupBox groupBox10;

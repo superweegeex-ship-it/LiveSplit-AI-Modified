@@ -6,13 +6,6 @@ public enum BackgroundVideoInputType
     VlcMrl,
 }
 
-public enum BackgroundVideoBackend
-{
-    MpvReadback = 0,
-    MpvWindowEmbed = 1,
-    MpvReadbackThreaded = 2,
-}
-
 public enum BackgroundVideoBlurType
 {
     Gaussian = 0,

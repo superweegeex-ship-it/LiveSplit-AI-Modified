@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Drawing2D;
@@ -7,6 +7,7 @@ using System.Windows.Forms;
 
 using LiveSplit.Model;
 using LiveSplit.Model.Input;
+using LiveSplit.Options;
 
 namespace LiveSplit.UI.Components;
 
@@ -100,7 +101,7 @@ public class CounterComponent : IComponent
         CounterNameLabel.Font = CounterFont;
         CounterNameLabel.Brush = new SolidBrush(Settings.OverrideTextColor ? Settings.CounterTextColor : state.LayoutSettings.TextColor);
         CounterNameLabel.HasShadow = state.LayoutSettings.DropShadows;
-        CounterNameLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(CounterNameLabel);
         CounterNameLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         CounterNameLabel.Draw(g);
 
@@ -114,7 +115,7 @@ public class CounterComponent : IComponent
         CounterValueLabel.Font = CounterFont;
         CounterValueLabel.Brush = new SolidBrush(Settings.OverrideTextColor ? Settings.CounterValueColor : state.LayoutSettings.TextColor);
         CounterValueLabel.HasShadow = state.LayoutSettings.DropShadows;
-        CounterValueLabel.ShadowColor = state.LayoutSettings.ShadowsColor;
+        state.LayoutSettings.ApplyTextShadowTo(CounterValueLabel);
         CounterValueLabel.OutlineColor = state.LayoutSettings.TextOutlineColor;
         CounterValueLabel.Draw(g);
     }

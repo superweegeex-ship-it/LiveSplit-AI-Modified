@@ -7,7 +7,7 @@ using LiveSplit.Options;
 namespace LiveSplit.View.BackgroundVideo;
 
 /// <summary>
-/// Plays layout background video (mpv readback or mpv wid embed) with shared timer sync hooks.
+/// Plays layout background video (libmpv OpenGL readback) with shared timer sync hooks.
 /// </summary>
 internal interface IBackgroundVideoPlayer : IDisposable
 {
@@ -16,11 +16,6 @@ internal interface IBackgroundVideoPlayer : IDisposable
     bool IsLoaded { get; }
 
     string LastError { get; }
-
-    /// <summary>
-    /// When true, the timer uses a native host under a transparent overlay panel so splits paint above the video.
-    /// </summary>
-    bool UsesEmbeddedNativeCompositor { get; }
 
     bool UseHardwareDecoding { get; set; }
 
@@ -103,8 +98,4 @@ internal interface IBackgroundVideoPlayer : IDisposable
     void Render(Graphics g, int width, int height);
 
     string GetDebugOverlayText();
-
-    void NotifyCompositorActivated();
-
-    void NotifyCompositorDeactivated();
 }

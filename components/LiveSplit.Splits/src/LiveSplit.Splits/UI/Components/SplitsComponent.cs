@@ -49,7 +49,10 @@ public class SplitsComponent : IComponent
     protected LiveSplitState CurrentState { get; set; }
     protected LiveSplitState OldState { get; set; }
     protected LayoutMode OldLayoutMode { get; set; }
-    protected Color OldShadowsColor { get; set; }
+    private Color _lastIconShadowTint;
+    private float _lastIconShadowOffset = float.NaN;
+    private float _lastIconShadowTransparency = float.NaN;
+    private float _lastIconShadowBlur = float.NaN;
 
     protected IEnumerable<ColumnData> ColumnsList => Settings.ColumnsList.Select(x => x.Data);
     protected List<(int exLength, float exWidth, float width)> ColumnWidths { get; set; }
@@ -201,16 +204,23 @@ public class SplitsComponent : IComponent
         ScrollOffset = Math.Min(Math.Max(ScrollOffset, -skipCount), state.Run.Count - skipCount - visualSplitCount);
         skipCount += ScrollOffset;
 
-        if (OldShadowsColor != state.LayoutSettings.ShadowsColor)
+        if (IconShadowKeyChanged(state.LayoutSettings))
         {
             ShadowImages.Clear();
         }
 
         foreach (ISegment split in state.Run)
         {
-            if (split.Icon != null && (!ShadowImages.ContainsKey(split.Icon) || OldShadowsColor != state.LayoutSettings.ShadowsColor))
+            if (split.Icon != null && (!ShadowImages.ContainsKey(split.Icon) || IconShadowKeyChanged(state.LayoutSettings)))
             {
-                ShadowImages.Add(split.Icon, IconShadow.Generate(split.Icon, state.LayoutSettings.ShadowsColor));
+                ShadowImages.Add(
+                    split.Icon,
+                    IconShadow.Generate(
+                        split.Icon,
+                        state.LayoutSettings.ShadowsColor,
+                        state.LayoutSettings.IconShadowOffset,
+                        state.LayoutSettings.IconShadowTransparency,
+                        state.LayoutSettings.IconShadowBlur));
             }
         }
 
@@ -229,7 +239,7 @@ public class SplitsComponent : IComponent
             }
         }
 
-        OldShadowsColor = state.LayoutSettings.ShadowsColor;
+        CacheIconShadowKey(state.LayoutSettings);
 
         foreach (IComponent component in Components)
         {
@@ -507,6 +517,27 @@ public class SplitsComponent : IComponent
                 ColumnWidths[i] = (ColumnWidths[i].exLength, ColumnWidths[i].exWidth, labelWidth);
             }
         }
+    }
+
+    private bool IconShadowKeyChanged(LiveSplit.Options.LayoutSettings ls)
+    {
+        if (float.IsNaN(_lastIconShadowOffset))
+        {
+            return true;
+        }
+
+        return _lastIconShadowTint != ls.ShadowsColor
+            || _lastIconShadowOffset != ls.IconShadowOffset
+            || _lastIconShadowTransparency != ls.IconShadowTransparency
+            || _lastIconShadowBlur != ls.IconShadowBlur;
+    }
+
+    private void CacheIconShadowKey(LiveSplit.Options.LayoutSettings ls)
+    {
+        _lastIconShadowTint = ls.ShadowsColor;
+        _lastIconShadowOffset = ls.IconShadowOffset;
+        _lastIconShadowTransparency = ls.IconShadowTransparency;
+        _lastIconShadowBlur = ls.IconShadowBlur;
     }
 
     public void Dispose()

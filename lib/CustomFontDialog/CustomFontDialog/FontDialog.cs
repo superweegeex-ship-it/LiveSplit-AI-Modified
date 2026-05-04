@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -12,15 +12,12 @@ public partial class FontDialog : Form
     private const string WindowHeightRegistryValue = "FontDialogHeight";
     private const string WindowXRegistryValue = "FontDialogX";
     private const string WindowYRegistryValue = "FontDialogY";
-    private Label lblLetterSpacing;
-    private TrackBar trkLetterSpacing;
     private bool allowResizablePanels;
     private bool resizablePanelsConfigured;
 
     public FontDialog()
     {
         InitializeComponent();
-        EnsureLetterSpacingControls();
         RestoreWindowSize();
         FormClosing += FontDialog_FormClosing_SaveSize;
 
@@ -51,17 +48,6 @@ public partial class FontDialog : Form
 
     private Font originalFont { get; set; }
     public Font OriginalFont { get => originalFont; set => originalFont = SelectedFont = value; }
-    public int LetterSpacing
-    {
-        get => trkLetterSpacing?.Value ?? 0;
-        set
-        {
-            EnsureLetterSpacingControls();
-            trkLetterSpacing.Value = Math.Max(trkLetterSpacing.Minimum, Math.Min(trkLetterSpacing.Maximum, value));
-            UpdateLetterSpacingLabel();
-            lblSampleText.Invalidate();
-        }
-    }
     public bool AllowResizablePanels
     {
         get => allowResizablePanels;
@@ -88,64 +74,6 @@ public partial class FontDialog : Form
     }
 
     public new event EventHandler FontChanged;
-
-    private void EnsureLetterSpacingControls()
-    {
-        if (trkLetterSpacing != null)
-        {
-            return;
-        }
-
-        groupBox2.MinimumSize = new Size(140, 116);
-        groupBox2.Height = Math.Max(groupBox2.Height, 118);
-        lblSampleText.Text = string.Empty;
-        lblSampleText.Paint -= lblSampleText_Paint;
-        lblSampleText.Paint += lblSampleText_Paint;
-        lblLetterSpacing = new Label
-        {
-            AutoSize = false,
-            TextAlign = ContentAlignment.MiddleLeft,
-            Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
-        };
-        trkLetterSpacing = new TrackBar
-        {
-            AutoSize = false,
-            Minimum = -10,
-            Maximum = 30,
-            TickFrequency = 5,
-            SmallChange = 1,
-            LargeChange = 5,
-            Value = 0,
-            Anchor = AnchorStyles.Left | AnchorStyles.Right | AnchorStyles.Bottom
-        };
-        trkLetterSpacing.ValueChanged += (_, _) =>
-        {
-            UpdateLetterSpacingLabel();
-            lblSampleText.Invalidate();
-            TriggerFontChanged();
-        };
-        groupBox2.Controls.Add(lblLetterSpacing);
-        groupBox2.Controls.Add(trkLetterSpacing);
-        groupBox2.Resize += (_, _) => LayoutLetterSpacingControls();
-        LayoutLetterSpacingControls();
-        UpdateLetterSpacingLabel();
-    }
-
-    private void LayoutLetterSpacingControls()
-    {
-        if (lblLetterSpacing == null || trkLetterSpacing == null)
-        {
-            return;
-        }
-
-        int width = Math.Max(32, groupBox2.ClientSize.Width - 12);
-        lblSampleText.Location = new Point(6, 16);
-        lblSampleText.Size = new Size(width, Math.Max(28, groupBox2.ClientSize.Height - 75));
-        lblLetterSpacing.Location = new Point(6, Math.Max(lblSampleText.Bottom + 4, groupBox2.ClientSize.Height - 50));
-        lblLetterSpacing.Size = new Size(width, 16);
-        trkLetterSpacing.Location = new Point(3, lblLetterSpacing.Bottom + 1);
-        trkLetterSpacing.Size = new Size(Math.Max(32, groupBox2.ClientSize.Width - 6), 29);
-    }
 
     private void ConfigureResizablePanels()
     {
@@ -249,7 +177,8 @@ public partial class FontDialog : Form
         root.Controls.Add(buttonPanel, 0, 1);
         Controls.Add(root);
 
-        LayoutLetterSpacingControls();
+        lblSampleText.Dock = DockStyle.Fill;
+        lblSampleText.TextAlign = ContentAlignment.MiddleCenter;
         ResumeLayout(true);
         Shown += (_, _) =>
         {
@@ -269,43 +198,6 @@ public partial class FontDialog : Form
         if (distance > 0)
         {
             splitContainer.SplitterDistance = distance;
-        }
-    }
-
-    private void UpdateLetterSpacingLabel()
-    {
-        if (lblLetterSpacing != null && trkLetterSpacing != null)
-        {
-            lblLetterSpacing.Text = $"Letter Spacing: {trkLetterSpacing.Value}px";
-        }
-    }
-
-    private void lblSampleText_Paint(object sender, PaintEventArgs e)
-    {
-        Color backColor = lblSampleText.BackColor.A == 0 ? groupBox2.BackColor : lblSampleText.BackColor;
-        e.Graphics.Clear(backColor);
-        using var brush = new SolidBrush(lblSampleText.ForeColor);
-        using var format = (StringFormat)StringFormat.GenericTypographic.Clone();
-        format.FormatFlags |= StringFormatFlags.MeasureTrailingSpaces;
-
-        float spacing = LetterSpacing;
-        float totalWidth = 0f;
-        for (int i = 0; i < SampleText.Length; i++)
-        {
-            totalWidth += e.Graphics.MeasureString(SampleText[i].ToString(), lblSampleText.Font, PointF.Empty, format).Width;
-            if (i < SampleText.Length - 1)
-            {
-                totalWidth += spacing;
-            }
-        }
-
-        float x = Math.Max(0f, (lblSampleText.ClientSize.Width - totalWidth) / 2f);
-        float y = Math.Max(0f, (lblSampleText.ClientSize.Height - lblSampleText.Font.GetHeight(e.Graphics)) / 2f);
-        foreach (char character in SampleText)
-        {
-            string text = character.ToString();
-            e.Graphics.DrawString(text, lblSampleText.Font, brush, x, y, format);
-            x += e.Graphics.MeasureString(text, lblSampleText.Font, PointF.Empty, format).Width + spacing;
         }
     }
 
@@ -452,6 +344,7 @@ public partial class FontDialog : Form
                 }
 
                 lblSampleText.Font = new Font(family, size, style.Value, GraphicsUnit.Pixel);
+                lblSampleText.Text = SampleText;
                 lblSampleText.Invalidate();
 
                 TriggerFontChanged();
@@ -515,7 +408,7 @@ public partial class FontDialog : Form
 
     private void TriggerFontChanged()
     {
-        FontChanged?.Invoke(this, new FontChangedEventArgs() { NewFont = SelectedFont, LetterSpacing = LetterSpacing });
+        FontChanged?.Invoke(this, new FontChangedEventArgs() { NewFont = SelectedFont });
     }
 
     private void RestoreWindowSize()

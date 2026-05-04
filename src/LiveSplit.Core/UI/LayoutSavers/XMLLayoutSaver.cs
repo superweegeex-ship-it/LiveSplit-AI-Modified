@@ -46,6 +46,12 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "PausedColor", settings.PausedColor) ^
         SettingsHelper.CreateSetting(document, element, "TextOutlineColor", settings.TextOutlineColor) ^
         SettingsHelper.CreateSetting(document, element, "ShadowsColor", settings.ShadowsColor) ^
+        SettingsHelper.CreateSetting(document, element, "IconShadowOffset", settings.IconShadowOffset) ^
+        SettingsHelper.CreateSetting(document, element, "IconShadowTransparency", settings.IconShadowTransparency) ^
+        SettingsHelper.CreateSetting(document, element, "IconShadowBlur", settings.IconShadowBlur) ^
+        SettingsHelper.CreateSetting(document, element, "TextShadowOffset", settings.TextShadowOffset) ^
+        SettingsHelper.CreateSetting(document, element, "TextShadowTransparency", settings.TextShadowTransparency) ^
+        SettingsHelper.CreateSetting(document, element, "TextShadowBlur", settings.TextShadowBlur) ^
         SettingsHelper.CreateSetting(document, element, "TimesFont", settings.TimesFont) ^
         SettingsHelper.CreateSetting(document, element, "TimerFont", settings.TimerFont) ^
         SettingsHelper.CreateSetting(document, element, "TextFont", settings.TextFont) ^
@@ -58,15 +64,16 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "BackgroundVideoPath", settings.BackgroundVideoPath) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundVideoSource", settings.BackgroundVideoSource) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundVideoInputType", settings.BackgroundVideoInputType) ^
-        SettingsHelper.CreateSetting(document, element, "BackgroundVideoBackend", settings.BackgroundVideoBackend) ^
         SettingsHelper.CreateSetting(document, element, "UseHardwareVideoDecoding", settings.UseHardwareVideoDecoding) ^
         SettingsHelper.CreateSetting(document, element, "LoopVideo", settings.LoopVideo) ^
         SettingsHelper.CreateSetting(document, element, "PlayVideoAudio", settings.PlayVideoAudio) ^
         SettingsHelper.CreateSetting(document, element, "VideoAudioVolume", settings.VideoAudioVolume) ^
-        SettingsHelper.CreateSetting(document, element, "ObsWindowCaptureCompatibilityMode", settings.ObsWindowCaptureCompatibilityMode) ^
         SettingsHelper.CreateSetting(document, element, "VideoPanX", settings.VideoPanX) ^
         SettingsHelper.CreateSetting(document, element, "VideoPanY", settings.VideoPanY) ^
         SettingsHelper.CreateSetting(document, element, "VideoZoomExtra", settings.VideoZoomExtra) ^
+        SettingsHelper.CreateSetting(document, element, "ImagePanX", settings.ImagePanX) ^
+        SettingsHelper.CreateSetting(document, element, "ImagePanY", settings.ImagePanY) ^
+        SettingsHelper.CreateSetting(document, element, "ImageZoomExtra", settings.ImageZoomExtra) ^
         SettingsHelper.CreateSetting(document, element, "VideoStartWithTimer", settings.VideoStartWithTimer) ^
         SettingsHelper.CreateSetting(document, element, "VideoKeepPlaybackAcrossTimerResets", settings.VideoKeepPlaybackAcrossTimerResets) ^
         SettingsHelper.CreateSetting(document, element, "VideoPauseWhenRunCompletes", settings.VideoPauseWhenRunCompletes) ^

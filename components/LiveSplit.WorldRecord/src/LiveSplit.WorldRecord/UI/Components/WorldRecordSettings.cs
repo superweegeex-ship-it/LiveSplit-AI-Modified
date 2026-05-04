@@ -1,9 +1,10 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
 
 using LiveSplit.Model;
+using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
@@ -35,6 +36,16 @@ public partial class WorldRecordSettings : UserControl
     public string TimingMethod { get; set; }
     public WorldRecordPrecisionType WRPrecision { get; set; }
 
+    public bool DisplayGameIcon { get; set; }
+    public WorldRecordGameIconSide GameIconSide { get; set; }
+    public WorldRecordGameIconPlacing GameIconPlacing { get; set; }
+
+    /// <summary>Pixels added to both name and value label positions (vertical or horizontal layout).</summary>
+    public int TextHorizontalOffset { get; set; }
+
+    /// <summary>Extra horizontal pixels added to the game icon position.</summary>
+    public int IconHorizontalOffset { get; set; }
+
     public LayoutMode Mode { get; set; }
 
     public WorldRecordSettings()
@@ -56,6 +67,11 @@ public partial class WorldRecordSettings : UserControl
         FilterSubcategories = true;
         TimingMethod = "Default for Leaderboard";
         WRPrecision = WorldRecordPrecisionType.FromLeaderboard;
+        DisplayGameIcon = true;
+        GameIconSide = WorldRecordGameIconSide.Left;
+        GameIconPlacing = WorldRecordGameIconPlacing.WindowEdge;
+        TextHorizontalOffset = 0;
+        IconHorizontalOffset = 0;
 
         chkOverrideTextColor.DataBindings.Add("Checked", this, "OverrideTextColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnTextColor.DataBindings.Add("BackColor", this, "TextColor", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -69,6 +85,14 @@ public partial class WorldRecordSettings : UserControl
         chkVariables.DataBindings.Add("Checked", this, "FilterVariables", false, DataSourceUpdateMode.OnPropertyChanged);
         chkSubcategories.DataBindings.Add("Checked", this, "FilterSubcategories", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbTimingMethod.DataBindings.Add("SelectedItem", this, "TimingMethod", false, DataSourceUpdateMode.OnPropertyChanged);
+        trkTextHorizontalOffset.ValueChanged += HorizontalOffsetTrackbars_ValueChanged;
+        trkIconHorizontalOffset.ValueChanged += HorizontalOffsetTrackbars_ValueChanged;
+    }
+
+    private void HorizontalOffsetTrackbars_ValueChanged(object sender, EventArgs e)
+    {
+        TextHorizontalOffset = trkTextHorizontalOffset.Value;
+        IconHorizontalOffset = trkIconHorizontalOffset.Value;
     }
 
     private void chkOverrideTimeColor_CheckedChanged(object sender, EventArgs e)
@@ -103,6 +127,16 @@ public partial class WorldRecordSettings : UserControl
         rdoPrecByLeaderboard.Checked = WRPrecision == WorldRecordPrecisionType.FromLeaderboard;
         rdoPrecSeconds.Checked = WRPrecision ==  WorldRecordPrecisionType.Seconds;
         rdoPrecMillis.Checked = WRPrecision == WorldRecordPrecisionType.Milliseconds;
+
+        chkDisplayGameIcon.Checked = DisplayGameIcon;
+        chkDisplayGameIcon_CheckedChanged(null, null);
+        rdoGameIconLeft.Checked = GameIconSide == WorldRecordGameIconSide.Left;
+        rdoGameIconRight.Checked = GameIconSide == WorldRecordGameIconSide.Right;
+        rdoGameIconPlacingEdge.Checked = GameIconPlacing == WorldRecordGameIconPlacing.WindowEdge;
+        rdoGameIconPlacingNearText.Checked = GameIconPlacing == WorldRecordGameIconPlacing.NextToText;
+
+        trkTextHorizontalOffset.Value = Math.Max(trkTextHorizontalOffset.Minimum, Math.Min(trkTextHorizontalOffset.Maximum, TextHorizontalOffset));
+        trkIconHorizontalOffset.Value = Math.Max(trkIconHorizontalOffset.Minimum, Math.Min(trkIconHorizontalOffset.Maximum, IconHorizontalOffset));
     }
 
     private void cmbGradientType_SelectedIndexChanged(object sender, EventArgs e)
@@ -131,6 +165,11 @@ public partial class WorldRecordSettings : UserControl
         FilterSubcategories = SettingsHelper.ParseBool(element["FilterSubcategories"], true);
         TimingMethod = SettingsHelper.ParseString(element["TimingMethod"], "Default for Leaderboard");
         WRPrecision = SettingsHelper.ParseEnum(element["PrecisionType"], WorldRecordPrecisionType.FromLeaderboard);
+        DisplayGameIcon = SettingsHelper.ParseBool(element["DisplayGameIcon"], true);
+        GameIconSide = SettingsHelper.ParseEnum(element["GameIconSide"], WorldRecordGameIconSide.Left);
+        GameIconPlacing = SettingsHelper.ParseEnum(element["GameIconPlacing"], WorldRecordGameIconPlacing.WindowEdge);
+        TextHorizontalOffset = SettingsHelper.ParseInt(element["TextHorizontalOffset"], 0);
+        IconHorizontalOffset = SettingsHelper.ParseInt(element["IconHorizontalOffset"], 0);
     }
 
     public XmlNode GetSettings(XmlDocument document)
@@ -147,7 +186,7 @@ public partial class WorldRecordSettings : UserControl
 
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
-        return SettingsHelper.CreateSetting(document, parent, "Version", "1.6") ^
+        return SettingsHelper.CreateSetting(document, parent, "Version", "1.8") ^
         SettingsHelper.CreateSetting(document, parent, "TextColor", TextColor) ^
         SettingsHelper.CreateSetting(document, parent, "OverrideTextColor", OverrideTextColor) ^
         SettingsHelper.CreateSetting(document, parent, "TimeColor", TimeColor) ^
@@ -162,7 +201,12 @@ public partial class WorldRecordSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "FilterVariables", FilterVariables) ^
         SettingsHelper.CreateSetting(document, parent, "FilterSubcategories", FilterSubcategories) ^
         SettingsHelper.CreateSetting(document, parent, "TimingMethod", TimingMethod) ^
-        SettingsHelper.CreateSetting(document, parent, "PrecisionType", WRPrecision);
+        SettingsHelper.CreateSetting(document, parent, "PrecisionType", WRPrecision) ^
+        SettingsHelper.CreateSetting(document, parent, "DisplayGameIcon", DisplayGameIcon) ^
+        SettingsHelper.CreateSetting(document, parent, "GameIconSide", GameIconSide) ^
+        SettingsHelper.CreateSetting(document, parent, "GameIconPlacing", GameIconPlacing) ^
+        SettingsHelper.CreateSetting(document, parent, "TextHorizontalOffset", TextHorizontalOffset) ^
+        SettingsHelper.CreateSetting(document, parent, "IconHorizontalOffset", IconHorizontalOffset);
     }
 
     private void ColorButtonClick(object sender, EventArgs e)
@@ -204,6 +248,39 @@ public partial class WorldRecordSettings : UserControl
         else if (rdoPrecMillis.Checked)
         {
             WRPrecision = WorldRecordPrecisionType.Milliseconds;
+        }
+    }
+
+    private void chkDisplayGameIcon_CheckedChanged(object sender, EventArgs e)
+    {
+        DisplayGameIcon = chkDisplayGameIcon.Checked;
+        bool en = DisplayGameIcon;
+        rdoGameIconLeft.Enabled = rdoGameIconRight.Enabled = en;
+        rdoGameIconPlacingEdge.Enabled = rdoGameIconPlacingNearText.Enabled = en;
+        flowLayoutPanelGameIconSide.Enabled = flowLayoutPanelGameIconPlacing.Enabled = en;
+    }
+
+    private void rdoGameIconSide_CheckedChanged(object sender, EventArgs e)
+    {
+        if (rdoGameIconLeft.Checked)
+        {
+            GameIconSide = WorldRecordGameIconSide.Left;
+        }
+        else if (rdoGameIconRight.Checked)
+        {
+            GameIconSide = WorldRecordGameIconSide.Right;
+        }
+    }
+
+    private void rdoGameIconPlacing_CheckedChanged(object sender, EventArgs e)
+    {
+        if (rdoGameIconPlacingEdge.Checked)
+        {
+            GameIconPlacing = WorldRecordGameIconPlacing.WindowEdge;
+        }
+        else if (rdoGameIconPlacingNearText.Checked)
+        {
+            GameIconPlacing = WorldRecordGameIconPlacing.NextToText;
         }
     }
 }

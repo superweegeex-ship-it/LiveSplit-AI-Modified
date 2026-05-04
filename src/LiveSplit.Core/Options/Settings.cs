@@ -32,7 +32,7 @@ public class Settings : ISettings
     public int RefreshRate { get; set; } = 60;
 
     /// <summary>Max rate to sample the mpv video background onto the CPU bitmap (Hz); can be lower than <see cref="RefreshRate"/>.</summary>
-    public int VideoBackgroundPaintFps { get; set; } = 30;
+    public int VideoBackgroundPaintFps { get; set; } = 60;
     public int ServerPort { get; set; }
     public ServerStartupType ServerStartup { get; set; }
     public ServerStateType ServerState { get; set; }

@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -311,6 +311,28 @@ public partial class RunEditorDialog : Form
         btnDeleteAttempt.Click += btnDeleteAttempt_Click;
 
         UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
+        ApplyTheme();
+    }
+
+    private void ApplyTheme()
+    {
+        if (CurrentState?.Settings != null)
+        {
+            WinFormsTheme.CurrentTheme = CurrentState.Settings.AppTheme;
+        }
+
+        WinFormsTheme.Apply(this);
+        WinFormsTheme.Apply(RemoveIconMenu);
+        WinFormsTheme.Apply(ImportComparisonMenu);
+        WinFormsTheme.Apply(OtherMenu);
+
+        foreach (DataGridViewColumn column in runGrid.Columns)
+        {
+            if (column.HeaderCell.ContextMenuStrip != null)
+            {
+                WinFormsTheme.Apply(column.HeaderCell.ContextMenuStrip);
+            }
+        }
     }
 
     private string[] SearchForGameName(string name)
@@ -1889,6 +1911,7 @@ public partial class RunEditorDialog : Form
     {
         if (e.Button == MouseButtons.Right)
         {
+            WinFormsTheme.Apply(RemoveIconMenu);
             RemoveIconMenu.Show(MousePosition);
         }
     }
@@ -2033,6 +2056,7 @@ public partial class RunEditorDialog : Form
         removeItem.Click += (s, e) => RemoveComparison(column);
         rightClickMenu.Items.Add(renameItem);
         rightClickMenu.Items.Add(removeItem);
+        WinFormsTheme.Apply(rightClickMenu);
         column.HeaderCell.ContextMenuStrip = rightClickMenu;
         runGrid.Columns.Add(column);
         RaiseRunEdited();
@@ -2324,6 +2348,7 @@ public partial class RunEditorDialog : Form
 
     private void btnImportComparison_Click(object sender, EventArgs e)
     {
+        WinFormsTheme.Apply(ImportComparisonMenu);
         ImportComparisonMenu.Show(MousePosition);
     }
 
@@ -2350,6 +2375,7 @@ public partial class RunEditorDialog : Form
 
     private void btnOther_Click(object sender, EventArgs e)
     {
+        WinFormsTheme.Apply(OtherMenu);
         OtherMenu.Show(MousePosition);
     }
 
