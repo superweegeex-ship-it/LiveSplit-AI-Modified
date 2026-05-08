@@ -169,7 +169,12 @@ public class SplitComponent : IComponent
                     Image bg = Settings.GetCurrentSplitBackgroundImageForRendering();
                     if (bg != null)
                     {
-                        DrawCurrentSplitBackgroundImageScaled(g, bg, width, height, Settings.CurrentSplitImageInterpolation);
+                        if (ImageAnimator.CanAnimate(bg))
+                        {
+                            ImageAnimator.UpdateFrames(bg);
+                        }
+
+                        DrawCurrentSplitBackgroundImageScaled(g, bg, width, height, Settings);
                     }
                 }
                 else
@@ -352,20 +357,70 @@ public class SplitComponent : IComponent
             _ => InterpolationMode.Default
         };
 
-    private static void DrawCurrentSplitBackgroundImageScaled(Graphics g, Image bg, float width, float height, CurrentSplitImageInterpolationFilter filter)
+    private static void DrawCurrentSplitBackgroundImageScaled(Graphics g, Image bg, float width, float height, SplitsSettings settings)
     {
+        if (width <= 0 || height <= 0 || bg.Width <= 0 || bg.Height <= 0)
+        {
+            return;
+        }
+
         ImageAnimator.UpdateFrames(bg);
-        var dest = new RectangleF(0, 0, width, height);
-        InterpolationMode previous = g.InterpolationMode;
+        RectangleF dest = GetCurrentSplitBackgroundImageDestination(bg, width, height, settings);
+        GraphicsState graphicsState = g.Save();
         try
         {
-            g.InterpolationMode = MapImageInterpolation(filter);
-            g.DrawImage(bg, dest);
+            g.SetClip(new RectangleF(0, 0, width, height), CombineMode.Intersect);
+            g.InterpolationMode = MapImageInterpolation(settings.CurrentSplitImageInterpolation);
+            DrawCurrentSplitBackgroundImage(g, bg, dest, settings.CurrentSplitImageBrightness);
         }
         finally
         {
-            g.InterpolationMode = previous;
+            g.Restore(graphicsState);
         }
+    }
+
+    private static void DrawCurrentSplitBackgroundImage(Graphics g, Image bg, RectangleF dest, decimal brightnessPercent)
+    {
+        float brightness = Math.Max(0f, Math.Min(1f, (float)brightnessPercent / 100f));
+        if (brightness >= 0.999f)
+        {
+            g.DrawImage(bg, dest);
+            return;
+        }
+
+        using var attrs = new ImageAttributes();
+        attrs.SetColorMatrix(new ColorMatrix(
+        [
+            [brightness, 0, 0, 0, 0],
+            [0, brightness, 0, 0, 0],
+            [0, 0, brightness, 0, 0],
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 0, 1]
+        ]));
+        g.DrawImage(
+            bg,
+            Rectangle.Round(dest),
+            0,
+            0,
+            bg.Width,
+            bg.Height,
+            GraphicsUnit.Pixel,
+            attrs);
+    }
+
+    private static RectangleF GetCurrentSplitBackgroundImageDestination(Image bg, float width, float height, SplitsSettings settings)
+    {
+        if (settings.CurrentSplitImageLayout != CurrentSplitImageLayoutMode.FitWidth)
+        {
+            return new RectangleF(0, 0, width, height);
+        }
+
+        float zoom = Math.Max(0.05f, (float)settings.CurrentSplitImageZoom);
+        float destWidth = width * zoom;
+        float destHeight = destWidth * bg.Height / bg.Width;
+        float x = (width - destWidth) * 0.5f + width * (float)settings.CurrentSplitImagePanX / 100f;
+        float y = (height - destHeight) * 0.5f + height * (float)settings.CurrentSplitImagePanY / 100f;
+        return new RectangleF(x, y, destWidth, destHeight);
     }
 
     private static bool OutlineUsesSmoothStroke(CurrentSplitImageInterpolationFilter filter) =>
@@ -782,7 +837,14 @@ public class SplitComponent : IComponent
             return 1;
         }
 
-        return Math.Max(1, bg.GetFrameCount(new FrameDimension(bg.FrameDimensionsList[0])));
+        try
+        {
+            return Math.Max(1, bg.GetFrameCount(new FrameDimension(bg.FrameDimensionsList[0])));
+        }
+        catch
+        {
+            return 1;
+        }
     }
 
     public void Update(IInvalidator invalidator, LiveSplitState state, float width, float height, LayoutMode mode)
@@ -826,6 +888,11 @@ public class SplitComponent : IComponent
             Cache["CurrentSplitOutlineColor"] = Settings.CurrentSplitOutlineColor.ToArgb();
             Cache["CurrentSplitOutlineTransparency"] = Settings.CurrentSplitOutlineTransparency;
             Cache["CurrentSplitImageInterpolation"] = Settings.CurrentSplitImageInterpolation;
+            Cache["CurrentSplitImageLayout"] = Settings.CurrentSplitImageLayout;
+            Cache["CurrentSplitImagePanX"] = Settings.CurrentSplitImagePanX;
+            Cache["CurrentSplitImagePanY"] = Settings.CurrentSplitImagePanY;
+            Cache["CurrentSplitImageZoom"] = Settings.CurrentSplitImageZoom;
+            Cache["CurrentSplitImageBrightness"] = Settings.CurrentSplitImageBrightness;
             Cache["CurrentSplitOutlineInterpolation"] = Settings.CurrentSplitOutlineInterpolation;
             Cache["CurrentSplitOutlineFillMode"] = Settings.CurrentSplitOutlineFillMode;
             Cache["CurrentSplitOutlineGradientEndColor"] = Settings.CurrentSplitOutlineGradientEndColor.ToArgb();

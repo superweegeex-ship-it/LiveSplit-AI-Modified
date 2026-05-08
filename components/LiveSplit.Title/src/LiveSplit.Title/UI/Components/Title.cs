@@ -9,6 +9,7 @@ using System.Xml;
 
 using LiveSplit.Model;
 using LiveSplit.Options;
+using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
@@ -20,6 +21,12 @@ public class Title : IComponent
     public GraphicsCache Cache { get; set; }
     protected int FrameCount { get; set; }
     protected Image OldImage { get; set; }
+    private Image GameIconShadow { get; set; }
+    private Image GameIconShadowSource { get; set; }
+    private Color _lastGameIconShadowTint;
+    private float _lastGameIconShadowOffset = float.NaN;
+    private float _lastGameIconShadowTransparency = float.NaN;
+    private float _lastGameIconShadowBlur = float.NaN;
     protected int FinishedRunsInHistory { get; set; }
 
     public float MinimumWidth => GameNameLabel.X + AttemptCountLabel.ActualWidth + 5;
@@ -242,12 +249,78 @@ public class Title : IComponent
 
         ImageAnimator.UpdateFrames(icon);
 
+        float x = 7 + ((height - 4 - drawWidth) / 2);
+        float y = 2 + ((height - 4 - drawHeight) / 2);
+        DrawGameIconShadow(g, state, icon, x, y, drawWidth, drawHeight);
+
+        g.DrawImage(icon, x, y, drawWidth, drawHeight);
+    }
+
+    private void DrawGameIconShadow(Graphics g, LiveSplitState state, Image icon, float x, float y, float width, float height)
+    {
+        if (!state.LayoutSettings.DropShadows)
+        {
+            return;
+        }
+
+        RefreshGameIconShadow(icon, state.LayoutSettings);
+        if (GameIconShadow == null)
+        {
+            return;
+        }
+
+        const float shadowScale = 5 / 4f;
+        float shadowWidth = width * shadowScale;
+        float shadowHeight = height * shadowScale;
+        ImageAnimator.UpdateFrames(GameIconShadow);
         g.DrawImage(
+            GameIconShadow,
+            x - ((shadowWidth - width) / 2f) - 0.7f,
+            y - ((shadowHeight - height) / 2f) - 0.7f,
+            shadowWidth,
+            shadowHeight);
+    }
+
+    private void RefreshGameIconShadow(Image icon, LiveSplit.Options.LayoutSettings layoutSettings)
+    {
+        if (!GameIconShadowKeyChanged(icon, layoutSettings))
+        {
+            return;
+        }
+
+        ClearGameIconShadow();
+        GameIconShadow = IconShadow.Generate(
             icon,
-            7 + ((height - 4 - drawWidth) / 2),
-            2 + ((height - 4 - drawHeight) / 2),
-            drawWidth,
-            drawHeight);
+            layoutSettings.ShadowsColor,
+            layoutSettings.IconShadowOffset,
+            layoutSettings.IconShadowTransparency,
+            layoutSettings.IconShadowBlur);
+        GameIconShadowSource = icon;
+        _lastGameIconShadowTint = layoutSettings.ShadowsColor;
+        _lastGameIconShadowOffset = layoutSettings.IconShadowOffset;
+        _lastGameIconShadowTransparency = layoutSettings.IconShadowTransparency;
+        _lastGameIconShadowBlur = layoutSettings.IconShadowBlur;
+    }
+
+    private bool GameIconShadowKeyChanged(Image icon, LiveSplit.Options.LayoutSettings layoutSettings)
+    {
+        if (GameIconShadowSource != icon || GameIconShadow == null || float.IsNaN(_lastGameIconShadowOffset))
+        {
+            return true;
+        }
+
+        return _lastGameIconShadowTint != layoutSettings.ShadowsColor
+            || _lastGameIconShadowOffset != layoutSettings.IconShadowOffset
+            || _lastGameIconShadowTransparency != layoutSettings.IconShadowTransparency
+            || _lastGameIconShadowBlur != layoutSettings.IconShadowBlur;
+    }
+
+    private void ClearGameIconShadow()
+    {
+        GameIconShadow?.Dispose();
+        GameIconShadow = null;
+        GameIconShadowSource = null;
+        _lastGameIconShadowOffset = float.NaN;
     }
 
     /*
@@ -439,6 +512,11 @@ public class Title : IComponent
         Cache["CategoryNameLabel"] = CategoryNameLabel.Text;
         Cache["AttemptCountLabel"] = AttemptCountLabel.Text;
         Cache["TextAlignment"] = Settings.TextAlignment;
+        Cache["GameIconDropShadows"] = state.LayoutSettings.DropShadows;
+        Cache["GameIconShadowTint"] = state.LayoutSettings.ShadowsColor;
+        Cache["GameIconShadowOffset"] = state.LayoutSettings.IconShadowOffset;
+        Cache["GameIconShadowTransparency"] = state.LayoutSettings.IconShadowTransparency;
+        Cache["GameIconShadowBlur"] = state.LayoutSettings.IconShadowBlur;
 
         if (invalidator != null && (Cache.HasChanged || FrameCount > 1))
         {
@@ -448,6 +526,7 @@ public class Title : IComponent
 
     public void Dispose()
     {
+        ClearGameIconShadow();
     }
 
     public int GetSettingsHashCode()

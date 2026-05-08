@@ -60,6 +60,39 @@ public class XMLLayoutFactory : ILayoutFactory
         }
     }
 
+    private static float ClampPercent(float value)
+    {
+        return Math.Min(100f, Math.Max(0f, value));
+    }
+
+    private static BackgroundType ParseBackgroundType(XmlElement element, BackgroundType defaultType = BackgroundType.SolidColor)
+    {
+        if (element == null)
+        {
+            return defaultType;
+        }
+
+        return string.Equals(element.InnerText, "AnimatedImage", StringComparison.OrdinalIgnoreCase)
+            ? BackgroundType.Image
+            : SettingsHelper.ParseEnum(element, defaultType);
+    }
+
+    private static float ParseVideoVolumePercentWhenRunCompletes(XmlElement element)
+    {
+        if (element["VideoVolumePercentWhenRunCompletes"] != null)
+        {
+            return ClampPercent(SettingsHelper.ParseFloat(element["VideoVolumePercentWhenRunCompletes"], 100f));
+        }
+
+        if (element["VideoVolumeReductionPercentWhenRunCompletes"] != null)
+        {
+            float oldReductionPercent = ClampPercent(SettingsHelper.ParseFloat(element["VideoVolumeReductionPercentWhenRunCompletes"], 0f));
+            return 100f - oldReductionPercent;
+        }
+
+        return 100f;
+    }
+
     private static LayoutSettings ParseSettings(XmlElement element, Version version)
     {
         var settings = new LayoutSettings
@@ -83,6 +116,7 @@ public class XMLLayoutFactory : ILayoutFactory
             DropShadows = SettingsHelper.ParseBool(element["DropShadows"], true),
             Opacity = SettingsHelper.ParseFloat(element["Opacity"], 1),
             MousePassThroughWhileRunning = SettingsHelper.ParseBool(element["MousePassThroughWhileRunning"]),
+            TransparentBackgroundForCapture = SettingsHelper.ParseBool(element["TransparentBackgroundForCapture"], false),
             AllowResizing = SettingsHelper.ParseBool(element["AllowResizing"], true),
             AllowMoving = SettingsHelper.ParseBool(element["AllowMoving"], true),
             TextOutlineColor = SettingsHelper.ParseColor(element["TextOutlineColor"], Color.FromArgb(0, 0, 0, 0)),
@@ -118,7 +152,7 @@ public class XMLLayoutFactory : ILayoutFactory
             VideoStartWithTimer = SettingsHelper.ParseBool(element["VideoStartWithTimer"], false),
             VideoKeepPlaybackAcrossTimerResets = SettingsHelper.ParseBool(element["VideoKeepPlaybackAcrossTimerResets"], true),
             VideoPauseWhenRunCompletes = SettingsHelper.ParseBool(element["VideoPauseWhenRunCompletes"], false),
-            VideoVolumeReductionPercentWhenRunCompletes = SettingsHelper.ParseFloat(element["VideoVolumeReductionPercentWhenRunCompletes"], 0f),
+            VideoVolumePercentWhenRunCompletes = ParseVideoVolumePercentWhenRunCompletes(element),
             VideoStartOffsetSeconds = SettingsHelper.ParseFloat(element["VideoStartOffsetSeconds"], 0f)
         };
 
@@ -234,7 +268,7 @@ public class XMLLayoutFactory : ILayoutFactory
 
         if (version >= new Version(1, 6, 1))
         {
-            settings.BackgroundType = SettingsHelper.ParseEnum(element["BackgroundType"], BackgroundType.SolidColor);
+            settings.BackgroundType = ParseBackgroundType(element["BackgroundType"]);
         }
         else
         {

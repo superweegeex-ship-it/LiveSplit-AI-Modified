@@ -14,12 +14,51 @@ using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
+public enum CurrentSplitImageLayoutMode
+{
+    Fill,
+    FitWidth
+}
+
 public partial class SplitsSettings : UserControl
 {
     private static readonly EventHandler CurrentSplitBackgroundOnFrameChanged = static (_, _) => { };
+    private static readonly EventHandler HeaderBackgroundOnFrameChanged = static (_, _) => { };
+    private const string CurrentSplitImageLayoutFillText = "Fill";
+    private const string CurrentSplitImageLayoutFitWidthText = "Fit Width";
 
     private bool _inOutlineFillModeComboSync;
     private bool _parentScrollRefreshPending;
+    private Label lblCurrentSplitImageLayout;
+    private ComboBox cmbCurrentSplitImageLayout;
+    private Label lblCurrentSplitImageBrightness;
+    private NumericUpDown nudCurrentSplitImageBrightness;
+    private Label lblCurrentSplitImagePanX;
+    private TrackBar trkCurrentSplitImagePanX;
+    private Label lblCurrentSplitImagePanXValue;
+    private Label lblCurrentSplitImagePanY;
+    private TrackBar trkCurrentSplitImagePanY;
+    private Label lblCurrentSplitImagePanYValue;
+    private Label lblCurrentSplitImageZoom;
+    private TrackBar trkCurrentSplitImageZoom;
+    private Label lblCurrentSplitImageZoomValue;
+    private bool syncingCurrentSplitImagePlacementControls;
+    private Label lblHeaderBackgroundImage;
+    private Button btnHeaderBackgroundBrowse;
+    private Label lblHeaderImageFilter;
+    private ComboBox cmbHeaderImageFilter;
+    private Label lblHeaderImageLayout;
+    private ComboBox cmbHeaderImageLayout;
+    private Label lblHeaderImageBrightness;
+    private NumericUpDown nudHeaderImageBrightness;
+    private Label lblHeaderImagePan;
+    private FlowLayoutPanel flpHeaderImagePan;
+    private Label lblHeaderImagePanX;
+    private NumericUpDown nudHeaderImagePanX;
+    private Label lblHeaderImagePanY;
+    private NumericUpDown nudHeaderImagePanY;
+    private Label lblHeaderImageZoom;
+    private NumericUpDown nudHeaderImageZoom;
 
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
 
@@ -102,6 +141,35 @@ public partial class SplitsSettings : UserControl
         get => HeaderGradient.ToString();
         set => HeaderGradient = (GradientType)Enum.Parse(typeof(GradientType), value);
     }
+
+    public string HeaderBackgroundImagePath { get; set; }
+
+    public CurrentSplitImageInterpolationFilter HeaderImageInterpolation { get; set; }
+
+    public string HeaderImageInterpolationString
+    {
+        get => HeaderImageInterpolation.ToString();
+        set => HeaderImageInterpolation = (CurrentSplitImageInterpolationFilter)Enum.Parse(typeof(CurrentSplitImageInterpolationFilter), value);
+    }
+
+    public CurrentSplitImageLayoutMode HeaderImageLayout { get; set; }
+
+    public string HeaderImageLayoutString
+    {
+        get => HeaderImageLayout == CurrentSplitImageLayoutMode.FitWidth
+            ? CurrentSplitImageLayoutFitWidthText
+            : CurrentSplitImageLayoutFillText;
+        set => HeaderImageLayout = ParseCurrentSplitImageLayout(value);
+    }
+
+    public decimal HeaderImagePanX { get; set; }
+
+    public decimal HeaderImagePanY { get; set; }
+
+    public decimal HeaderImageZoom { get; set; }
+
+    public decimal HeaderImageBrightness { get; set; }
+
     public bool OverrideHeaderColor { get; set; }
     public Color HeaderTextColor { get; set; }
     public bool HeaderText { get; set; }
@@ -140,6 +208,24 @@ public partial class SplitsSettings : UserControl
     }
 
     public string CurrentSplitBackgroundImagePath { get; set; }
+
+    public CurrentSplitImageLayoutMode CurrentSplitImageLayout { get; set; }
+
+    public string CurrentSplitImageLayoutString
+    {
+        get => CurrentSplitImageLayout == CurrentSplitImageLayoutMode.FitWidth
+            ? CurrentSplitImageLayoutFitWidthText
+            : CurrentSplitImageLayoutFillText;
+        set => CurrentSplitImageLayout = ParseCurrentSplitImageLayout(value);
+    }
+
+    public decimal CurrentSplitImagePanX { get; set; }
+
+    public decimal CurrentSplitImagePanY { get; set; }
+
+    public decimal CurrentSplitImageZoom { get; set; }
+
+    public decimal CurrentSplitImageBrightness { get; set; }
 
     public bool CurrentSplitOutlineEnabled { get; set; }
 
@@ -248,6 +334,7 @@ public partial class SplitsSettings : UserControl
         }
 
         ReleaseCurrentSplitBackgroundImageResources();
+        ReleaseHeaderBackgroundImageResources();
         _currentSplitBackgroundImagePathLoaded = path;
 
         if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
@@ -258,12 +345,67 @@ public partial class SplitsSettings : UserControl
         try
         {
             _currentSplitBackgroundImage = Image.FromFile(path);
-            ImageAnimator.Animate(_currentSplitBackgroundImage, CurrentSplitBackgroundOnFrameChanged);
+            if (ImageAnimator.CanAnimate(_currentSplitBackgroundImage))
+            {
+                ImageAnimator.Animate(_currentSplitBackgroundImage, CurrentSplitBackgroundOnFrameChanged);
+            }
             return _currentSplitBackgroundImage;
         }
         catch
         {
             ReleaseCurrentSplitBackgroundImageResources();
+            return null;
+        }
+    }
+
+    private Image _headerBackgroundImage;
+    private string _headerBackgroundImagePathLoaded;
+
+    internal void ReleaseHeaderBackgroundImageResources()
+    {
+        if (_headerBackgroundImage != null)
+        {
+            ImageAnimator.StopAnimate(_headerBackgroundImage, HeaderBackgroundOnFrameChanged);
+            _headerBackgroundImage.Dispose();
+            _headerBackgroundImage = null;
+        }
+
+        _headerBackgroundImagePathLoaded = null;
+    }
+
+    internal Image GetHeaderBackgroundImageForRendering()
+    {
+        if (HeaderGradient != GradientType.Image)
+        {
+            return null;
+        }
+
+        string path = HeaderBackgroundImagePath ?? string.Empty;
+        if (_headerBackgroundImagePathLoaded == path && _headerBackgroundImage != null)
+        {
+            return _headerBackgroundImage;
+        }
+
+        ReleaseHeaderBackgroundImageResources();
+        _headerBackgroundImagePathLoaded = path;
+
+        if (string.IsNullOrWhiteSpace(path) || !File.Exists(path))
+        {
+            return null;
+        }
+
+        try
+        {
+            _headerBackgroundImage = Image.FromFile(path);
+            if (ImageAnimator.CanAnimate(_headerBackgroundImage))
+            {
+                ImageAnimator.Animate(_headerBackgroundImage, HeaderBackgroundOnFrameChanged);
+            }
+            return _headerBackgroundImage;
+        }
+        catch
+        {
+            ReleaseHeaderBackgroundImageResources();
             return null;
         }
     }
@@ -281,6 +423,8 @@ public partial class SplitsSettings : UserControl
     public SplitsSettings(LiveSplitState state)
     {
         InitializeComponent();
+        EnsureCurrentSplitImageLayoutControls();
+        EnsureHeaderImageControls();
         trkCurrentSplitOutlineWaveSpeed.Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
         trkCurrentSplitOutlineWaveSpeed.TickFrequency = 5;
 
@@ -322,6 +466,11 @@ public partial class SplitsSettings : UserControl
         CurrentSplitOutlineColor = Color.White;
         CurrentSplitOutlineTransparency = 0;
         CurrentSplitImageInterpolation = CurrentSplitImageInterpolationFilter.Bilinear;
+        CurrentSplitImageLayout = CurrentSplitImageLayoutMode.Fill;
+        CurrentSplitImagePanX = 0;
+        CurrentSplitImagePanY = 0;
+        CurrentSplitImageZoom = 1;
+        CurrentSplitImageBrightness = 100;
         CurrentSplitOutlineInterpolation = CurrentSplitImageInterpolationFilter.Nearest;
         CurrentSplitOutlineFillMode = CurrentSplitOutlineFillMode.Solid;
         CurrentSplitOutlineGradientEndColor = Color.FromArgb(255, 80, 200);
@@ -334,7 +483,11 @@ public partial class SplitsSettings : UserControl
         nudCurrentSplitOutlineThickness.Maximum = 20m;
         cmbSplitGradient.SelectedIndexChanged += cmbSplitGradient_SelectedIndexChanged;
         btnCurrentSplitBackgroundBrowse.Click += btnCurrentSplitBackgroundBrowse_Click;
-        Disposed += (_, _) => ReleaseCurrentSplitBackgroundImageResources();
+        Disposed += (_, _) =>
+        {
+            ReleaseCurrentSplitBackgroundImageResources();
+            ReleaseHeaderBackgroundImageResources();
+        };
         BackgroundColor = Color.Transparent;
         BackgroundColor2 = Color.FromArgb(1, 255, 255, 255);
         BackgroundGradient = ExtendedGradientType.Alternating;
@@ -364,6 +517,13 @@ public partial class SplitsSettings : UserControl
         HeaderTopColor = Color.FromArgb(0x2B, 0xFF, 0xFF, 0xFF);
         HeaderBottomColor = Color.FromArgb(0xD8, 0x00, 0x00, 0x00);
         HeaderGradient = GradientType.Vertical;
+        HeaderBackgroundImagePath = string.Empty;
+        HeaderImageInterpolation = CurrentSplitImageInterpolationFilter.Bilinear;
+        HeaderImageLayout = CurrentSplitImageLayoutMode.Fill;
+        HeaderImagePanX = 0;
+        HeaderImagePanY = 0;
+        HeaderImageZoom = 1;
+        HeaderImageBrightness = 100;
         OverrideHeaderColor = false;
         HeaderTextColor = Color.FromArgb(255, 255, 255);
         HeaderText = true;
@@ -413,7 +573,16 @@ public partial class SplitsSettings : UserControl
         chkShowSectionIcon.DataBindings.Add("Checked", this, "ShowSectionIcon", false, DataSourceUpdateMode.OnPropertyChanged);
         btnHeaderTopColor.DataBindings.Add("BackColor", this, "HeaderTopColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnHeaderBottomColor.DataBindings.Add("BackColor", this, "HeaderBottomColor", false, DataSourceUpdateMode.OnPropertyChanged);
+        EnsureHeaderGradientComboItems();
         cmbHeaderGradient.DataBindings.Add("SelectedItem", this, "HeaderGradientString", false, DataSourceUpdateMode.OnPropertyChanged);
+        EnsureHeaderImageInterpolationComboItems();
+        EnsureCurrentSplitImageLayoutComboItems(cmbHeaderImageLayout);
+        cmbHeaderImageFilter.DataBindings.Add("SelectedItem", this, "HeaderImageInterpolationString", false, DataSourceUpdateMode.OnPropertyChanged);
+        cmbHeaderImageLayout.DataBindings.Add("SelectedItem", this, "HeaderImageLayoutString", false, DataSourceUpdateMode.OnPropertyChanged);
+        nudHeaderImageBrightness.DataBindings.Add("Value", this, "HeaderImageBrightness", true, DataSourceUpdateMode.OnPropertyChanged);
+        nudHeaderImagePanX.DataBindings.Add("Value", this, "HeaderImagePanX", true, DataSourceUpdateMode.OnPropertyChanged);
+        nudHeaderImagePanY.DataBindings.Add("Value", this, "HeaderImagePanY", true, DataSourceUpdateMode.OnPropertyChanged);
+        nudHeaderImageZoom.DataBindings.Add("Value", this, "HeaderImageZoom", true, DataSourceUpdateMode.OnPropertyChanged);
         chkOverrideHeaderColor.DataBindings.Add("Checked", this, "OverrideHeaderColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnHeaderTextColor.DataBindings.Add("BackColor", this, "HeaderTextColor", false, DataSourceUpdateMode.OnPropertyChanged);
         chkHeaderText.DataBindings.Add("Checked", this, "HeaderText", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -437,6 +606,11 @@ public partial class SplitsSettings : UserControl
         nudCurrentSplitOutlineTransparency.DataBindings.Add("Value", this, "CurrentSplitOutlineTransparency", true, DataSourceUpdateMode.OnPropertyChanged);
         btnCurrentSplitOutlineColor.DataBindings.Add("BackColor", this, "CurrentSplitOutlineColor", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbCurrentSplitImageFilter.DataBindings.Add("SelectedItem", this, "CurrentSplitImageInterpolationString", false, DataSourceUpdateMode.OnPropertyChanged);
+        EnsureCurrentSplitImageLayoutComboItems(cmbCurrentSplitImageLayout);
+        cmbCurrentSplitImageLayout.DataBindings.Add("SelectedItem", this, "CurrentSplitImageLayoutString", false, DataSourceUpdateMode.OnPropertyChanged);
+        nudCurrentSplitImageBrightness.DataBindings.Add("Value", this, "CurrentSplitImageBrightness", true, DataSourceUpdateMode.OnPropertyChanged);
+        SyncCurrentSplitImagePlacementControlsFromProperties();
+        cmbCurrentSplitImageFilter.SelectedIndexChanged += CurrentSplitImageFilter_SelectedIndexChanged;
         EnsureCurrentSplitOutlineInterpolationComboItems();
         cmbCurrentSplitOutlineInterpolation.DataBindings.Add("SelectedItem", this, "CurrentSplitOutlineInterpolationString", false, DataSourceUpdateMode.OnPropertyChanged);
         EnsureCurrentSplitOutlineFillModeComboItems();
@@ -473,6 +647,11 @@ public partial class SplitsSettings : UserControl
         EnsureGradientComboHasAllModes(cmbSplitGradient);
     }
 
+    private void EnsureHeaderGradientComboItems()
+    {
+        EnsureGradientComboHasAllModes(cmbHeaderGradient);
+    }
+
     private void EnsureCurrentSplitImageInterpolationComboItems()
     {
         foreach (string name in Enum.GetNames(typeof(CurrentSplitImageInterpolationFilter)))
@@ -480,6 +659,323 @@ public partial class SplitsSettings : UserControl
             if (!cmbCurrentSplitImageFilter.Items.Contains(name))
             {
                 cmbCurrentSplitImageFilter.Items.Add(name);
+            }
+        }
+    }
+
+    private void EnsureHeaderImageInterpolationComboItems()
+    {
+        foreach (string name in Enum.GetNames(typeof(CurrentSplitImageInterpolationFilter)))
+        {
+            if (!cmbHeaderImageFilter.Items.Contains(name))
+            {
+                cmbHeaderImageFilter.Items.Add(name);
+            }
+        }
+    }
+
+    private static CurrentSplitImageLayoutMode ParseCurrentSplitImageLayout(string value)
+    {
+        string normalized = (value ?? string.Empty).Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
+        return string.Equals(normalized, nameof(CurrentSplitImageLayoutMode.FitWidth), StringComparison.OrdinalIgnoreCase)
+            ? CurrentSplitImageLayoutMode.FitWidth
+            : CurrentSplitImageLayoutMode.Fill;
+    }
+
+    private static decimal ClampDecimal(decimal value, decimal minimum, decimal maximum)
+    {
+        if (value < minimum)
+        {
+            return minimum;
+        }
+
+        return value > maximum ? maximum : value;
+    }
+
+    private void EnsureCurrentSplitImageLayoutControls()
+    {
+        if (cmbCurrentSplitImageLayout != null)
+        {
+            return;
+        }
+
+        tableLayoutPanelCurrentSplitOutline.SuspendLayout();
+        try
+        {
+            lblCurrentSplitImageLayout = CreateImageOptionLabel("Image layout:");
+            cmbCurrentSplitImageLayout = CreateImageOptionCombo();
+            cmbCurrentSplitImageLayout.SelectedIndexChanged += (_, _) =>
+            {
+                CurrentSplitImageLayoutMode previous = CurrentSplitImageLayout;
+                CurrentSplitImageLayoutString = cmbCurrentSplitImageLayout.SelectedItem?.ToString();
+                UpdateCurrentSplitImageAndOutlineOptionStates();
+                if (CurrentSplitImageLayout != previous)
+                {
+                    SplitLayoutChanged?.Invoke(this, null);
+                }
+            };
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImageLayout, cmbCurrentSplitImageLayout);
+
+            lblCurrentSplitImageBrightness = CreateImageOptionLabel("Image brightness (%):");
+            nudCurrentSplitImageBrightness = CreateImageOptionNumeric(0m, 100m, 100m, 0);
+            nudCurrentSplitImageBrightness.ValueChanged += CurrentSplitImageAppearance_ValueChanged;
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImageBrightness, nudCurrentSplitImageBrightness);
+
+            lblCurrentSplitImagePanX = CreateImageOptionLabel("Pan X:");
+            trkCurrentSplitImagePanX = CreateImageOptionSlider(-5000, 5000, 0);
+            trkCurrentSplitImagePanX.ValueChanged += CurrentSplitImagePlacement_ValueChanged;
+            lblCurrentSplitImagePanXValue = CreateImageOptionValueLabel();
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImagePanX, CreateImageSliderPanel(trkCurrentSplitImagePanX, lblCurrentSplitImagePanXValue));
+
+            lblCurrentSplitImagePanY = CreateImageOptionLabel("Pan Y:");
+            trkCurrentSplitImagePanY = CreateImageOptionSlider(-5000, 5000, 0);
+            trkCurrentSplitImagePanY.ValueChanged += CurrentSplitImagePlacement_ValueChanged;
+            lblCurrentSplitImagePanYValue = CreateImageOptionValueLabel();
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImagePanY, CreateImageSliderPanel(trkCurrentSplitImagePanY, lblCurrentSplitImagePanYValue));
+
+            lblCurrentSplitImageZoom = CreateImageOptionLabel("Image zoom:");
+            trkCurrentSplitImageZoom = CreateImageOptionSlider(5, 1000, 100);
+            trkCurrentSplitImageZoom.ValueChanged += CurrentSplitImagePlacement_ValueChanged;
+            lblCurrentSplitImageZoomValue = CreateImageOptionValueLabel();
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImageZoom, CreateImageSliderPanel(trkCurrentSplitImageZoom, lblCurrentSplitImageZoomValue));
+        }
+        finally
+        {
+            tableLayoutPanelCurrentSplitOutline.ResumeLayout(false);
+            tableLayoutPanelCurrentSplitOutline.PerformLayout();
+        }
+
+        GrowCurrentSplitImageSettingsArea(145);
+    }
+
+    private void EnsureHeaderImageControls()
+    {
+        if (cmbHeaderImageLayout != null)
+        {
+            return;
+        }
+
+        tableLayoutPanel13.SuspendLayout();
+        try
+        {
+            lblHeaderBackgroundImage = CreateImageOptionLabel("Image:");
+            btnHeaderBackgroundBrowse = new Button
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                Text = "Browse...",
+                UseVisualStyleBackColor = true
+            };
+            btnHeaderBackgroundBrowse.Click += btnHeaderBackgroundBrowse_Click;
+            AddHeaderImageOptionRow(lblHeaderBackgroundImage, btnHeaderBackgroundBrowse);
+
+            lblHeaderImageFilter = CreateImageOptionLabel("Image filter:");
+            cmbHeaderImageFilter = CreateImageOptionCombo();
+            cmbHeaderImageFilter.SelectedIndexChanged += HeaderImageFilter_SelectedIndexChanged;
+            AddHeaderImageOptionRow(lblHeaderImageFilter, cmbHeaderImageFilter);
+
+            lblHeaderImageLayout = CreateImageOptionLabel("Image layout:");
+            cmbHeaderImageLayout = CreateImageOptionCombo();
+            cmbHeaderImageLayout.SelectedIndexChanged += (_, _) =>
+            {
+                CurrentSplitImageLayoutMode previous = HeaderImageLayout;
+                HeaderImageLayoutString = cmbHeaderImageLayout.SelectedItem?.ToString();
+                UpdateHeaderImageOptionStates();
+                if (HeaderImageLayout != previous)
+                {
+                    SplitLayoutChanged?.Invoke(this, null);
+                }
+            };
+            AddHeaderImageOptionRow(lblHeaderImageLayout, cmbHeaderImageLayout);
+
+            lblHeaderImageBrightness = CreateImageOptionLabel("Image brightness (%):");
+            nudHeaderImageBrightness = CreateImageOptionNumeric(0m, 100m, 100m, 0);
+            nudHeaderImageBrightness.ValueChanged += HeaderImageAppearance_ValueChanged;
+            AddHeaderImageOptionRow(lblHeaderImageBrightness, nudHeaderImageBrightness);
+
+            lblHeaderImagePan = CreateImageOptionLabel("Image pan (%):");
+            flpHeaderImagePan = CreateImagePanPanel();
+            lblHeaderImagePanX = CreateInlineImageOptionLabel("X");
+            nudHeaderImagePanX = CreateImageOptionNumeric(-500m, 500m, 0m, 1);
+            nudHeaderImagePanX.ValueChanged += HeaderImagePlacement_ValueChanged;
+            lblHeaderImagePanY = CreateInlineImageOptionLabel("Y");
+            nudHeaderImagePanY = CreateImageOptionNumeric(-500m, 500m, 0m, 1);
+            nudHeaderImagePanY.ValueChanged += HeaderImagePlacement_ValueChanged;
+            flpHeaderImagePan.Controls.Add(lblHeaderImagePanX);
+            flpHeaderImagePan.Controls.Add(nudHeaderImagePanX);
+            flpHeaderImagePan.Controls.Add(lblHeaderImagePanY);
+            flpHeaderImagePan.Controls.Add(nudHeaderImagePanY);
+            AddHeaderImageOptionRow(lblHeaderImagePan, flpHeaderImagePan);
+
+            lblHeaderImageZoom = CreateImageOptionLabel("Image zoom:");
+            nudHeaderImageZoom = CreateImageOptionNumeric(0.05m, 10m, 1m, 2);
+            nudHeaderImageZoom.Increment = 0.05m;
+            nudHeaderImageZoom.ValueChanged += HeaderImagePlacement_ValueChanged;
+            AddHeaderImageOptionRow(lblHeaderImageZoom, nudHeaderImageZoom);
+        }
+        finally
+        {
+            tableLayoutPanel13.ResumeLayout(false);
+            tableLayoutPanel13.PerformLayout();
+        }
+
+        GrowHeaderImageSettingsArea(174);
+    }
+
+    private static ComboBox CreateImageOptionCombo() =>
+        new()
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            DropDownStyle = ComboBoxStyle.DropDownList,
+            FormattingEnabled = true
+        };
+
+    private static Label CreateImageOptionLabel(string text) =>
+        new()
+        {
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Text = text
+        };
+
+    private static Label CreateInlineImageOptionLabel(string text) =>
+        new()
+        {
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Margin = new Padding(0, 5, 3, 0),
+            Text = text
+        };
+
+    private static FlowLayoutPanel CreateImagePanPanel() =>
+        new()
+        {
+            Anchor = AnchorStyles.Left,
+            AutoSize = false,
+            FlowDirection = FlowDirection.LeftToRight,
+            Height = 24,
+            Margin = new Padding(3, 2, 3, 2),
+            Width = 200,
+            WrapContents = false
+        };
+
+    private static Label CreateImageOptionValueLabel() =>
+        new()
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = false,
+            Margin = new Padding(3, 5, 0, 0),
+            TextAlign = ContentAlignment.MiddleRight,
+            Width = 58
+        };
+
+    private static TrackBar CreateImageOptionSlider(int minimum, int maximum, int value) =>
+        new()
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = false,
+            Height = 24,
+            LargeChange = 100,
+            Margin = new Padding(0, 2, 3, 0),
+            Minimum = minimum,
+            Maximum = maximum,
+            SmallChange = 10,
+            TickStyle = TickStyle.None,
+            Value = value
+        };
+
+    private static TableLayoutPanel CreateImageSliderPanel(TrackBar slider, Label valueLabel)
+    {
+        var panel = new TableLayoutPanel
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            ColumnCount = 2,
+            Height = 26,
+            Margin = new Padding(3, 1, 3, 1),
+            RowCount = 1
+        };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 62F));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
+        panel.Controls.Add(slider, 0, 0);
+        panel.Controls.Add(valueLabel, 1, 0);
+        return panel;
+    }
+
+    private static NumericUpDown CreateImageOptionNumeric(decimal minimum, decimal maximum, decimal value, int decimalPlaces) =>
+        new()
+        {
+            DecimalPlaces = decimalPlaces,
+            Increment = 1m,
+            Minimum = minimum,
+            Maximum = maximum,
+            Value = value,
+            Width = 70
+        };
+
+    private void AddCurrentSplitImageOptionRow(Control label, Control control)
+    {
+        int row = tableLayoutPanelCurrentSplitOutline.RowCount;
+        tableLayoutPanelCurrentSplitOutline.RowCount = row + 1;
+        tableLayoutPanelCurrentSplitOutline.RowStyles.Add(new RowStyle(SizeType.Absolute, 29F));
+        tableLayoutPanelCurrentSplitOutline.Controls.Add(label, 0, row);
+        tableLayoutPanelCurrentSplitOutline.Controls.Add(control, 1, row);
+        tableLayoutPanelCurrentSplitOutline.SetColumnSpan(control, 5);
+    }
+
+    private void AddHeaderImageOptionRow(Control label, Control control)
+    {
+        int row = tableLayoutPanel13.RowCount;
+        tableLayoutPanel13.RowCount = row + 1;
+        tableLayoutPanel13.RowStyles.Add(new RowStyle(SizeType.Absolute, 29F));
+        tableLayoutPanel13.Controls.Add(label, 0, row);
+        tableLayoutPanel13.Controls.Add(control, 1, row);
+        tableLayoutPanel13.SetColumnSpan(control, 3);
+    }
+
+    private void GrowCurrentSplitImageSettingsArea(int addedHeight)
+    {
+        tableLayoutPanelCurrentSplitOutline.Height += addedHeight;
+        grpCurrentSplitOutline.Height += addedHeight;
+        tableLayoutPanel1.Height += addedHeight;
+        Height += addedHeight;
+
+        int row = tableLayoutPanel1.GetRow(grpCurrentSplitOutline);
+        if (row >= 0 && row < tableLayoutPanel1.RowStyles.Count)
+        {
+            RowStyle style = tableLayoutPanel1.RowStyles[row];
+            if (style.SizeType == SizeType.Absolute)
+            {
+                style.Height += addedHeight;
+            }
+        }
+    }
+
+    private void GrowHeaderImageSettingsArea(int addedHeight)
+    {
+        tableLayoutPanel13.Height += addedHeight;
+        groupBox12.Height += addedHeight;
+        groupBox11.Height += addedHeight;
+        tableLayoutPanel1.Height += addedHeight;
+        Height += addedHeight;
+
+        int row = tableLayoutPanel1.GetRow(groupBox11);
+        if (row >= 0 && row < tableLayoutPanel1.RowStyles.Count)
+        {
+            RowStyle style = tableLayoutPanel1.RowStyles[row];
+            if (style.SizeType == SizeType.Absolute)
+            {
+                style.Height += addedHeight;
+            }
+        }
+    }
+
+    private static void EnsureCurrentSplitImageLayoutComboItems(ComboBox combo)
+    {
+        foreach (string name in new[] { CurrentSplitImageLayoutFillText, CurrentSplitImageLayoutFitWidthText })
+        {
+            if (!combo.Items.Contains(name))
+            {
+                combo.Items.Add(name);
             }
         }
     }
@@ -509,6 +1005,156 @@ public partial class SplitsSettings : UserControl
     private void cmbCurrentSplitOutlineInterpolation_SelectedIndexChanged(object sender, EventArgs e)
     {
         SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void CurrentSplitImageFilter_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string selected = cmbCurrentSplitImageFilter.SelectedItem?.ToString();
+        if (!string.IsNullOrWhiteSpace(selected))
+        {
+            CurrentSplitImageInterpolationFilter previous = CurrentSplitImageInterpolation;
+            CurrentSplitImageInterpolationString = selected;
+            if (CurrentSplitImageInterpolation != previous)
+            {
+                SplitLayoutChanged?.Invoke(this, null);
+            }
+        }
+    }
+
+    private void CurrentSplitImagePlacement_ValueChanged(object sender, EventArgs e)
+    {
+        if (syncingCurrentSplitImagePlacementControls)
+        {
+            return;
+        }
+
+        CurrentSplitImagePanX = SliderValueToPanPercent(trkCurrentSplitImagePanX.Value);
+        CurrentSplitImagePanY = SliderValueToPanPercent(trkCurrentSplitImagePanY.Value);
+        CurrentSplitImageZoom = SliderValueToZoom(trkCurrentSplitImageZoom.Value);
+        UpdateCurrentSplitImagePlacementValueLabels();
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void CurrentSplitImageAppearance_ValueChanged(object sender, EventArgs e)
+    {
+        CurrentSplitImageBrightness = nudCurrentSplitImageBrightness.Value;
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void HeaderImageFilter_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string selected = cmbHeaderImageFilter.SelectedItem?.ToString();
+        if (!string.IsNullOrWhiteSpace(selected))
+        {
+            CurrentSplitImageInterpolationFilter previous = HeaderImageInterpolation;
+            HeaderImageInterpolationString = selected;
+            if (HeaderImageInterpolation != previous)
+            {
+                SplitLayoutChanged?.Invoke(this, null);
+            }
+        }
+    }
+
+    private void HeaderImagePlacement_ValueChanged(object sender, EventArgs e)
+    {
+        HeaderImagePanX = nudHeaderImagePanX.Value;
+        HeaderImagePanY = nudHeaderImagePanY.Value;
+        HeaderImageZoom = nudHeaderImageZoom.Value;
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void HeaderImageAppearance_ValueChanged(object sender, EventArgs e)
+    {
+        HeaderImageBrightness = nudHeaderImageBrightness.Value;
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void SyncImageControlValues()
+    {
+        if (trkCurrentSplitImagePanX != null && !trkCurrentSplitImagePanX.IsDisposed)
+        {
+            CurrentSplitImagePanX = SliderValueToPanPercent(trkCurrentSplitImagePanX.Value);
+            CurrentSplitImagePanY = SliderValueToPanPercent(trkCurrentSplitImagePanY.Value);
+            CurrentSplitImageZoom = SliderValueToZoom(trkCurrentSplitImageZoom.Value);
+            CurrentSplitImageBrightness = nudCurrentSplitImageBrightness.Value;
+            UpdateCurrentSplitImagePlacementValueLabels();
+        }
+
+        if (nudHeaderImagePanX != null && !nudHeaderImagePanX.IsDisposed)
+        {
+            HeaderImagePanX = nudHeaderImagePanX.Value;
+            HeaderImagePanY = nudHeaderImagePanY.Value;
+            HeaderImageZoom = nudHeaderImageZoom.Value;
+            HeaderImageBrightness = nudHeaderImageBrightness.Value;
+        }
+    }
+
+    private void SyncCurrentSplitImagePlacementControlsFromProperties()
+    {
+        if (trkCurrentSplitImagePanX == null || trkCurrentSplitImagePanX.IsDisposed)
+        {
+            return;
+        }
+
+        syncingCurrentSplitImagePlacementControls = true;
+        try
+        {
+            trkCurrentSplitImagePanX.Value = PanPercentToSliderValue(CurrentSplitImagePanX);
+            trkCurrentSplitImagePanY.Value = PanPercentToSliderValue(CurrentSplitImagePanY);
+            trkCurrentSplitImageZoom.Value = ZoomToSliderValue(CurrentSplitImageZoom);
+        }
+        finally
+        {
+            syncingCurrentSplitImagePlacementControls = false;
+        }
+
+        UpdateCurrentSplitImagePlacementValueLabels();
+    }
+
+    private void UpdateCurrentSplitImagePlacementValueLabels()
+    {
+        if (lblCurrentSplitImagePanXValue == null)
+        {
+            return;
+        }
+
+        lblCurrentSplitImagePanXValue.Text = FormatSignedPercent(SliderValueToPanPercent(trkCurrentSplitImagePanX.Value));
+        lblCurrentSplitImagePanYValue.Text = FormatSignedPercent(SliderValueToPanPercent(trkCurrentSplitImagePanY.Value));
+        lblCurrentSplitImageZoomValue.Text = FormatZoom(SliderValueToZoom(trkCurrentSplitImageZoom.Value));
+    }
+
+    private static int PanPercentToSliderValue(decimal value)
+    {
+        decimal clamped = ClampDecimal(value, -500m, 500m);
+        return Math.Min(5000, Math.Max(-5000, (int)Math.Round(clamped * 10m)));
+    }
+
+    private static decimal SliderValueToPanPercent(int value)
+    {
+        return value / 10m;
+    }
+
+    private static int ZoomToSliderValue(decimal value)
+    {
+        decimal clamped = ClampDecimal(value, 0.05m, 10m);
+        return Math.Min(1000, Math.Max(5, (int)Math.Round(clamped * 100m)));
+    }
+
+    private static decimal SliderValueToZoom(int value)
+    {
+        return value / 100m;
+    }
+
+    private static string FormatSignedPercent(decimal value)
+    {
+        return value > 0m
+            ? $"+{value:0.#}%"
+            : $"{value:0.#}%";
+    }
+
+    private static string FormatZoom(decimal value)
+    {
+        return $"{value:0.##}x";
     }
 
     private void cmbCurrentSplitOutlineColorMode_SelectedIndexChanged(object sender, EventArgs e)
@@ -686,6 +1332,7 @@ public partial class SplitsSettings : UserControl
         }
 
         UpdateCurrentSplitImageAndOutlineOptionStates();
+        SplitLayoutChanged?.Invoke(this, null);
     }
 
     private void btnCurrentSplitBackgroundBrowse_Click(object sender, EventArgs e)
@@ -878,6 +1525,30 @@ public partial class SplitsSettings : UserControl
     {
         bool imageMode = CurrentSplitGradient == GradientType.Image;
         lblCurrentSplitImageFilter.Enabled = cmbCurrentSplitImageFilter.Enabled = imageMode;
+        lblCurrentSplitImageLayout.Enabled = cmbCurrentSplitImageLayout.Enabled = imageMode;
+        lblCurrentSplitImageBrightness.Enabled = nudCurrentSplitImageBrightness.Enabled = imageMode;
+
+        bool fitWidthMode = imageMode && CurrentSplitImageLayout == CurrentSplitImageLayoutMode.FitWidth;
+        lblCurrentSplitImagePanX.Enabled = trkCurrentSplitImagePanX.Enabled = lblCurrentSplitImagePanXValue.Enabled = fitWidthMode;
+        lblCurrentSplitImagePanY.Enabled = trkCurrentSplitImagePanY.Enabled = lblCurrentSplitImagePanYValue.Enabled = fitWidthMode;
+        lblCurrentSplitImageZoom.Enabled = trkCurrentSplitImageZoom.Enabled = lblCurrentSplitImageZoomValue.Enabled = fitWidthMode;
+    }
+
+    private void UpdateHeaderImageOptionStates()
+    {
+        bool imageMode = HeaderGradient == GradientType.Image;
+        lblHeaderBackgroundImage.Enabled = btnHeaderBackgroundBrowse.Enabled = imageMode;
+        lblHeaderImageFilter.Enabled = cmbHeaderImageFilter.Enabled = imageMode;
+        lblHeaderImageLayout.Enabled = cmbHeaderImageLayout.Enabled = imageMode;
+        lblHeaderImageBrightness.Enabled = nudHeaderImageBrightness.Enabled = imageMode;
+
+        bool fitWidthMode = imageMode && HeaderImageLayout == CurrentSplitImageLayoutMode.FitWidth;
+        lblHeaderImagePan.Enabled = flpHeaderImagePan.Enabled = fitWidthMode;
+        lblHeaderImageZoom.Enabled = nudHeaderImageZoom.Enabled = fitWidthMode;
+        foreach (Control control in flpHeaderImagePan.Controls)
+        {
+            control.Enabled = fitWidthMode;
+        }
     }
 
     private void SplitsSettings_Load(object sender, EventArgs e)
@@ -889,6 +1560,30 @@ public partial class SplitsSettings : UserControl
             cmbCurrentSplitImageFilter.SelectedItem = CurrentSplitImageInterpolationString;
         }
 
+        EnsureCurrentSplitImageLayoutComboItems(cmbCurrentSplitImageLayout);
+        if (cmbCurrentSplitImageLayout.Items.Contains(CurrentSplitImageLayoutString))
+        {
+            cmbCurrentSplitImageLayout.SelectedItem = CurrentSplitImageLayoutString;
+        }
+
+        EnsureHeaderGradientComboItems();
+        if (cmbHeaderGradient.Items.Contains(HeaderGradientString))
+        {
+            cmbHeaderGradient.SelectedItem = HeaderGradientString;
+        }
+
+        EnsureHeaderImageInterpolationComboItems();
+        if (cmbHeaderImageFilter.Items.Contains(HeaderImageInterpolationString))
+        {
+            cmbHeaderImageFilter.SelectedItem = HeaderImageInterpolationString;
+        }
+
+        EnsureCurrentSplitImageLayoutComboItems(cmbHeaderImageLayout);
+        if (cmbHeaderImageLayout.Items.Contains(HeaderImageLayoutString))
+        {
+            cmbHeaderImageLayout.SelectedItem = HeaderImageLayoutString;
+        }
+
         EnsureCurrentSplitOutlineInterpolationComboItems();
         if (cmbCurrentSplitOutlineInterpolation.Items.Contains(CurrentSplitOutlineInterpolationString))
         {
@@ -898,6 +1593,7 @@ public partial class SplitsSettings : UserControl
         SyncCurrentSplitOutlineFillModeCombo();
 
         SyncOutlineWaveAxisRadios();
+        SyncCurrentSplitImagePlacementControlsFromProperties();
 
         ResetColumns();
 
@@ -944,8 +1640,10 @@ public partial class SplitsSettings : UserControl
         rdoSectionTimerAccuracyMilliseconds.Checked = SectionTimerAccuracy == TimeAccuracy.Milliseconds;
 
         cmbSplitGradient_SelectedIndexChanged(null, null);
+        cmbHeaderGradient_SelectedIndexChanged(null, null);
         UpdateCurrentSplitOutlineControlsEnabled();
         UpdateCurrentSplitImageAndOutlineOptionStates();
+        UpdateHeaderImageOptionStates();
 
         if (Mode == LayoutMode.Horizontal)
         {
@@ -1011,6 +1709,29 @@ public partial class SplitsSettings : UserControl
         HeaderTopColor = SettingsHelper.ParseColor(element["HeaderTopColor"], Color.FromArgb(0x2B, 0xFF, 0xFF, 0xFF));
         HeaderBottomColor = SettingsHelper.ParseColor(element["HeaderBottomColor"], Color.FromArgb(0xD8, 0x00, 0x00, 0x00));
         HeaderGradientString = SettingsHelper.ParseString(element["HeaderGradient"], GradientType.Vertical.ToString());
+        HeaderBackgroundImagePath = SettingsHelper.ParseString(element["HeaderBackgroundImagePath"], string.Empty);
+        HeaderImageInterpolationString = SettingsHelper.ParseString(
+            element["HeaderImageInterpolation"],
+            CurrentSplitImageInterpolationFilter.Bilinear.ToString());
+        HeaderImageLayoutString = SettingsHelper.ParseString(
+            element["HeaderImageLayout"],
+            CurrentSplitImageLayoutMode.Fill.ToString());
+        HeaderImagePanX = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["HeaderImagePanX"], 0f),
+            -500m,
+            500m);
+        HeaderImagePanY = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["HeaderImagePanY"], 0f),
+            -500m,
+            500m);
+        HeaderImageZoom = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["HeaderImageZoom"], 1f),
+            0.05m,
+            10m);
+        HeaderImageBrightness = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["HeaderImageBrightness"], 100f),
+            0m,
+            100m);
         OverrideHeaderColor = SettingsHelper.ParseBool(element["OverrideHeaderColor"], false);
         HeaderTextColor = SettingsHelper.ParseColor(element["HeaderTextColor"], Color.FromArgb(255, 255, 255));
         HeaderText = SettingsHelper.ParseBool(element["HeaderText"], true);
@@ -1045,6 +1766,26 @@ public partial class SplitsSettings : UserControl
                 ? CurrentSplitImageInterpolationFilter.Bilinear
                 : CurrentSplitImageInterpolationFilter.Nearest;
         }
+
+        CurrentSplitImageLayoutString = SettingsHelper.ParseString(
+            element["CurrentSplitImageLayout"],
+            CurrentSplitImageLayoutMode.Fill.ToString());
+        CurrentSplitImagePanX = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImagePanX"], 0f),
+            -500m,
+            500m);
+        CurrentSplitImagePanY = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImagePanY"], 0f),
+            -500m,
+            500m);
+        CurrentSplitImageZoom = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImageZoom"], 1f),
+            0.05m,
+            10m);
+        CurrentSplitImageBrightness = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImageBrightness"], 100f),
+            0m,
+            100m);
 
         if (element["CurrentSplitOutlineInterpolation"] != null)
         {
@@ -1141,6 +1882,7 @@ public partial class SplitsSettings : UserControl
         }
 
         SyncCurrentSplitOutlineFillModeCombo();
+        SyncCurrentSplitImagePlacementControlsFromProperties();
         ResetColumns();
     }
 
@@ -1158,8 +1900,10 @@ public partial class SplitsSettings : UserControl
 
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
+        SyncImageControlValues();
+
         int hashCode = SettingsHelper.CreateSetting(document, parent, "Version", "1.8") ^
-        SettingsHelper.CreateSetting(document, parent, "AutomaticAbbreviation", AutomaticAbbreviation) ^
+            SettingsHelper.CreateSetting(document, parent, "AutomaticAbbreviation", AutomaticAbbreviation) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitTopColor", CurrentSplitTopColor) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitBottomColor", CurrentSplitBottomColor) ^
         SettingsHelper.CreateSetting(document, parent, "VisualSplitCount", VisualSplitCount) ^
@@ -1189,6 +1933,11 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineColor", CurrentSplitOutlineColor) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineTransparency", (float)CurrentSplitOutlineTransparency) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageInterpolation", CurrentSplitImageInterpolation) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageLayout", CurrentSplitImageLayout) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImagePanX", (float)CurrentSplitImagePanX) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImagePanY", (float)CurrentSplitImagePanY) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageZoom", (float)CurrentSplitImageZoom) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageBrightness", (float)CurrentSplitImageBrightness) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineInterpolation", CurrentSplitOutlineInterpolation) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineFillMode", CurrentSplitOutlineFillMode) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineGradientEndColor", CurrentSplitOutlineGradientEndColor) ^
@@ -1218,6 +1967,13 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "ShowIconSectionSplit", ShowIconSectionSplit) ^
         SettingsHelper.CreateSetting(document, parent, "ShowSectionIcon", ShowSectionIcon) ^
         SettingsHelper.CreateSetting(document, parent, "HeaderGradient", HeaderGradient) ^
+        SettingsHelper.CreateSetting(document, parent, "HeaderBackgroundImagePath", HeaderBackgroundImagePath ?? string.Empty) ^
+        SettingsHelper.CreateSetting(document, parent, "HeaderImageInterpolation", HeaderImageInterpolation) ^
+        SettingsHelper.CreateSetting(document, parent, "HeaderImageLayout", HeaderImageLayout) ^
+        SettingsHelper.CreateSetting(document, parent, "HeaderImagePanX", (float)HeaderImagePanX) ^
+        SettingsHelper.CreateSetting(document, parent, "HeaderImagePanY", (float)HeaderImagePanY) ^
+        SettingsHelper.CreateSetting(document, parent, "HeaderImageZoom", (float)HeaderImageZoom) ^
+        SettingsHelper.CreateSetting(document, parent, "HeaderImageBrightness", (float)HeaderImageBrightness) ^
         SettingsHelper.CreateSetting(document, parent, "OverrideHeaderColor", OverrideHeaderColor) ^
         SettingsHelper.CreateSetting(document, parent, "HeaderText", HeaderText) ^
         SettingsHelper.CreateSetting(document, parent, "HeaderTimes", HeaderTimes) ^
@@ -1301,10 +2057,48 @@ public partial class SplitsSettings : UserControl
 
     private void cmbHeaderGradient_SelectedIndexChanged(object sender, EventArgs e)
     {
-        btnHeaderTopColor.Visible = cmbHeaderGradient.SelectedItem.ToString() != "Plain";
+        string selected = cmbHeaderGradient.SelectedItem?.ToString() ?? GradientType.Vertical.ToString();
+        bool isImage = selected == nameof(GradientType.Image);
+        bool showTwoColors = selected != nameof(GradientType.Plain) && !isImage;
+
+        btnHeaderTopColor.Visible = showTwoColors;
+        btnHeaderBottomColor.Visible = showTwoColors;
         btnHeaderBottomColor.DataBindings.Clear();
-        btnHeaderBottomColor.DataBindings.Add("BackColor", this, btnHeaderTopColor.Visible ? "HeaderBottomColor" : "HeaderTopColor", false, DataSourceUpdateMode.OnPropertyChanged);
-        HeaderGradientString = cmbHeaderGradient.SelectedItem.ToString();
+        if (showTwoColors)
+        {
+            btnHeaderBottomColor.DataBindings.Add("BackColor", this, "HeaderBottomColor", false, DataSourceUpdateMode.OnPropertyChanged);
+        }
+        else if (!isImage)
+        {
+            btnHeaderBottomColor.DataBindings.Add("BackColor", this, "HeaderTopColor", false, DataSourceUpdateMode.OnPropertyChanged);
+        }
+
+        HeaderGradientString = selected;
+
+        if (HeaderGradient != GradientType.Image)
+        {
+            ReleaseHeaderBackgroundImageResources();
+        }
+
+        UpdateHeaderImageOptionStates();
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void btnHeaderBackgroundBrowse_Click(object sender, EventArgs e)
+    {
+        using var dlg = new OpenFileDialog
+        {
+            Filter = "Image files|*.png;*.jpg;*.jpeg;*.bmp;*.gif;*.tif;*.tiff|GIF|*.gif|All files|*.*",
+        };
+
+        if (dlg.ShowDialog(this) != DialogResult.OK)
+        {
+            return;
+        }
+
+        ReleaseHeaderBackgroundImageResources();
+        HeaderBackgroundImagePath = dlg.FileName;
+        SplitLayoutChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private void chkOverrideHeaderColor_CheckedChanged(object sender, EventArgs e)
@@ -1424,6 +2218,7 @@ public partial class SplitsSettings : UserControl
     {
         tableColumns.Controls.Add(column, 0, index);
         tableColumns.SetColumnSpan(column, 4);
+        WinFormsTheme.Apply(column);
         column.ColumnRemoved -= column_ColumnRemoved;
         column.MovedUp -= column_MovedUp;
         column.MovedDown -= column_MovedDown;

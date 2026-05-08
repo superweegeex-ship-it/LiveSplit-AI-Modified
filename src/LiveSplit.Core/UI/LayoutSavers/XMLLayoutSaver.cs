@@ -77,7 +77,7 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "VideoStartWithTimer", settings.VideoStartWithTimer) ^
         SettingsHelper.CreateSetting(document, element, "VideoKeepPlaybackAcrossTimerResets", settings.VideoKeepPlaybackAcrossTimerResets) ^
         SettingsHelper.CreateSetting(document, element, "VideoPauseWhenRunCompletes", settings.VideoPauseWhenRunCompletes) ^
-        SettingsHelper.CreateSetting(document, element, "VideoVolumeReductionPercentWhenRunCompletes", settings.VideoVolumeReductionPercentWhenRunCompletes) ^
+        SettingsHelper.CreateSetting(document, element, "VideoVolumePercentWhenRunCompletes", settings.VideoVolumePercentWhenRunCompletes) ^
         SettingsHelper.CreateSetting(document, element, "VideoStartOffsetSeconds", settings.VideoStartOffsetSeconds) ^
         SettingsHelper.CreateSetting(document, element, "ImageOpacity", settings.ImageOpacity) ^
         SettingsHelper.CreateSetting(document, element, "VideoOpacity", settings.VideoOpacity) ^
@@ -87,6 +87,7 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "VideoBlurDegrees", settings.VideoBlurDegrees) ^
         SettingsHelper.CreateSetting(document, element, "Opacity", settings.Opacity) ^
         SettingsHelper.CreateSetting(document, element, "MousePassThroughWhileRunning", settings.MousePassThroughWhileRunning) ^
+        SettingsHelper.CreateSetting(document, element, "TransparentBackgroundForCapture", settings.TransparentBackgroundForCapture) ^
         SettingsHelper.CreateSetting(document, element, "AllowResizing", settings.AllowResizing) ^
         SettingsHelper.CreateSetting(document, element, "AllowMoving", settings.AllowMoving);
     }

@@ -47,6 +47,12 @@ public class WorldRecordComponent : IComponent
     private SpeedrunComClient Client { get; set; }
 
     private Image OldGameIcon { get; set; }
+    private Image GameIconShadow { get; set; }
+    private Image GameIconShadowSource { get; set; }
+    private Color _lastGameIconShadowTint;
+    private float _lastGameIconShadowOffset = float.NaN;
+    private float _lastGameIconShadowTransparency = float.NaN;
+    private float _lastGameIconShadowBlur = float.NaN;
 
     /// <summary>Last layout height from <see cref="Update"/> used for icon sizing when drawing.</summary>
     private float LastLayoutHeight { get; set; } = 31f;
@@ -90,6 +96,7 @@ public class WorldRecordComponent : IComponent
 
     public void Dispose()
     {
+        ClearGameIconShadow();
     }
 
     /// <summary>
@@ -433,6 +440,11 @@ public class WorldRecordComponent : IComponent
         Cache["GameIconPlacing"] = Settings.GameIconPlacing;
         Cache["TextHorizontalOffset"] = Settings.TextHorizontalOffset;
         Cache["IconHorizontalOffset"] = Settings.IconHorizontalOffset;
+        Cache["GameIconDropShadows"] = state.LayoutSettings.DropShadows;
+        Cache["GameIconShadowTint"] = state.LayoutSettings.ShadowsColor;
+        Cache["GameIconShadowOffset"] = Settings.GameIconShadowOffset;
+        Cache["GameIconShadowTransparency"] = state.LayoutSettings.IconShadowTransparency;
+        Cache["GameIconShadowBlur"] = state.LayoutSettings.IconShadowBlur;
 
         LastLayoutHeight = Math.Max(18f, height);
 
@@ -603,7 +615,7 @@ public class WorldRecordComponent : IComponent
                     x = 2f;
                 }
 
-                g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+                DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
             }
             else
             {
@@ -613,7 +625,7 @@ public class WorldRecordComponent : IComponent
                     x = width - 2f - drawW;
                 }
 
-                g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+                DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
             }
 
             return;
@@ -622,13 +634,78 @@ public class WorldRecordComponent : IComponent
         if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
         {
             float x = 7f + (band - drawW) / 2f;
-            g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+            DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
         }
         else
         {
             float x = width - 7f - drawW - (band - drawW) / 2f;
-            g.DrawImage(icon, x + iconDx, y, drawW, drawH);
+            DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
         }
+    }
+
+    private void DrawGameIconWithShadow(Graphics g, LiveSplitState state, Image icon, float x, float y, float width, float height)
+    {
+        if (state.LayoutSettings.DropShadows)
+        {
+            RefreshGameIconShadow(icon, state.LayoutSettings);
+            if (GameIconShadow != null)
+            {
+                const float shadowScale = 5 / 4f;
+                float shadowWidth = width * shadowScale;
+                float shadowHeight = height * shadowScale;
+                ImageAnimator.UpdateFrames(GameIconShadow);
+                g.DrawImage(
+                    GameIconShadow,
+                    x - ((shadowWidth - width) / 2f) - 0.7f,
+                    y - ((shadowHeight - height) / 2f) - 0.7f,
+                    shadowWidth,
+                    shadowHeight);
+            }
+        }
+
+        g.DrawImage(icon, x, y, width, height);
+    }
+
+    private void RefreshGameIconShadow(Image icon, LiveSplit.Options.LayoutSettings layoutSettings)
+    {
+        if (!GameIconShadowKeyChanged(icon, layoutSettings))
+        {
+            return;
+        }
+
+        ClearGameIconShadow();
+        GameIconShadow = IconShadow.Generate(
+            icon,
+            layoutSettings.ShadowsColor,
+            Settings.GameIconShadowOffset,
+            layoutSettings.IconShadowTransparency,
+            layoutSettings.IconShadowBlur);
+        GameIconShadowSource = icon;
+        _lastGameIconShadowTint = layoutSettings.ShadowsColor;
+        _lastGameIconShadowOffset = Settings.GameIconShadowOffset;
+        _lastGameIconShadowTransparency = layoutSettings.IconShadowTransparency;
+        _lastGameIconShadowBlur = layoutSettings.IconShadowBlur;
+    }
+
+    private bool GameIconShadowKeyChanged(Image icon, LiveSplit.Options.LayoutSettings layoutSettings)
+    {
+        if (GameIconShadowSource != icon || GameIconShadow == null || float.IsNaN(_lastGameIconShadowOffset))
+        {
+            return true;
+        }
+
+        return _lastGameIconShadowTint != layoutSettings.ShadowsColor
+            || _lastGameIconShadowOffset != Settings.GameIconShadowOffset
+            || _lastGameIconShadowTransparency != layoutSettings.IconShadowTransparency
+            || _lastGameIconShadowBlur != layoutSettings.IconShadowBlur;
+    }
+
+    private void ClearGameIconShadow()
+    {
+        GameIconShadow?.Dispose();
+        GameIconShadow = null;
+        GameIconShadowSource = null;
+        _lastGameIconShadowOffset = float.NaN;
     }
 
     private void DrawBackground(Graphics g, LiveSplitState state, float width, float height)

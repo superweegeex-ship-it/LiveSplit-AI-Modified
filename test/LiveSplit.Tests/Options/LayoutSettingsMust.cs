@@ -59,7 +59,9 @@ public class LayoutSettingsMust
             VideoBlurScale = 0.35F,
             VideoBlurType = BackgroundVideoBlurType.Directional,
             VideoBlurDegrees = 45F,
+            VideoVolumePercentWhenRunCompletes = 33F,
             MousePassThroughWhileRunning = true,
+            TransparentBackgroundForCapture = true,
             AllowResizing = true,
             AllowMoving = true,
             NotRunningColor = Color.Gray,
@@ -122,7 +124,9 @@ public class LayoutSettingsMust
         Assert.Equal(0.35F, sut.VideoBlurScale);
         Assert.Equal(BackgroundVideoBlurType.Directional, sut.VideoBlurType);
         Assert.Equal(45F, sut.VideoBlurDegrees);
+        Assert.Equal(33F, sut.VideoVolumePercentWhenRunCompletes);
         Assert.True(sut.MousePassThroughWhileRunning);
+        Assert.True(sut.TransparentBackgroundForCapture);
         Assert.True(sut.AllowResizing);
         Assert.True(sut.AllowMoving);
         Assert.Equal(Color.Gray, sut.NotRunningColor);

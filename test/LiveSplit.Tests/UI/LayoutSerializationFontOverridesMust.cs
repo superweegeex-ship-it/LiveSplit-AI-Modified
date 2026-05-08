@@ -10,6 +10,7 @@ using LiveSplit.Options;
 using LiveSplit.Options.SettingsFactories;
 using LiveSplit.UI;
 using LiveSplit.UI.Components;
+using LiveSplit.UI.LayoutFactories;
 using LiveSplit.UI.LayoutSavers;
 
 using Xunit;
@@ -107,6 +108,84 @@ public class LayoutSerializationFontOverridesMust
 
         XmlNode fontOverridesNode = doc.SelectSingleNode("//FontOverrides");
         Assert.Null(fontOverridesNode);
+    }
+
+    [Fact]
+    public void RoundtripFinalSplitVideoVolumeAsTargetPercent()
+    {
+        var layout = new Layout { Settings = new StandardLayoutSettingsFactory().Create() };
+        layout.Settings.VideoVolumePercentWhenRunCompletes = 35f;
+
+        using var stream = new MemoryStream();
+        new XMLLayoutSaver().Save(layout, stream);
+        stream.Position = 0;
+
+        var loaded = new XMLLayoutFactory(stream).Create(null);
+
+        Assert.Equal(35f, loaded.Settings.VideoVolumePercentWhenRunCompletes);
+    }
+
+    [Fact]
+    public void RoundtripTransparentBackgroundForCapture()
+    {
+        var layout = new Layout { Settings = new StandardLayoutSettingsFactory().Create() };
+        layout.Settings.TransparentBackgroundForCapture = true;
+
+        using var stream = new MemoryStream();
+        new XMLLayoutSaver().Save(layout, stream);
+        stream.Position = 0;
+
+        var loaded = new XMLLayoutFactory(stream).Create(null);
+
+        Assert.True(loaded.Settings.TransparentBackgroundForCapture);
+    }
+
+    [Fact]
+    public void MigrateLegacyFinalSplitVideoVolumeReductionToTargetPercent()
+    {
+        var layout = new Layout { Settings = new StandardLayoutSettingsFactory().Create() };
+        using var stream = new MemoryStream();
+        new XMLLayoutSaver().Save(layout, stream);
+        stream.Position = 0;
+
+        var doc = new XmlDocument();
+        doc.Load(stream);
+        var settingsNode = (XmlElement)doc.SelectSingleNode("//Settings");
+        settingsNode.RemoveChild(settingsNode["VideoVolumePercentWhenRunCompletes"]);
+
+        XmlElement legacyReduction = doc.CreateElement("VideoVolumeReductionPercentWhenRunCompletes");
+        legacyReduction.InnerText = "25";
+        settingsNode.AppendChild(legacyReduction);
+
+        using var legacyStream = new MemoryStream();
+        doc.Save(legacyStream);
+        legacyStream.Position = 0;
+
+        var loaded = new XMLLayoutFactory(legacyStream).Create(null);
+
+        Assert.Equal(75f, loaded.Settings.VideoVolumePercentWhenRunCompletes);
+    }
+
+    [Fact]
+    public void MigrateLegacyAnimatedImageBackgroundToStaticImage()
+    {
+        var layout = new Layout { Settings = new StandardLayoutSettingsFactory().Create() };
+        using var stream = new MemoryStream();
+        new XMLLayoutSaver().Save(layout, stream);
+        stream.Position = 0;
+
+        var doc = new XmlDocument();
+        doc.Load(stream);
+        var backgroundType = (XmlElement)doc.SelectSingleNode("//Settings/BackgroundType");
+        backgroundType.InnerText = "AnimatedImage";
+
+        using var legacyStream = new MemoryStream();
+        doc.Save(legacyStream);
+        legacyStream.Position = 0;
+
+        var loaded = new XMLLayoutFactory(legacyStream).Create(null);
+
+        Assert.Equal(BackgroundType.Image, loaded.Settings.BackgroundType);
     }
 
     /// <summary>

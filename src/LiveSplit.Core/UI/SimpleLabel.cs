@@ -33,7 +33,7 @@ public class SimpleLabel
     public bool HasShadow { get; set; }
     public bool IsMonospaced { get; set; }
 
-    /// <summary>South-east shadow offset in pixels (+x, +y).</summary>
+    /// <summary>Shadow offset in pixels; positive moves south-east, negative moves north-west.</summary>
     public float TextShadowOffset { get; set; } = 2f;
 
     /// <summary>0–100, scales <see cref="ShadowColor"/> alpha for the shadow.</summary>
@@ -811,7 +811,8 @@ public class SimpleLabel
 
     private void DrawTextShadowPath(Graphics g, GraphicsPath gp, string text, float fontSize, float x, float y, float width, float height, StringFormat format, Color tint)
     {
-        float off = Math.Min(16f, Math.Max(0f, TextShadowOffset));
+        float off = Math.Min(16f, Math.Max(-16f, TextShadowOffset));
+        float absOff = Math.Abs(off);
         float blurN = Math.Min(100f, Math.Max(0f, TextShadowBlur)) / 100f;
 
         var savedPixel = g.PixelOffsetMode;
@@ -831,7 +832,7 @@ public class SimpleLabel
 
             float sigma = ShadowSigmaFromBlurNorm(blurN);
             int radius = ShadowBoxBlurRadius(sigma);
-            int pad = (int)Math.Ceiling(2.6 * sigma) + (int)Math.Ceiling(off) + 8;
+            int pad = (int)Math.Ceiling(2.6 * sigma) + (int)Math.Ceiling(absOff) + 8;
             int bw = Math.Max(1, (int)Math.Ceiling(width) + 2 * pad);
             int bh = Math.Max(1, (int)Math.Ceiling(height) + 2 * pad);
             if ((long)bw * bh > ShadowBitmapMaxPixels)
@@ -895,7 +896,8 @@ public class SimpleLabel
 
     private void DrawTextShadowString(Graphics g, string text, float x, float y, float width, float height, StringFormat format, Color tint)
     {
-        float off = Math.Min(16f, Math.Max(0f, TextShadowOffset));
+        float off = Math.Min(16f, Math.Max(-16f, TextShadowOffset));
+        float absOff = Math.Abs(off);
         float blurN = Math.Min(100f, Math.Max(0f, TextShadowBlur)) / 100f;
 
         var savedPixel = g.PixelOffsetMode;
@@ -913,7 +915,7 @@ public class SimpleLabel
 
             float sigma = ShadowSigmaFromBlurNorm(blurN);
             int radius = ShadowBoxBlurRadius(sigma);
-            int pad = (int)Math.Ceiling(2.6 * sigma) + (int)Math.Ceiling(off) + 8;
+            int pad = (int)Math.Ceiling(2.6 * sigma) + (int)Math.Ceiling(absOff) + 8;
             int bw = Math.Max(1, (int)Math.Ceiling(width) + 2 * pad);
             int bh = Math.Max(1, (int)Math.Ceiling(height) + 2 * pad);
             if ((long)bw * bh > ShadowBitmapMaxPixels)
@@ -1010,16 +1012,17 @@ public class SimpleLabel
             Color tint = GetEffectiveShadowTint();
             if (tint.A > 0)
             {
-                float off = Math.Min(16f, Math.Max(0f, TextShadowOffset));
+                float off = Math.Min(16f, Math.Max(-16f, TextShadowOffset));
+                float absOff = Math.Abs(off);
                 float blurN = Math.Min(100f, Math.Max(0f, TextShadowBlur)) / 100f;
                 if (blurN <= 0.0005f)
                 {
-                    pad += off + 2f;
+                    pad += absOff + 2f;
                 }
                 else
                 {
                     float sigma = ShadowSigmaFromBlurNorm(blurN);
-                    pad += (float)Math.Ceiling(2.6 * sigma) + (float)Math.Ceiling(off) + 8f;
+                    pad += (float)Math.Ceiling(2.6 * sigma) + (float)Math.Ceiling(absOff) + 8f;
                 }
             }
         }

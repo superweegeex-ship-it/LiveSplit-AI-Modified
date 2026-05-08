@@ -899,7 +899,6 @@ namespace LiveSplit.View
             "Vertical Gradient",
             "Horizontal Gradient",
             "Image",
-            "Animated Image",
             "Video"});
             this.cmbBackgroundType.Location = new System.Drawing.Point(227, 90);
             this.cmbBackgroundType.Name = "cmbBackgroundType";
@@ -1189,7 +1188,7 @@ namespace LiveSplit.View
             this.lblVideoVolumeReductionAfterRunCompletes.Name = "lblVideoVolumeReductionAfterRunCompletes";
             this.lblVideoVolumeReductionAfterRunCompletes.Size = new System.Drawing.Size(248, 13);
             this.lblVideoVolumeReductionAfterRunCompletes.TabIndex = 41;
-            this.lblVideoVolumeReductionAfterRunCompletes.Text = "Lower volume after final split (%):";
+            this.lblVideoVolumeReductionAfterRunCompletes.Text = "Final split volume (%):";
             // 
             // numVideoVolumeReductionAfterRunCompletes
             // 

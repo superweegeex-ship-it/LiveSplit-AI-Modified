@@ -10,6 +10,12 @@ namespace LiveSplit.UI.Components;
 
 public partial class WorldRecordSettings : UserControl
 {
+    private const float OffsetValueColumnWidth = 72F;
+
+    private Label lblTextHorizontalOffsetValue;
+    private Label lblIconHorizontalOffsetValue;
+    private Label lblGameIconShadowOffsetValue;
+
     public Color TextColor { get; set; }
     public bool OverrideTextColor { get; set; }
     public Color TimeColor { get; set; }
@@ -46,11 +52,21 @@ public partial class WorldRecordSettings : UserControl
     /// <summary>Extra horizontal pixels added to the game icon position.</summary>
     public int IconHorizontalOffset { get; set; }
 
+    /// <summary>Shadow offset for the world-record game icon. Positive shifts south-east, negative shifts north-west.</summary>
+    public float GameIconShadowOffset { get; set; }
+
+    public int GameIconShadowOffsetTenths
+    {
+        get => (int)Math.Round(Math.Min(100, Math.Max(-100, GameIconShadowOffset * 10f)));
+        set => GameIconShadowOffset = Math.Min(10f, Math.Max(-10f, value / 10f));
+    }
+
     public LayoutMode Mode { get; set; }
 
     public WorldRecordSettings()
     {
         InitializeComponent();
+        EnsureOffsetValueLabels();
 
         TextColor = Color.FromArgb(255, 255, 255);
         OverrideTextColor = false;
@@ -72,6 +88,7 @@ public partial class WorldRecordSettings : UserControl
         GameIconPlacing = WorldRecordGameIconPlacing.WindowEdge;
         TextHorizontalOffset = 0;
         IconHorizontalOffset = 0;
+        GameIconShadowOffset = 0f;
 
         chkOverrideTextColor.DataBindings.Add("Checked", this, "OverrideTextColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnTextColor.DataBindings.Add("BackColor", this, "TextColor", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -87,12 +104,80 @@ public partial class WorldRecordSettings : UserControl
         cmbTimingMethod.DataBindings.Add("SelectedItem", this, "TimingMethod", false, DataSourceUpdateMode.OnPropertyChanged);
         trkTextHorizontalOffset.ValueChanged += HorizontalOffsetTrackbars_ValueChanged;
         trkIconHorizontalOffset.ValueChanged += HorizontalOffsetTrackbars_ValueChanged;
+        trkGameIconShadowOffset.ValueChanged += GameIconShadowOffsetTrackbar_ValueChanged;
+        UpdateOffsetValueLabels();
+    }
+
+    private void EnsureOffsetValueLabels()
+    {
+        if (lblTextHorizontalOffsetValue != null)
+        {
+            return;
+        }
+
+        lblTextHorizontalOffsetValue = CreateOffsetValueLabel();
+        lblIconHorizontalOffsetValue = CreateOffsetValueLabel();
+        lblGameIconShadowOffsetValue = CreateOffsetValueLabel();
+
+        if (tableLayoutPanelLayout.ColumnCount < 3)
+        {
+            tableLayoutPanelLayout.ColumnCount = 3;
+            tableLayoutPanelLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OffsetValueColumnWidth));
+        }
+
+        tableLayoutPanelLayout.Controls.Add(lblTextHorizontalOffsetValue, 2, 0);
+        tableLayoutPanelLayout.Controls.Add(lblIconHorizontalOffsetValue, 2, 1);
+
+        if (tableLayoutPanelGameIcon.ColumnCount < 2)
+        {
+            tableLayoutPanelGameIcon.ColumnCount = 2;
+            tableLayoutPanelGameIcon.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, OffsetValueColumnWidth));
+        }
+
+        tableLayoutPanelGameIcon.Controls.Add(lblGameIconShadowOffsetValue, 1, 3);
+        tableLayoutPanelGameIcon.SetColumnSpan(trkGameIconShadowOffset, 2);
+    }
+
+    private static Label CreateOffsetValueLabel()
+    {
+        return new Label
+        {
+            AutoSize = false,
+            Dock = DockStyle.Fill,
+            Margin = new Padding(3, 3, 7, 3),
+            TextAlign = ContentAlignment.MiddleRight
+        };
+    }
+
+    private void UpdateOffsetValueLabels()
+    {
+        lblTextHorizontalOffsetValue.Text = FormatPixels(trkTextHorizontalOffset.Value);
+        lblIconHorizontalOffsetValue.Text = FormatPixels(trkIconHorizontalOffset.Value);
+        lblGameIconShadowOffsetValue.Text = FormatTenthsPixels(trkGameIconShadowOffset.Value);
+    }
+
+    private static string FormatPixels(int value)
+    {
+        return value > 0 ? $"+{value} px" : $"{value} px";
+    }
+
+    private static string FormatTenthsPixels(int value)
+    {
+        float pixels = value / 10f;
+        return pixels > 0f ? $"+{pixels:0.#} px" : $"{pixels:0.#} px";
     }
 
     private void HorizontalOffsetTrackbars_ValueChanged(object sender, EventArgs e)
     {
         TextHorizontalOffset = trkTextHorizontalOffset.Value;
         IconHorizontalOffset = trkIconHorizontalOffset.Value;
+        UpdateOffsetValueLabels();
+    }
+
+    private void GameIconShadowOffsetTrackbar_ValueChanged(object sender, EventArgs e)
+    {
+        GameIconShadowOffsetTenths = trkGameIconShadowOffset.Value;
+        UpdateOffsetValueLabels();
     }
 
     private void chkOverrideTimeColor_CheckedChanged(object sender, EventArgs e)
@@ -137,6 +222,8 @@ public partial class WorldRecordSettings : UserControl
 
         trkTextHorizontalOffset.Value = Math.Max(trkTextHorizontalOffset.Minimum, Math.Min(trkTextHorizontalOffset.Maximum, TextHorizontalOffset));
         trkIconHorizontalOffset.Value = Math.Max(trkIconHorizontalOffset.Minimum, Math.Min(trkIconHorizontalOffset.Maximum, IconHorizontalOffset));
+        trkGameIconShadowOffset.Value = Math.Max(trkGameIconShadowOffset.Minimum, Math.Min(trkGameIconShadowOffset.Maximum, GameIconShadowOffsetTenths));
+        UpdateOffsetValueLabels();
     }
 
     private void cmbGradientType_SelectedIndexChanged(object sender, EventArgs e)
@@ -170,6 +257,7 @@ public partial class WorldRecordSettings : UserControl
         GameIconPlacing = SettingsHelper.ParseEnum(element["GameIconPlacing"], WorldRecordGameIconPlacing.WindowEdge);
         TextHorizontalOffset = SettingsHelper.ParseInt(element["TextHorizontalOffset"], 0);
         IconHorizontalOffset = SettingsHelper.ParseInt(element["IconHorizontalOffset"], 0);
+        GameIconShadowOffset = Math.Min(10f, Math.Max(-10f, SettingsHelper.ParseFloat(element["GameIconShadowOffset"], 0f)));
     }
 
     public XmlNode GetSettings(XmlDocument document)
@@ -206,7 +294,8 @@ public partial class WorldRecordSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "GameIconSide", GameIconSide) ^
         SettingsHelper.CreateSetting(document, parent, "GameIconPlacing", GameIconPlacing) ^
         SettingsHelper.CreateSetting(document, parent, "TextHorizontalOffset", TextHorizontalOffset) ^
-        SettingsHelper.CreateSetting(document, parent, "IconHorizontalOffset", IconHorizontalOffset);
+        SettingsHelper.CreateSetting(document, parent, "IconHorizontalOffset", IconHorizontalOffset) ^
+        SettingsHelper.CreateSetting(document, parent, "GameIconShadowOffset", GameIconShadowOffset);
     }
 
     private void ColorButtonClick(object sender, EventArgs e)
@@ -258,6 +347,7 @@ public partial class WorldRecordSettings : UserControl
         rdoGameIconLeft.Enabled = rdoGameIconRight.Enabled = en;
         rdoGameIconPlacingEdge.Enabled = rdoGameIconPlacingNearText.Enabled = en;
         flowLayoutPanelGameIconSide.Enabled = flowLayoutPanelGameIconPlacing.Enabled = en;
+        lblGameIconShadowOffset.Enabled = trkGameIconShadowOffset.Enabled = lblGameIconShadowOffsetValue.Enabled = en;
     }
 
     private void rdoGameIconSide_CheckedChanged(object sender, EventArgs e)

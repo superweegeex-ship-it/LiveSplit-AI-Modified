@@ -110,6 +110,10 @@ public class SplitsComponent : IComponent
     private void Settings_SplitLayoutChanged(object sender, EventArgs e)
     {
         RebuildVisualSplits();
+        if (CurrentState?.Layout != null)
+        {
+            CurrentState.Layout.HasChanged = true;
+        }
     }
 
     private void RebuildVisualSplits()

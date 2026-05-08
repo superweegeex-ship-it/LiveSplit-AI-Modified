@@ -13,13 +13,35 @@ using LiveSplit.UI;
 
 namespace LiveSplit.UI.Components;
 
+public enum CurrentSplitImageLayoutMode
+{
+    Fill,
+    FitWidth
+}
+
 public partial class SplitsSettings : UserControl
 {
     private static readonly EventHandler CurrentSplitBackgroundOnFrameChanged = static (_, _) => { };
+    private const string CurrentSplitImageLayoutFillText = "Fill";
+    private const string CurrentSplitImageLayoutFitWidthText = "Fit Width";
 
     /// <summary>Avoids re-entrancy when syncing the outline fill combo from <see cref="CurrentSplitOutlineFillModeString"/>.</summary>
     private bool _inOutlineFillModeComboSync;
     private bool _parentScrollRefreshPending;
+    private Label lblCurrentSplitImageLayout;
+    private ComboBox cmbCurrentSplitImageLayout;
+    private Label lblCurrentSplitImageBrightness;
+    private NumericUpDown nudCurrentSplitImageBrightness;
+    private Label lblCurrentSplitImagePanX;
+    private TrackBar trkCurrentSplitImagePanX;
+    private Label lblCurrentSplitImagePanXValue;
+    private Label lblCurrentSplitImagePanY;
+    private TrackBar trkCurrentSplitImagePanY;
+    private Label lblCurrentSplitImagePanYValue;
+    private Label lblCurrentSplitImageZoom;
+    private TrackBar trkCurrentSplitImageZoom;
+    private Label lblCurrentSplitImageZoomValue;
+    private bool syncingCurrentSplitImagePlacementControls;
 
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
 
@@ -114,6 +136,24 @@ public partial class SplitsSettings : UserControl
         get => CurrentSplitImageInterpolation.ToString();
         set => CurrentSplitImageInterpolation = (CurrentSplitImageInterpolationFilter)Enum.Parse(typeof(CurrentSplitImageInterpolationFilter), value);
     }
+
+    public CurrentSplitImageLayoutMode CurrentSplitImageLayout { get; set; }
+
+    public string CurrentSplitImageLayoutString
+    {
+        get => CurrentSplitImageLayout == CurrentSplitImageLayoutMode.FitWidth
+            ? CurrentSplitImageLayoutFitWidthText
+            : CurrentSplitImageLayoutFillText;
+        set => CurrentSplitImageLayout = ParseCurrentSplitImageLayout(value);
+    }
+
+    public decimal CurrentSplitImagePanX { get; set; }
+
+    public decimal CurrentSplitImagePanY { get; set; }
+
+    public decimal CurrentSplitImageZoom { get; set; }
+
+    public decimal CurrentSplitImageBrightness { get; set; }
 
     /// <summary>Resampling / edge quality for the current-split outline stroke (independent of the split-image filter).</summary>
     public CurrentSplitImageInterpolationFilter CurrentSplitOutlineInterpolation { get; set; }
@@ -225,7 +265,11 @@ public partial class SplitsSettings : UserControl
         try
         {
             _currentSplitBackgroundImage = Image.FromFile(path);
-            ImageAnimator.Animate(_currentSplitBackgroundImage, CurrentSplitBackgroundOnFrameChanged);
+            if (ImageAnimator.CanAnimate(_currentSplitBackgroundImage))
+            {
+                ImageAnimator.Animate(_currentSplitBackgroundImage, CurrentSplitBackgroundOnFrameChanged);
+            }
+
             return _currentSplitBackgroundImage;
         }
         catch
@@ -248,6 +292,7 @@ public partial class SplitsSettings : UserControl
     public SplitsSettings(LiveSplitState state)
     {
         InitializeComponent();
+        EnsureCurrentSplitImageLayoutControls();
         trkCurrentSplitOutlineWaveSpeed.Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
         trkCurrentSplitOutlineWaveSpeed.TickFrequency = 5;
         trkCurrentSplitFillWaveSpeed.Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
@@ -290,6 +335,11 @@ public partial class SplitsSettings : UserControl
         CurrentSplitOutlineColor = Color.White;
         CurrentSplitOutlineTransparency = 0;
         CurrentSplitImageInterpolation = CurrentSplitImageInterpolationFilter.Bilinear;
+        CurrentSplitImageLayout = CurrentSplitImageLayoutMode.Fill;
+        CurrentSplitImagePanX = 0;
+        CurrentSplitImagePanY = 0;
+        CurrentSplitImageZoom = 1;
+        CurrentSplitImageBrightness = 100;
         CurrentSplitOutlineInterpolation = CurrentSplitImageInterpolationFilter.Nearest;
         CurrentSplitOutlineFillMode = CurrentSplitOutlineFillMode.Solid;
         CurrentSplitOutlineGradientEndColor = Color.FromArgb(255, 80, 200);
@@ -303,6 +353,7 @@ public partial class SplitsSettings : UserControl
         nudCurrentSplitOutlineThickness.Increment = 0.1m;
         nudCurrentSplitOutlineThickness.Minimum = 0.1m;
         nudCurrentSplitOutlineThickness.Maximum = 20m;
+        EnsureCurrentSplitImageLayoutComboItems();
         btnCurrentSplitBackgroundBrowse.Click += btnCurrentSplitBackgroundBrowse_Click;
         Disposed += (_, _) => ReleaseCurrentSplitBackgroundImageResources();
         BackgroundColor = Color.Transparent;
@@ -352,6 +403,10 @@ public partial class SplitsSettings : UserControl
         nudCurrentSplitOutlineTransparency.DataBindings.Add("Value", this, "CurrentSplitOutlineTransparency", true, DataSourceUpdateMode.OnPropertyChanged);
         btnCurrentSplitOutlineColor.DataBindings.Add("BackColor", this, "CurrentSplitOutlineColor", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbCurrentSplitImageFilter.DataBindings.Add("SelectedItem", this, "CurrentSplitImageInterpolationString", false, DataSourceUpdateMode.OnPropertyChanged);
+        cmbCurrentSplitImageLayout.DataBindings.Add("SelectedItem", this, "CurrentSplitImageLayoutString", false, DataSourceUpdateMode.OnPropertyChanged);
+        nudCurrentSplitImageBrightness.DataBindings.Add("Value", this, "CurrentSplitImageBrightness", true, DataSourceUpdateMode.OnPropertyChanged);
+        SyncCurrentSplitImagePlacementControlsFromProperties();
+        cmbCurrentSplitImageFilter.SelectedIndexChanged += CurrentSplitImageFilter_SelectedIndexChanged;
         EnsureCurrentSplitOutlineInterpolationComboItems();
         cmbCurrentSplitOutlineInterpolation.DataBindings.Add("SelectedItem", this, "CurrentSplitOutlineInterpolationString", false, DataSourceUpdateMode.OnPropertyChanged);
         EnsureCurrentSplitOutlineFillModeComboItems();
@@ -372,6 +427,314 @@ public partial class SplitsSettings : UserControl
 
         StartingColumnSettingHeight = ColumnsList[0].Height;
         ResetColumns();
+    }
+
+    private static CurrentSplitImageLayoutMode ParseCurrentSplitImageLayout(string value)
+    {
+        string normalized = (value ?? string.Empty).Trim().Replace(" ", string.Empty).Replace("-", string.Empty);
+        return string.Equals(normalized, nameof(CurrentSplitImageLayoutMode.FitWidth), StringComparison.OrdinalIgnoreCase)
+            ? CurrentSplitImageLayoutMode.FitWidth
+            : CurrentSplitImageLayoutMode.Fill;
+    }
+
+    private static decimal ClampDecimal(decimal value, decimal minimum, decimal maximum)
+    {
+        if (value < minimum)
+        {
+            return minimum;
+        }
+
+        return value > maximum ? maximum : value;
+    }
+
+    private void EnsureCurrentSplitImageLayoutControls()
+    {
+        if (cmbCurrentSplitImageLayout != null)
+        {
+            return;
+        }
+
+        tableLayoutPanelCurrentSplitOutline.SuspendLayout();
+        try
+        {
+            lblCurrentSplitImageLayout = CreateImageOptionLabel("Image layout:");
+            cmbCurrentSplitImageLayout = new ComboBox
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                FormattingEnabled = true
+            };
+            cmbCurrentSplitImageLayout.SelectedIndexChanged += (_, _) =>
+            {
+                CurrentSplitImageLayoutMode previous = CurrentSplitImageLayout;
+                CurrentSplitImageLayoutString = cmbCurrentSplitImageLayout.SelectedItem?.ToString();
+                UpdateCurrentSplitImageAndOutlineOptionStates();
+                if (CurrentSplitImageLayout != previous)
+                {
+                    SplitLayoutChanged?.Invoke(this, null);
+                }
+            };
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImageLayout, cmbCurrentSplitImageLayout);
+
+            lblCurrentSplitImageBrightness = CreateImageOptionLabel("Image brightness (%):");
+            nudCurrentSplitImageBrightness = CreateImageOptionNumeric(0m, 100m, 100m, 0);
+            nudCurrentSplitImageBrightness.ValueChanged += CurrentSplitImageAppearance_ValueChanged;
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImageBrightness, nudCurrentSplitImageBrightness);
+
+            lblCurrentSplitImagePanX = CreateImageOptionLabel("Pan X:");
+            trkCurrentSplitImagePanX = CreateImageOptionSlider(-5000, 5000, 0);
+            trkCurrentSplitImagePanX.ValueChanged += CurrentSplitImagePlacement_ValueChanged;
+            lblCurrentSplitImagePanXValue = CreateImageOptionValueLabel();
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImagePanX, CreateImageSliderPanel(trkCurrentSplitImagePanX, lblCurrentSplitImagePanXValue));
+
+            lblCurrentSplitImagePanY = CreateImageOptionLabel("Pan Y:");
+            trkCurrentSplitImagePanY = CreateImageOptionSlider(-5000, 5000, 0);
+            trkCurrentSplitImagePanY.ValueChanged += CurrentSplitImagePlacement_ValueChanged;
+            lblCurrentSplitImagePanYValue = CreateImageOptionValueLabel();
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImagePanY, CreateImageSliderPanel(trkCurrentSplitImagePanY, lblCurrentSplitImagePanYValue));
+
+            lblCurrentSplitImageZoom = CreateImageOptionLabel("Image zoom:");
+            trkCurrentSplitImageZoom = CreateImageOptionSlider(5, 1000, 100);
+            trkCurrentSplitImageZoom.ValueChanged += CurrentSplitImagePlacement_ValueChanged;
+            lblCurrentSplitImageZoomValue = CreateImageOptionValueLabel();
+            AddCurrentSplitImageOptionRow(lblCurrentSplitImageZoom, CreateImageSliderPanel(trkCurrentSplitImageZoom, lblCurrentSplitImageZoomValue));
+        }
+        finally
+        {
+            tableLayoutPanelCurrentSplitOutline.ResumeLayout(false);
+            tableLayoutPanelCurrentSplitOutline.PerformLayout();
+        }
+
+        GrowCurrentSplitImageSettingsArea(145);
+    }
+
+    private static Label CreateImageOptionLabel(string text) =>
+        new()
+        {
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Text = text
+        };
+
+    private static Label CreateInlineImageOptionLabel(string text) =>
+        new()
+        {
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Margin = new Padding(0, 5, 3, 0),
+            Text = text
+        };
+
+    private static Label CreateImageOptionValueLabel() =>
+        new()
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = false,
+            Margin = new Padding(3, 5, 0, 0),
+            TextAlign = ContentAlignment.MiddleRight,
+            Width = 58
+        };
+
+    private static TrackBar CreateImageOptionSlider(int minimum, int maximum, int value) =>
+        new()
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = false,
+            Height = 24,
+            LargeChange = 100,
+            Margin = new Padding(0, 2, 3, 0),
+            Minimum = minimum,
+            Maximum = maximum,
+            SmallChange = 10,
+            TickStyle = TickStyle.None,
+            Value = value
+        };
+
+    private static TableLayoutPanel CreateImageSliderPanel(TrackBar slider, Label valueLabel)
+    {
+        var panel = new TableLayoutPanel
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            ColumnCount = 2,
+            Height = 26,
+            Margin = new Padding(3, 1, 3, 1),
+            RowCount = 1
+        };
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+        panel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 62F));
+        panel.RowStyles.Add(new RowStyle(SizeType.Absolute, 26F));
+        panel.Controls.Add(slider, 0, 0);
+        panel.Controls.Add(valueLabel, 1, 0);
+        return panel;
+    }
+
+    private static NumericUpDown CreateImageOptionNumeric(decimal minimum, decimal maximum, decimal value, int decimalPlaces)
+    {
+        var numeric = new NumericUpDown
+        {
+            DecimalPlaces = decimalPlaces,
+            Increment = 1m,
+            Minimum = minimum,
+            Maximum = maximum,
+            Value = value,
+            Width = 70
+        };
+        return numeric;
+    }
+
+    private void CurrentSplitImagePlacement_ValueChanged(object sender, EventArgs e)
+    {
+        if (syncingCurrentSplitImagePlacementControls)
+        {
+            return;
+        }
+
+        CurrentSplitImagePanX = SliderValueToPanPercent(trkCurrentSplitImagePanX.Value);
+        CurrentSplitImagePanY = SliderValueToPanPercent(trkCurrentSplitImagePanY.Value);
+        CurrentSplitImageZoom = SliderValueToZoom(trkCurrentSplitImageZoom.Value);
+        UpdateCurrentSplitImagePlacementValueLabels();
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void CurrentSplitImageAppearance_ValueChanged(object sender, EventArgs e)
+    {
+        CurrentSplitImageBrightness = nudCurrentSplitImageBrightness.Value;
+        SplitLayoutChanged?.Invoke(this, null);
+    }
+
+    private void SyncCurrentSplitImageControlValues()
+    {
+        if (trkCurrentSplitImagePanX == null || trkCurrentSplitImagePanX.IsDisposed)
+        {
+            return;
+        }
+
+        CurrentSplitImagePanX = SliderValueToPanPercent(trkCurrentSplitImagePanX.Value);
+        CurrentSplitImagePanY = SliderValueToPanPercent(trkCurrentSplitImagePanY.Value);
+        CurrentSplitImageZoom = SliderValueToZoom(trkCurrentSplitImageZoom.Value);
+        CurrentSplitImageBrightness = nudCurrentSplitImageBrightness.Value;
+        UpdateCurrentSplitImagePlacementValueLabels();
+    }
+
+    private void SyncCurrentSplitImagePlacementControlsFromProperties()
+    {
+        if (trkCurrentSplitImagePanX == null || trkCurrentSplitImagePanX.IsDisposed)
+        {
+            return;
+        }
+
+        syncingCurrentSplitImagePlacementControls = true;
+        try
+        {
+            trkCurrentSplitImagePanX.Value = PanPercentToSliderValue(CurrentSplitImagePanX);
+            trkCurrentSplitImagePanY.Value = PanPercentToSliderValue(CurrentSplitImagePanY);
+            trkCurrentSplitImageZoom.Value = ZoomToSliderValue(CurrentSplitImageZoom);
+        }
+        finally
+        {
+            syncingCurrentSplitImagePlacementControls = false;
+        }
+
+        UpdateCurrentSplitImagePlacementValueLabels();
+    }
+
+    private void UpdateCurrentSplitImagePlacementValueLabels()
+    {
+        if (lblCurrentSplitImagePanXValue == null)
+        {
+            return;
+        }
+
+        lblCurrentSplitImagePanXValue.Text = FormatSignedPercent(SliderValueToPanPercent(trkCurrentSplitImagePanX.Value));
+        lblCurrentSplitImagePanYValue.Text = FormatSignedPercent(SliderValueToPanPercent(trkCurrentSplitImagePanY.Value));
+        lblCurrentSplitImageZoomValue.Text = FormatZoom(SliderValueToZoom(trkCurrentSplitImageZoom.Value));
+    }
+
+    private static int PanPercentToSliderValue(decimal value)
+    {
+        decimal clamped = ClampDecimal(value, -500m, 500m);
+        return Math.Min(5000, Math.Max(-5000, (int)Math.Round(clamped * 10m)));
+    }
+
+    private static decimal SliderValueToPanPercent(int value)
+    {
+        return value / 10m;
+    }
+
+    private static int ZoomToSliderValue(decimal value)
+    {
+        decimal clamped = ClampDecimal(value, 0.05m, 10m);
+        return Math.Min(1000, Math.Max(5, (int)Math.Round(clamped * 100m)));
+    }
+
+    private static decimal SliderValueToZoom(int value)
+    {
+        return value / 100m;
+    }
+
+    private static string FormatSignedPercent(decimal value)
+    {
+        return value > 0m
+            ? $"+{value:0.#}%"
+            : $"{value:0.#}%";
+    }
+
+    private static string FormatZoom(decimal value)
+    {
+        return $"{value:0.##}x";
+    }
+
+    private void CurrentSplitImageFilter_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        string selected = cmbCurrentSplitImageFilter.SelectedItem?.ToString();
+        if (!string.IsNullOrWhiteSpace(selected))
+        {
+            CurrentSplitImageInterpolationFilter previous = CurrentSplitImageInterpolation;
+            CurrentSplitImageInterpolationString = selected;
+            if (CurrentSplitImageInterpolation != previous)
+            {
+                SplitLayoutChanged?.Invoke(this, null);
+            }
+        }
+    }
+
+    private void AddCurrentSplitImageOptionRow(Control label, Control control)
+    {
+        int row = tableLayoutPanelCurrentSplitOutline.RowCount;
+        tableLayoutPanelCurrentSplitOutline.RowCount = row + 1;
+        tableLayoutPanelCurrentSplitOutline.RowStyles.Add(new RowStyle(SizeType.Absolute, 29F));
+        tableLayoutPanelCurrentSplitOutline.Controls.Add(label, 0, row);
+        tableLayoutPanelCurrentSplitOutline.Controls.Add(control, 1, row);
+        tableLayoutPanelCurrentSplitOutline.SetColumnSpan(control, 5);
+    }
+
+    private void GrowCurrentSplitImageSettingsArea(int addedHeight)
+    {
+        tableLayoutPanelCurrentSplitOutline.Height += addedHeight;
+        grpCurrentSplitOutline.Height += addedHeight;
+        tableLayoutPanel1.Height += addedHeight;
+        Height += addedHeight;
+
+        int row = tableLayoutPanel1.GetRow(grpCurrentSplitOutline);
+        if (row >= 0 && row < tableLayoutPanel1.RowStyles.Count)
+        {
+            RowStyle style = tableLayoutPanel1.RowStyles[row];
+            if (style.SizeType == SizeType.Absolute)
+            {
+                style.Height += addedHeight;
+            }
+        }
+    }
+
+    private void EnsureCurrentSplitImageLayoutComboItems()
+    {
+        foreach (string name in new[] { CurrentSplitImageLayoutFillText, CurrentSplitImageLayoutFitWidthText })
+        {
+            if (!cmbCurrentSplitImageLayout.Items.Contains(name))
+            {
+                cmbCurrentSplitImageLayout.Items.Add(name);
+            }
+        }
     }
 
     private void EnsureCurrentSplitImageInterpolationComboItems()
@@ -791,7 +1154,12 @@ public partial class SplitsSettings : UserControl
         foreach (Control c in new Control[]
                  {
                      chkCurrentSplitFillRgbWave, lblCurrentSplitFillWaveMotion, lblCurrentSplitFillWaveSpeed,
-                     trkCurrentSplitFillWaveSpeed, rdoCurrentSplitFillWaveHorizontal, rdoCurrentSplitFillWaveVertical
+                     trkCurrentSplitFillWaveSpeed, rdoCurrentSplitFillWaveHorizontal, rdoCurrentSplitFillWaveVertical,
+                     lblCurrentSplitImageLayout, cmbCurrentSplitImageLayout,
+                     lblCurrentSplitImageBrightness, nudCurrentSplitImageBrightness,
+                     lblCurrentSplitImagePanX, trkCurrentSplitImagePanX, lblCurrentSplitImagePanXValue,
+                     lblCurrentSplitImagePanY, trkCurrentSplitImagePanY, lblCurrentSplitImagePanYValue,
+                     lblCurrentSplitImageZoom, trkCurrentSplitImageZoom, lblCurrentSplitImageZoomValue
                  })
         {
             if (c != null)
@@ -822,6 +1190,14 @@ public partial class SplitsSettings : UserControl
     {
         bool imageMode = CurrentSplitGradient == GradientType.Image;
         lblCurrentSplitImageFilter.Enabled = cmbCurrentSplitImageFilter.Enabled = imageMode;
+        lblCurrentSplitImageLayout.Enabled = cmbCurrentSplitImageLayout.Enabled = imageMode;
+        lblCurrentSplitImageBrightness.Enabled = nudCurrentSplitImageBrightness.Enabled = imageMode;
+
+        bool fitWidthMode = imageMode && CurrentSplitImageLayout == CurrentSplitImageLayoutMode.FitWidth;
+        lblCurrentSplitImagePanX.Enabled = trkCurrentSplitImagePanX.Enabled = lblCurrentSplitImagePanXValue.Enabled = fitWidthMode;
+        lblCurrentSplitImagePanY.Enabled = trkCurrentSplitImagePanY.Enabled = lblCurrentSplitImagePanYValue.Enabled = fitWidthMode;
+        lblCurrentSplitImageZoom.Enabled = trkCurrentSplitImageZoom.Enabled = lblCurrentSplitImageZoomValue.Enabled = fitWidthMode;
+
         if (grpCurrentSplitFillGradientMotion != null && !grpCurrentSplitFillGradientMotion.IsDisposed)
         {
             grpCurrentSplitFillGradientMotion.Enabled = !imageMode;
@@ -837,11 +1213,13 @@ public partial class SplitsSettings : UserControl
         SelectComboItem(cmbGradientType, GradientString);
         SelectComboItem(cmbSplitGradient, SplitGradientString);
         SelectComboItem(cmbCurrentSplitImageFilter, CurrentSplitImageInterpolationString);
+        SelectComboItem(cmbCurrentSplitImageLayout, CurrentSplitImageLayoutString);
         EnsureCurrentSplitOutlineInterpolationComboItems();
         SelectComboItem(cmbCurrentSplitOutlineInterpolation, CurrentSplitOutlineInterpolationString);
         SyncCurrentSplitOutlineFillModeCombo();
         SyncOutlineWaveAxisRadios();
         SyncFillWaveAxisRadios();
+        SyncCurrentSplitImagePlacementControlsFromProperties();
 
         ResetColumns();
 
@@ -967,6 +1345,26 @@ public partial class SplitsSettings : UserControl
                 : CurrentSplitImageInterpolationFilter.Nearest;
         }
 
+        CurrentSplitImageLayoutString = SettingsHelper.ParseString(
+            element["CurrentSplitImageLayout"],
+            CurrentSplitImageLayoutMode.Fill.ToString());
+        CurrentSplitImagePanX = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImagePanX"], 0f),
+            -500m,
+            500m);
+        CurrentSplitImagePanY = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImagePanY"], 0f),
+            -500m,
+            500m);
+        CurrentSplitImageZoom = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImageZoom"], 1f),
+            0.05m,
+            10m);
+        CurrentSplitImageBrightness = ClampDecimal(
+            (decimal)SettingsHelper.ParseFloat(element["CurrentSplitImageBrightness"], 100f),
+            0m,
+            100m);
+
         if (element["CurrentSplitOutlineInterpolation"] != null)
         {
             CurrentSplitOutlineInterpolationString = SettingsHelper.ParseString(
@@ -1066,6 +1464,7 @@ public partial class SplitsSettings : UserControl
         }
 
         SyncCurrentSplitOutlineFillModeCombo();
+        SyncCurrentSplitImagePlacementControlsFromProperties();
         ResetColumns();
     }
 
@@ -1083,8 +1482,10 @@ public partial class SplitsSettings : UserControl
 
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
+        SyncCurrentSplitImageControlValues();
+
         int hashCode = SettingsHelper.CreateSetting(document, parent, "Version", "1.8") ^
-        SettingsHelper.CreateSetting(document, parent, "CurrentSplitTopColor", CurrentSplitTopColor) ^
+            SettingsHelper.CreateSetting(document, parent, "CurrentSplitTopColor", CurrentSplitTopColor) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitBottomColor", CurrentSplitBottomColor) ^
         SettingsHelper.CreateSetting(document, parent, "VisualSplitCount", VisualSplitCount) ^
         SettingsHelper.CreateSetting(document, parent, "SplitPreviewCount", SplitPreviewCount) ^
@@ -1114,6 +1515,11 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineColor", CurrentSplitOutlineColor) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineTransparency", (float)CurrentSplitOutlineTransparency) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageInterpolation", CurrentSplitImageInterpolation) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageLayout", CurrentSplitImageLayout) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImagePanX", (float)CurrentSplitImagePanX) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImagePanY", (float)CurrentSplitImagePanY) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageZoom", (float)CurrentSplitImageZoom) ^
+        SettingsHelper.CreateSetting(document, parent, "CurrentSplitImageBrightness", (float)CurrentSplitImageBrightness) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineInterpolation", CurrentSplitOutlineInterpolation) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineFillMode", CurrentSplitOutlineFillMode) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitOutlineGradientEndColor", CurrentSplitOutlineGradientEndColor) ^

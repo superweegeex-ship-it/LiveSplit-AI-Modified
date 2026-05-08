@@ -69,7 +69,7 @@ public class LayoutSettings : ICloneable
     /// <summary>0–100: icon shadow blur (0 = sharp, 100 = soft); scales Gaussian sigma linearly.</summary>
     public float IconShadowBlur { get; set; }
 
-    /// <summary>How far text/number shadows sit to the south-east (+x, +y), in pixels (fractional values allowed).</summary>
+    /// <summary>How far text/number shadows are offset in pixels; positive moves south-east, negative moves north-west.</summary>
     public float TextShadowOffset { get; set; }
 
     /// <summary>0–100: scales text shadow opacity relative to <see cref="ShadowsColor"/> alpha.</summary>
@@ -101,13 +101,13 @@ public class LayoutSettings : ICloneable
     /// <summary>Extra zoom for video background (0..1 maps to mpv video-zoom).</summary>
     public float VideoZoomExtra { get; set; }
 
-    /// <summary>Horizontal pan for image / animated GIF backgrounds (-1..1, same scale as video).</summary>
+    /// <summary>Horizontal pan for image backgrounds (-1..1, same scale as video).</summary>
     public float ImagePanX { get; set; }
 
-    /// <summary>Vertical pan for image / animated GIF backgrounds (-1..1).</summary>
+    /// <summary>Vertical pan for image backgrounds (-1..1).</summary>
     public float ImagePanY { get; set; }
 
-    /// <summary>Extra zoom for image / animated backgrounds (0..1, same convention as <see cref="VideoZoomExtra"/>).</summary>
+    /// <summary>Extra zoom for image backgrounds (0..1, same convention as <see cref="VideoZoomExtra"/>).</summary>
     public float ImageZoomExtra { get; set; }
     /// <summary>When true, background video stays paused at the start until the run timer starts, then seeks to <see cref="VideoStartOffsetSeconds"/>.</summary>
     public bool VideoStartWithTimer { get; set; }
@@ -121,9 +121,9 @@ public class LayoutSettings : ICloneable
     /// </summary>
     public bool VideoPauseWhenRunCompletes { get; set; }
     /// <summary>
-    /// 0..100: after the final split, multiply layout <see cref="VideoAudioVolume"/> by <c>(1 - value/100)</c> for playback. 0 = no reduction.
+    /// 0..100: after the final split, set background-video audio to this absolute percentage. 100 = unchanged.
     /// </summary>
-    public float VideoVolumeReductionPercentWhenRunCompletes { get; set; }
+    public float VideoVolumePercentWhenRunCompletes { get; set; }
     /// <summary>Seconds into the video file to seek when the timer starts (used with <see cref="VideoStartWithTimer"/>).</summary>
     public float VideoStartOffsetSeconds { get; set; }
 
@@ -139,6 +139,7 @@ public class LayoutSettings : ICloneable
 
     public float Opacity { get; set; }
     public bool MousePassThroughWhileRunning { get; set; }
+    public bool TransparentBackgroundForCapture { get; set; }
     public bool AllowResizing { get; set; }
     public bool AllowMoving { get; set; }
 
@@ -199,6 +200,7 @@ public class LayoutSettings : ICloneable
         DropShadows = settings.DropShadows;
         Opacity = settings.Opacity;
         MousePassThroughWhileRunning = settings.MousePassThroughWhileRunning;
+        TransparentBackgroundForCapture = settings.TransparentBackgroundForCapture;
         BackgroundType = settings.BackgroundType;
         BackgroundImage = settings.BackgroundImage;
         ImageOpacity = settings.ImageOpacity;
@@ -223,7 +225,7 @@ public class LayoutSettings : ICloneable
         VideoStartWithTimer = settings.VideoStartWithTimer;
         VideoKeepPlaybackAcrossTimerResets = settings.VideoKeepPlaybackAcrossTimerResets;
         VideoPauseWhenRunCompletes = settings.VideoPauseWhenRunCompletes;
-        VideoVolumeReductionPercentWhenRunCompletes = settings.VideoVolumeReductionPercentWhenRunCompletes;
+        VideoVolumePercentWhenRunCompletes = settings.VideoVolumePercentWhenRunCompletes;
         VideoStartOffsetSeconds = settings.VideoStartOffsetSeconds;
         AllowResizing = settings.AllowResizing;
         AllowMoving = settings.AllowMoving;

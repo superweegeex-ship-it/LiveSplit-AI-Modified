@@ -29,6 +29,12 @@ public partial class RunEditorDialog : Form
 {
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
 
+    private const string WindowSizeRegistryPath = "WindowSizes";
+    private const string WindowWidthRegistryValue = "RunEditorDialogWidth";
+    private const string WindowHeightRegistryValue = "RunEditorDialogHeight";
+    private const string WindowXRegistryValue = "RunEditorDialogX";
+    private const string WindowYRegistryValue = "RunEditorDialogY";
+
     private const int ICONINDEX = 0;
     private const int SEGMENTNAMEINDEX = 1;
     private const int SPLITTIMEINDEX = 2;
@@ -197,6 +203,7 @@ public partial class RunEditorDialog : Form
     public RunEditorDialog(LiveSplitState state)
     {
         InitializeComponent();
+        RestoreWindowBounds();
         CurrentState = state;
         Run = state.Run;
         Run.PropertyChanged += Run_PropertyChanged;
@@ -2564,7 +2571,63 @@ public partial class RunEditorDialog : Form
 
     private void RunEditorDialog_FormClosing(object sender, FormClosingEventArgs e)
     {
+        SaveWindowBounds();
         FillCbxGameTaskToken.Cancel();
+    }
+
+    private void RestoreWindowBounds()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            object widthValue = windowSizes.GetValue(WindowWidthRegistryValue);
+            object heightValue = windowSizes.GetValue(WindowHeightRegistryValue);
+            object xValue = windowSizes.GetValue(WindowXRegistryValue);
+            object yValue = windowSizes.GetValue(WindowYRegistryValue);
+            if (widthValue is int width && heightValue is int height
+                && width >= MinimumSize.Width && height >= MinimumSize.Height)
+            {
+                Size = new Size(width, height);
+            }
+
+            if (xValue is int x && yValue is int y)
+            {
+                Rectangle bounds = WinFormsTheme.ClampToVisibleScreen(new Rectangle(x, y, Width, Height), MinimumSize);
+                StartPosition = FormStartPosition.Manual;
+                Bounds = bounds;
+            }
+        }
+        catch
+        {
+            // Ignore persisted-window-bounds read errors.
+        }
+    }
+
+    private void SaveWindowBounds()
+    {
+        try
+        {
+            using var windowSizes = Application.UserAppDataRegistry.CreateSubKey(WindowSizeRegistryPath);
+            if (windowSizes == null)
+            {
+                return;
+            }
+
+            Rectangle bounds = WindowState == FormWindowState.Normal ? Bounds : RestoreBounds;
+            windowSizes.SetValue(WindowWidthRegistryValue, bounds.Width);
+            windowSizes.SetValue(WindowHeightRegistryValue, bounds.Height);
+            windowSizes.SetValue(WindowXRegistryValue, bounds.X);
+            windowSizes.SetValue(WindowYRegistryValue, bounds.Y);
+        }
+        catch
+        {
+            // Ignore persisted-window-bounds write errors.
+        }
     }
 }
 

@@ -43,6 +43,10 @@ internal interface IBackgroundVideoPlayer : IDisposable
 
     int MaxPresentFps { get; set; }
 
+    int MaxReadbackFpsOverride { get; set; }
+
+    int MaxReadbackPixelsOverride { get; set; }
+
     bool TryInitialize();
 
     bool Load(string source);

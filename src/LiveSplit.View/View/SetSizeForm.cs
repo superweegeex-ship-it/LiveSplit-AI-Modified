@@ -12,19 +12,19 @@ public partial class SetSizeForm : Form
 
     public int FormWidth
     {
-        get => TimerForm.Width;
+        get => TimerForm.ClientSize.Width;
         set
         {
-            TimerForm.Width = value;
+            TimerForm.ClientSize = new Size(value, TimerForm.ClientSize.Height);
             WidthChanged();
         }
     }
     public int FormHeight
     {
-        get => TimerForm.Height;
+        get => TimerForm.ClientSize.Height;
         set
         {
-            TimerForm.Height = value;
+            TimerForm.ClientSize = new Size(TimerForm.ClientSize.Width, value);
             HeightChanged();
         }
     }

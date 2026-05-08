@@ -80,11 +80,11 @@ public partial class LayoutSettingsControl
         set => Settings.IconShadowBlur = Math.Min(100f, Math.Max(0f, value));
     }
 
-    /// <summary>TrackBar value: text shadow SE offset in tenths of a pixel (0..160 => 0.0..16.0 px).</summary>
+    /// <summary>TrackBar value: text shadow offset in tenths of a pixel (-160..160 => -16.0..16.0 px).</summary>
     public int TextShadowOffsetTenths
     {
-        get => (int)Math.Round(Math.Min(160, Math.Max(0, Settings.TextShadowOffset * 10f)));
-        set => Settings.TextShadowOffset = Math.Min(16f, Math.Max(0f, value / 10f));
+        get => (int)Math.Round(Math.Min(160, Math.Max(-160, Settings.TextShadowOffset * 10f)));
+        set => Settings.TextShadowOffset = Math.Min(16f, Math.Max(-16f, value / 10f));
     }
 
     public int TextShadowTransparencyTrack
@@ -595,14 +595,14 @@ public partial class LayoutSettingsControl
 
             grpLayoutTextShadows = CreateShadowSubgroup(
                 T("Text, numbers, and fonts"),
-                T("Offset south-east (px)"),
+                T("Offset (+SE / -NW, px)"),
                 out trkLayoutTextShadowOffset,
                 out trkLayoutTextShadowTransparency,
                 out trkLayoutTextShadowBlur,
                 out lblLayoutTextShadowOffsetValue,
                 out lblLayoutTextShadowTransparencyValue,
                 out lblLayoutTextShadowBlurValue,
-                0,
+                -160,
                 160,
                 10);
 
@@ -649,6 +649,77 @@ public partial class LayoutSettingsControl
             val.Text = (trk.Value / 10.0).ToString("0.0", CultureInfo.CurrentCulture);
         trk.ValueChanged += Update;
         Update(null, EventArgs.Empty);
+    }
+
+    private GroupBox CreateShadowOffsetSubgroup(
+        string title,
+        string offsetRowCaption,
+        out TrackBar trkOffset,
+        out Label lblOffsetVal,
+        int offsetMin,
+        int offsetMax,
+        int offsetTickFrequency)
+    {
+        var grp = new GroupBox
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            Dock = DockStyle.Top,
+            Margin = new Padding(0, 0, 0, 6),
+            Padding = new Padding(6, 4, 10, 6),
+            Text = title
+        };
+
+        var tlp = new TableLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 3,
+            Dock = DockStyle.Top,
+            Margin = new Padding(0)
+        };
+        tlp.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        tlp.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+        tlp.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 54f));
+
+        var caption = new Label
+        {
+            Anchor = AnchorStyles.Left,
+            AutoSize = true,
+            Margin = new Padding(0, 6, 6, 6),
+            Text = offsetRowCaption
+        };
+
+        trkOffset = new TrackBar
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            AutoSize = false,
+            Margin = new Padding(0, 2, 0, 2),
+            Minimum = offsetMin,
+            Maximum = offsetMax,
+            TickFrequency = offsetTickFrequency,
+            TickStyle = TickStyle.None,
+            Height = 42
+        };
+
+        lblOffsetVal = new Label
+        {
+            Anchor = AnchorStyles.Right,
+            AutoSize = false,
+            TextAlign = ContentAlignment.MiddleRight,
+            Margin = new Padding(3, 8, 8, 6),
+            MinimumSize = new Size(52, 0),
+            Width = 52
+        };
+
+        tlp.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+        tlp.Controls.Add(caption, 0, 0);
+        tlp.Controls.Add(trkOffset, 1, 0);
+        tlp.Controls.Add(lblOffsetVal, 2, 0);
+
+        grp.Controls.Add(tlp);
+        WinFormsTheme.Apply(grp);
+        return grp;
     }
 
     private GroupBox CreateShadowSubgroup(

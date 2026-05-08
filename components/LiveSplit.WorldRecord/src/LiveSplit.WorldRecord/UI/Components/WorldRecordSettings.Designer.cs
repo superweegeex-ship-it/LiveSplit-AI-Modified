@@ -74,6 +74,8 @@ namespace LiveSplit.UI.Components
             this.rdoGameIconRight = new System.Windows.Forms.RadioButton();
             this.rdoGameIconPlacingEdge = new System.Windows.Forms.RadioButton();
             this.rdoGameIconPlacingNearText = new System.Windows.Forms.RadioButton();
+            this.lblGameIconShadowOffset = new System.Windows.Forms.Label();
+            this.trkGameIconShadowOffset = new System.Windows.Forms.TrackBar();
             this.flowLayoutPanelGameIconSide = new System.Windows.Forms.FlowLayoutPanel();
             this.flowLayoutPanelGameIconPlacing = new System.Windows.Forms.FlowLayoutPanel();
             this.groupBox1.SuspendLayout();
@@ -90,6 +92,7 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanelLayout.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkTextHorizontalOffset)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkIconHorizontalOffset)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkGameIconShadowOffset)).BeginInit();
             this.SuspendLayout();
             // 
             // tableLayoutPanel1
@@ -123,7 +126,7 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 132F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(462, 580);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(462, 632);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // groupBoxLayout
@@ -212,26 +215,30 @@ namespace LiveSplit.UI.Components
             this.groupBoxGameIcon.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBoxGameIcon.Location = new System.Drawing.Point(3, 61);
             this.groupBoxGameIcon.Name = "groupBoxGameIcon";
-            this.groupBoxGameIcon.Size = new System.Drawing.Size(456, 128);
+            this.groupBoxGameIcon.Size = new System.Drawing.Size(456, 180);
             this.groupBoxGameIcon.TabIndex = 40;
             this.groupBoxGameIcon.TabStop = false;
             this.groupBoxGameIcon.Text = "Game Icon";
-            // 
+            //
             // tableLayoutPanelGameIcon
-            // 
+            //
             this.tableLayoutPanelGameIcon.ColumnCount = 1;
             this.tableLayoutPanelGameIcon.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanelGameIcon.Controls.Add(this.chkDisplayGameIcon, 0, 0);
             this.tableLayoutPanelGameIcon.Controls.Add(this.flowLayoutPanelGameIconSide, 0, 1);
             this.tableLayoutPanelGameIcon.Controls.Add(this.flowLayoutPanelGameIconPlacing, 0, 2);
+            this.tableLayoutPanelGameIcon.Controls.Add(this.lblGameIconShadowOffset, 0, 3);
+            this.tableLayoutPanelGameIcon.Controls.Add(this.trkGameIconShadowOffset, 0, 4);
             this.tableLayoutPanelGameIcon.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanelGameIcon.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanelGameIcon.Name = "tableLayoutPanelGameIcon";
-            this.tableLayoutPanelGameIcon.RowCount = 3;
+            this.tableLayoutPanelGameIcon.RowCount = 5;
             this.tableLayoutPanelGameIcon.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 30F));
             this.tableLayoutPanelGameIcon.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 36F));
             this.tableLayoutPanelGameIcon.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 38F));
-            this.tableLayoutPanelGameIcon.Size = new System.Drawing.Size(450, 109);
+            this.tableLayoutPanelGameIcon.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 22F));
+            this.tableLayoutPanelGameIcon.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 45F));
+            this.tableLayoutPanelGameIcon.Size = new System.Drawing.Size(450, 161);
             this.tableLayoutPanelGameIcon.TabIndex = 0;
             // 
             // chkDisplayGameIcon
@@ -325,6 +332,30 @@ namespace LiveSplit.UI.Components
             this.rdoGameIconPlacingNearText.Text = "Next to text";
             this.rdoGameIconPlacingNearText.UseVisualStyleBackColor = true;
             this.rdoGameIconPlacingNearText.CheckedChanged += new System.EventHandler(this.rdoGameIconPlacing_CheckedChanged);
+            //
+            // lblGameIconShadowOffset
+            //
+            this.lblGameIconShadowOffset.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.lblGameIconShadowOffset.AutoSize = true;
+            this.lblGameIconShadowOffset.Location = new System.Drawing.Point(7, 108);
+            this.lblGameIconShadowOffset.Margin = new System.Windows.Forms.Padding(7, 3, 3, 3);
+            this.lblGameIconShadowOffset.Name = "lblGameIconShadowOffset";
+            this.lblGameIconShadowOffset.Size = new System.Drawing.Size(190, 13);
+            this.lblGameIconShadowOffset.TabIndex = 5;
+            this.lblGameIconShadowOffset.Text = "Shadow offset (+SE / -NW, px):";
+            //
+            // trkGameIconShadowOffset
+            //
+            this.trkGameIconShadowOffset.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.trkGameIconShadowOffset.Location = new System.Drawing.Point(7, 127);
+            this.trkGameIconShadowOffset.Margin = new System.Windows.Forms.Padding(7, 0, 7, 0);
+            this.trkGameIconShadowOffset.Maximum = 100;
+            this.trkGameIconShadowOffset.Minimum = -100;
+            this.trkGameIconShadowOffset.Name = "trkGameIconShadowOffset";
+            this.trkGameIconShadowOffset.Size = new System.Drawing.Size(436, 45);
+            this.trkGameIconShadowOffset.TabIndex = 6;
+            this.trkGameIconShadowOffset.TickFrequency = 10;
+            this.trkGameIconShadowOffset.TickStyle = System.Windows.Forms.TickStyle.None;
             // 
             // groupBox4
             // 
@@ -719,7 +750,7 @@ namespace LiveSplit.UI.Components
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "WorldRecordSettings";
             this.Padding = new System.Windows.Forms.Padding(7);
-            this.Size = new System.Drawing.Size(476, 600);
+            this.Size = new System.Drawing.Size(476, 652);
             this.Load += new System.EventHandler(this.WorldRecordSettings_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
@@ -747,6 +778,7 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanelLayout.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkTextHorizontalOffset)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkIconHorizontalOffset)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkGameIconShadowOffset)).EndInit();
             this.ResumeLayout(false);
 
         }
@@ -792,6 +824,8 @@ namespace LiveSplit.UI.Components
         private System.Windows.Forms.RadioButton rdoGameIconPlacingNearText;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelGameIconSide;
         private System.Windows.Forms.FlowLayoutPanel flowLayoutPanelGameIconPlacing;
+        private System.Windows.Forms.Label lblGameIconShadowOffset;
+        private System.Windows.Forms.TrackBar trkGameIconShadowOffset;
         private System.Windows.Forms.GroupBox groupBoxLayout;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanelLayout;
         private System.Windows.Forms.Label lblTextHorizontalOffset;
