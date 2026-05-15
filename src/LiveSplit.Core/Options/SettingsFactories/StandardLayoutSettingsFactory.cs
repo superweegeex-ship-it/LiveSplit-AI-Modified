@@ -61,6 +61,7 @@ public class StandardLayoutSettingsFactory : ILayoutSettingsFactory
             VideoPanX = 0f,
             VideoPanY = 0f,
             VideoZoomExtra = 0f,
+            VideoSpeedPercent = 100f,
             ImagePanX = 0f,
             ImagePanY = 0f,
             ImageZoomExtra = 0f,

@@ -126,6 +126,38 @@ public class LayoutSerializationFontOverridesMust
     }
 
     [Fact]
+    public void RoundtripBackgroundVideoSpeedPercent()
+    {
+        var layout = new Layout { Settings = new StandardLayoutSettingsFactory().Create() };
+        layout.Settings.VideoSpeedPercent = 175f;
+
+        using var stream = new MemoryStream();
+        new XMLLayoutSaver().Save(layout, stream);
+        stream.Position = 0;
+
+        var loaded = new XMLLayoutFactory(stream).Create(null);
+
+        Assert.Equal(175f, loaded.Settings.VideoSpeedPercent);
+    }
+
+    [Fact]
+    public void RoundtripNegativeBackgroundZoom()
+    {
+        var layout = new Layout { Settings = new StandardLayoutSettingsFactory().Create() };
+        layout.Settings.VideoZoomExtra = -0.5f;
+        layout.Settings.ImageZoomExtra = -0.25f;
+
+        using var stream = new MemoryStream();
+        new XMLLayoutSaver().Save(layout, stream);
+        stream.Position = 0;
+
+        var loaded = new XMLLayoutFactory(stream).Create(null);
+
+        Assert.Equal(-0.5f, loaded.Settings.VideoZoomExtra);
+        Assert.Equal(-0.25f, loaded.Settings.ImageZoomExtra);
+    }
+
+    [Fact]
     public void RoundtripTransparentBackgroundForCapture()
     {
         var layout = new Layout { Settings = new StandardLayoutSettingsFactory().Create() };

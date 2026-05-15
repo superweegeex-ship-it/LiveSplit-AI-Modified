@@ -98,8 +98,11 @@ public class LayoutSettings : ICloneable
     public float VideoPanX { get; set; }
     /// <summary>Vertical pan for video background (-1..1, mpv video-pan-y).</summary>
     public float VideoPanY { get; set; }
-    /// <summary>Extra zoom for video background (0..1 maps to mpv video-zoom).</summary>
+    /// <summary>Extra zoom for video background (-1..1 maps to mpv video-zoom).</summary>
     public float VideoZoomExtra { get; set; }
+
+    /// <summary>Background video playback speed percentage (100 = normal speed).</summary>
+    public float VideoSpeedPercent { get; set; }
 
     /// <summary>Horizontal pan for image backgrounds (-1..1, same scale as video).</summary>
     public float ImagePanX { get; set; }
@@ -107,7 +110,7 @@ public class LayoutSettings : ICloneable
     /// <summary>Vertical pan for image backgrounds (-1..1).</summary>
     public float ImagePanY { get; set; }
 
-    /// <summary>Extra zoom for image backgrounds (0..1, same convention as <see cref="VideoZoomExtra"/>).</summary>
+    /// <summary>Extra zoom for image backgrounds (-1..1, same convention as <see cref="VideoZoomExtra"/>).</summary>
     public float ImageZoomExtra { get; set; }
     /// <summary>When true, background video stays paused at the start until the run timer starts, then seeks to <see cref="VideoStartOffsetSeconds"/>.</summary>
     public bool VideoStartWithTimer { get; set; }
@@ -219,6 +222,7 @@ public class LayoutSettings : ICloneable
         VideoPanX = settings.VideoPanX;
         VideoPanY = settings.VideoPanY;
         VideoZoomExtra = settings.VideoZoomExtra;
+        VideoSpeedPercent = settings.VideoSpeedPercent;
         ImagePanX = settings.ImagePanX;
         ImagePanY = settings.ImagePanY;
         ImageZoomExtra = settings.ImageZoomExtra;

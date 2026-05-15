@@ -59,6 +59,7 @@ public class LayoutSettingsMust
             VideoBlurScale = 0.35F,
             VideoBlurType = BackgroundVideoBlurType.Directional,
             VideoBlurDegrees = 45F,
+            VideoSpeedPercent = 175F,
             VideoVolumePercentWhenRunCompletes = 33F,
             MousePassThroughWhileRunning = true,
             TransparentBackgroundForCapture = true,
@@ -124,6 +125,7 @@ public class LayoutSettingsMust
         Assert.Equal(0.35F, sut.VideoBlurScale);
         Assert.Equal(BackgroundVideoBlurType.Directional, sut.VideoBlurType);
         Assert.Equal(45F, sut.VideoBlurDegrees);
+        Assert.Equal(175F, sut.VideoSpeedPercent);
         Assert.Equal(33F, sut.VideoVolumePercentWhenRunCompletes);
         Assert.True(sut.MousePassThroughWhileRunning);
         Assert.True(sut.TransparentBackgroundForCapture);

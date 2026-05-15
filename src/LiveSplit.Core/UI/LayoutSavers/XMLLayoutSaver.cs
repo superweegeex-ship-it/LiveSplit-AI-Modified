@@ -71,6 +71,7 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "VideoPanX", settings.VideoPanX) ^
         SettingsHelper.CreateSetting(document, element, "VideoPanY", settings.VideoPanY) ^
         SettingsHelper.CreateSetting(document, element, "VideoZoomExtra", settings.VideoZoomExtra) ^
+        SettingsHelper.CreateSetting(document, element, "VideoSpeedPercent", settings.VideoSpeedPercent) ^
         SettingsHelper.CreateSetting(document, element, "ImagePanX", settings.ImagePanX) ^
         SettingsHelper.CreateSetting(document, element, "ImagePanY", settings.ImagePanY) ^
         SettingsHelper.CreateSetting(document, element, "ImageZoomExtra", settings.ImageZoomExtra) ^

@@ -3374,6 +3374,7 @@ public partial class TimerForm : Form
         backgroundVideoPlayer.VideoPanX = Layout.Settings.VideoPanX;
         backgroundVideoPlayer.VideoPanY = Layout.Settings.VideoPanY;
         backgroundVideoPlayer.VideoZoomExtra = Layout.Settings.VideoZoomExtra;
+        backgroundVideoPlayer.VideoSpeedPercent = Layout.Settings.VideoSpeedPercent;
         backgroundVideoPlayer.VideoBlurScale = Layout.Settings.VideoBlurScale;
         backgroundVideoPlayer.VideoBlurType = Layout.Settings.VideoBlurType;
         backgroundVideoPlayer.VideoBlurDegrees = Layout.Settings.VideoBlurDegrees;
@@ -3644,6 +3645,19 @@ public partial class TimerForm : Form
 
     private void DrawBackgroundImage(Graphics g, Image image, float opacity)
     {
+        var matrix = new ColorMatrix
+        {
+            Matrix33 = opacity
+        };
+        var attributes = new ImageAttributes();
+        attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+
+        if (Layout.Settings.ImageZoomExtra < -0.0005f)
+        {
+            DrawZoomedOutBackgroundImage(g, image, attributes);
+            return;
+        }
+
         GetBackgroundImageCoverSourceRect(
             image,
             Width,
@@ -3655,13 +3669,6 @@ public partial class TimerForm : Form
             out float srcY,
             out float srcW,
             out float srcH);
-
-        var matrix = new ColorMatrix
-        {
-            Matrix33 = opacity
-        };
-        var attributes = new ImageAttributes();
-        attributes.SetColorMatrix(matrix, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
 
         g.InterpolationMode = InterpolationMode.Bilinear;
         foreach (RectangleF rectangle in UpdateRegion.GetRegionScans(g.Transform))
@@ -3679,9 +3686,41 @@ public partial class TimerForm : Form
         }
     }
 
+    private void DrawZoomedOutBackgroundImage(Graphics g, Image image, ImageAttributes attributes)
+    {
+        float iw = image.Width;
+        float ih = image.Height;
+        if (iw <= 0f || ih <= 0f || Width <= 0 || Height <= 0)
+        {
+            return;
+        }
+
+        float coverScale = Math.Max(Width / iw, Height / ih);
+        float zoom = Math.Max(-1f, Math.Min(0f, Layout.Settings.ImageZoomExtra));
+        float scale = Math.Max(0.01f, coverScale * (1f + 0.55f * zoom));
+        float destW = iw * scale;
+        float destH = ih * scale;
+        float panX = Math.Max(-1f, Math.Min(1f, Layout.Settings.ImagePanX));
+        float panY = Math.Max(-1f, Math.Min(1f, Layout.Settings.ImagePanY));
+        float destX = (Width - destW) * 0.5f + panX * Math.Abs(Width - destW) * 0.5f;
+        float destY = (Height - destH) * 0.5f + panY * Math.Abs(Height - destH) * 0.5f;
+
+        DrawColorOrGradientBackground(g);
+        g.InterpolationMode = InterpolationMode.Bilinear;
+        g.DrawImage(
+            image,
+            Rectangle.Round(new RectangleF(destX, destY, destW, destH)),
+            0f,
+            0f,
+            iw,
+            ih,
+            GraphicsUnit.Pixel,
+            attributes);
+    }
+
     /// <summary>
     /// Cover-fit source rectangle in image pixel space (same baseline as the legacy centered crop),
-    /// with optional pan (-1..1) and zoom (0..1) matching layout video controls.
+    /// with optional pan (-1..1) and positive zoom (0..1) matching layout video controls.
     /// </summary>
     internal static void GetBackgroundImageCoverSourceRect(
         Image image,
@@ -6058,6 +6097,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private string loadedSource;
     private float renderOpacity = 1f;
     private string lastFrameBlitPath = "none";
+    private bool currentSourceNeedsAlphaMatte;
     private float videoBlurScale;
     private float lastAppliedVideoBlurScale = float.NaN;
     private float videoBlurDegrees;
@@ -6105,6 +6145,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private float lastAppliedVideoPanX = float.NaN;
     private float lastAppliedVideoPanY = float.NaN;
     private float lastAppliedVideoZoom = float.NaN;
+    private float lastAppliedVideoSpeed = float.NaN;
     /// <summary>When true, playback stays paused until the first decoded frame is rendered (A/V startup with audio).</summary>
     private bool holdPlaybackForAvStartupSync;
     private int startupPlaybackHoldRenderAttempts;
@@ -6148,8 +6189,16 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     public float VideoPanX { get; set; }
     /// <summary>Vertical pan (-1..1), passed to mpv video-pan-y.</summary>
     public float VideoPanY { get; set; }
-    /// <summary>Extra zoom amount (0..1), scaled into mpv video-zoom.</summary>
+    /// <summary>Extra zoom amount (-1..1), scaled into mpv video-zoom.</summary>
     public float VideoZoomExtra { get; set; }
+    private float videoSpeedPercent = 100f;
+    /// <summary>Playback speed percentage (100 = normal speed), applied to mpv's speed property.</summary>
+    public float VideoSpeedPercent
+    {
+        get => videoSpeedPercent;
+        set => videoSpeedPercent = Math.Max(10f, Math.Min(400f, value));
+    }
+
     public float VideoBlurScale
     {
         get => videoBlurScale;
@@ -6224,6 +6273,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             $"Video FPS: {(videoFps > 0.05 ? videoFps.ToString("0.0") : "?")} (from file / decoder — not on-screen Hz)" + Environment.NewLine +
             $"Video Duration: {(videoDurationSeconds > 0.0 ? FormatVideoDuration(videoDurationSeconds) : "?")}" + Environment.NewLine +
             $"Video Bitrate: {videoBitrateMbps:0.00} Mbps" + Environment.NewLine +
+            $"Video Speed: {VideoSpeedPercent:0}%" + Environment.NewLine +
             $"Video Opacity: {renderOpacity * 100f:0}% | Blit: {lastFrameBlitPath}" + Environment.NewLine +
             "Perf Mode: always fast" + Environment.NewLine +
             $"Target FPS: {TargetPlaybackFps}" + Environment.NewLine +
@@ -6297,6 +6347,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
     private bool LoadCore(string source)
     {
         loadedSource = source;
+        currentSourceNeedsAlphaMatte = SourceMayContainAlpha(source);
         lastAppliedMpvScalerSourceW = -1;
         lastAppliedMpvScalerSourceH = -1;
         readbackBlitUsesNearestNeighbor = false;
@@ -6346,6 +6397,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         lastAppliedVideoPanX = float.NaN;
         lastAppliedVideoPanY = float.NaN;
         lastAppliedVideoZoom = float.NaN;
+        lastAppliedVideoSpeed = float.NaN;
         RefreshTargetPlaybackFpsFromMpv();
         SyncPresentationWithHost(true, MaxPresentFps);
         return true;
@@ -6381,6 +6433,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         lastAppliedVideoPanX = float.NaN;
         lastAppliedVideoPanY = float.NaN;
         lastAppliedVideoZoom = float.NaN;
+        lastAppliedVideoSpeed = float.NaN;
         holdPlaybackForAvStartupSync = false;
         startupPlaybackHoldRenderAttempts = 0;
         dynamicReadbackScale = 1.0f;
@@ -6563,7 +6616,8 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             return;
         }
 
-        double expected = videoStartOffsetSeconds + runElapsedWallClock.TotalSeconds;
+        double speedMultiplier = Math.Max(0.1, Math.Min(4.0, VideoSpeedPercent / 100.0));
+        double expected = videoStartOffsetSeconds + (runElapsedWallClock.TotalSeconds * speedMultiplier);
         double delta = expected - timePos;
         if (Math.Abs(delta) < RunTimerDriftCorrectAboveSeconds)
         {
@@ -7041,6 +7095,9 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             _ = mpv_set_option_string(mpvHandle, "terminal", "no");
             _ = mpv_set_option_string(mpvHandle, "keepaspect", "yes");
             _ = mpv_set_option_string(mpvHandle, "panscan", "1.0");
+            _ = mpv_set_option_string(mpvHandle, "alpha", "blend");
+            _ = mpv_set_option_string(mpvHandle, "background", "#000000");
+            _ = mpv_set_option_string(mpvHandle, "background-color", "#000000");
             // libmpv render API requires vo=libmpv; then we tune libplacebo/scalers for speed.
             _ = mpv_set_option_string(mpvHandle, "vo", "libmpv");
             _ = mpv_set_option_string(mpvHandle, "gpu-context", "angle");
@@ -7094,6 +7151,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             lastAppliedVideoPanX = float.NaN;
             lastAppliedVideoPanY = float.NaN;
             lastAppliedVideoZoom = float.NaN;
+            lastAppliedVideoSpeed = float.NaN;
             return true;
         }
         catch (DllNotFoundException)
@@ -7581,7 +7639,8 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         int volume = Math.Max(0, Math.Min(100, (int)Math.Round(AudioVolume * 100f)));
         float panX = Math.Max(-1f, Math.Min(1f, VideoPanX));
         float panY = Math.Max(-1f, Math.Min(1f, VideoPanY));
-        float zoomMpv = Math.Max(0f, Math.Min(1f, VideoZoomExtra)) * 2f;
+        float zoomMpv = Math.Max(-1f, Math.Min(1f, VideoZoomExtra)) * 2f;
+        float speed = Math.Max(0.1f, Math.Min(4f, VideoSpeedPercent / 100f));
         float blurScale = Math.Max(0f, Math.Min(1f, VideoBlurScale));
         float blurDegrees = Math.Max(0f, Math.Min(360f, VideoBlurDegrees));
         bool needsApply = !appliedMpvRuntimeOptions
@@ -7592,6 +7651,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             || float.IsNaN(lastAppliedVideoPanX) || Math.Abs(lastAppliedVideoPanX - panX) > 0.0005f
             || float.IsNaN(lastAppliedVideoPanY) || Math.Abs(lastAppliedVideoPanY - panY) > 0.0005f
             || float.IsNaN(lastAppliedVideoZoom) || Math.Abs(lastAppliedVideoZoom - zoomMpv) > 0.0005f
+            || float.IsNaN(lastAppliedVideoSpeed) || Math.Abs(lastAppliedVideoSpeed - speed) > 0.0005f
             || float.IsNaN(lastAppliedVideoBlurScale) || Math.Abs(lastAppliedVideoBlurScale - blurScale) > 0.0005f
             || float.IsNaN(lastAppliedVideoBlurDegrees) || Math.Abs(lastAppliedVideoBlurDegrees - blurDegrees) > 0.0005f
             || lastAppliedVideoBlurType != VideoBlurType;
@@ -7617,6 +7677,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         _ = MpvCommand("set", "video-pan-x", panX.ToString(inv));
         _ = MpvCommand("set", "video-pan-y", panY.ToString(inv));
         _ = MpvCommand("set", "video-zoom", zoomMpv.ToString(inv));
+        _ = MpvCommand("set", "speed", speed.ToString(inv));
         ApplyMpvVideoFilters(lastAppliedScaleHeight);
 
         appliedMpvRuntimeOptions = true;
@@ -7627,6 +7688,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         lastAppliedVideoPanX = panX;
         lastAppliedVideoPanY = panY;
         lastAppliedVideoZoom = zoomMpv;
+        lastAppliedVideoSpeed = speed;
         lastAppliedVideoBlurScale = blurScale;
         lastAppliedVideoBlurDegrees = blurDegrees;
         lastAppliedVideoBlurType = VideoBlurType;
@@ -7958,6 +8020,8 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             Marshal.StructureToPtr(rp3, IntPtr.Add(paramArrayPtr, 3 * psz), false);
 
             GL.Viewport(0, 0, rw, rh);
+            GL.ClearColor(0f, 0f, 0f, 1f);
+            GL.Clear(ClearBufferMask.ColorBufferBit);
             mpv_render_context_render(mpvRenderContext, paramArrayPtr);
             GL.ReadBuffer(ReadBufferMode.Back);
             // Flush only: Finish() forces a full GPU drain every frame and often caps Paint FPS well below 60.
@@ -8003,7 +8067,7 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             return;
         }
 
-        string videoFilter = BuildVideoFilterChain(targetHeight, VideoBlurScale, VideoBlurType, VideoBlurDegrees);
+        string videoFilter = BuildVideoFilterChain(targetHeight, VideoBlurScale, VideoBlurType, VideoBlurDegrees, currentSourceNeedsAlphaMatte);
         if (targetHeight == lastAppliedScaleHeight
             && string.Equals(videoFilter, lastAppliedVideoFilter, StringComparison.Ordinal))
         {
@@ -8059,9 +8123,14 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
             + "]";
     }
 
-    private static string BuildVideoFilterChain(int targetHeight, float blurScale, BackgroundVideoBlurType blurType, float blurDegrees)
+    private static string BuildVideoFilterChain(int targetHeight, float blurScale, BackgroundVideoBlurType blurType, float blurDegrees, bool matteAlphaToBlack)
     {
         var filters = new List<string>();
+
+        if (matteAlphaToBlack)
+        {
+            filters.Add("lavfi=[format=rgba,premultiply=inplace=1,format=rgb24]");
+        }
 
         blurScale = Math.Max(0f, Math.Min(1f, blurScale));
         if (blurScale > 0.0005f)
@@ -8122,6 +8191,20 @@ internal sealed class LibMpvBackgroundPlayer : IBackgroundVideoPlayer
         }
 
         return string.Join(",", filters);
+    }
+
+    private static bool SourceMayContainAlpha(string source)
+    {
+        if (string.IsNullOrWhiteSpace(source))
+        {
+            return false;
+        }
+
+        string extension = Path.GetExtension(source);
+        return extension.Equals(".gif", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".png", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".apng", StringComparison.OrdinalIgnoreCase)
+            || extension.Equals(".webp", StringComparison.OrdinalIgnoreCase);
     }
 
     private static string BuildRotationalBlurFilter(float blurScale, float blurDegrees, int blurPassHeight)

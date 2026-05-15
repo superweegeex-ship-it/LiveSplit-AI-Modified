@@ -146,6 +146,7 @@ public class XMLLayoutFactory : ILayoutFactory
             VideoPanX = SettingsHelper.ParseFloat(element["VideoPanX"], 0f),
             VideoPanY = SettingsHelper.ParseFloat(element["VideoPanY"], 0f),
             VideoZoomExtra = SettingsHelper.ParseFloat(element["VideoZoomExtra"], 0f),
+            VideoSpeedPercent = Math.Max(10f, Math.Min(400f, SettingsHelper.ParseFloat(element["VideoSpeedPercent"], 100f))),
             ImagePanX = SettingsHelper.ParseFloat(element["ImagePanX"], 0f),
             ImagePanY = SettingsHelper.ParseFloat(element["ImagePanY"], 0f),
             ImageZoomExtra = SettingsHelper.ParseFloat(element["ImageZoomExtra"], 0f),

@@ -207,6 +207,7 @@ public partial class LayoutSettingsControl : UserControl
         trkVideoPanX.ValueChanged += VideoPanZoomTrackbars_ValueChanged;
         trkVideoPanY.ValueChanged += VideoPanZoomTrackbars_ValueChanged;
         trkVideoZoom.ValueChanged += VideoPanZoomTrackbars_ValueChanged;
+        trkVideoSpeed.ValueChanged += VideoPanZoomTrackbars_ValueChanged;
 
         cmbBackgroundType.SelectedItem = GetBackgroundTypeString(Settings.BackgroundType);
         originalBackgroundImage = Settings.BackgroundImage;
@@ -1070,6 +1071,8 @@ public partial class LayoutSettingsControl : UserControl
             trkVideoPanX.Visible = trkVideoPanY.Visible = trkVideoZoom.Visible = showBackgroundPanZoom;
         lblVideoPanX.Enabled = lblVideoPanY.Enabled = lblVideoZoom.Enabled =
             trkVideoPanX.Enabled = trkVideoPanY.Enabled = trkVideoZoom.Enabled = showBackgroundPanZoom;
+        lblVideoSpeed.Visible = trkVideoSpeed.Visible = videoBackground;
+        lblVideoSpeed.Enabled = trkVideoSpeed.Enabled = videoBackground;
         if (showBackgroundPanZoom)
         {
             SyncVideoPanZoomTrackbarsFromSettings();
@@ -1152,6 +1155,7 @@ public partial class LayoutSettingsControl : UserControl
                 trkVideoPanX.Value = Math.Max(trkVideoPanX.Minimum, Math.Min(trkVideoPanX.Maximum, (int)Math.Round(Settings.VideoPanX * 100.0)));
                 trkVideoPanY.Value = Math.Max(trkVideoPanY.Minimum, Math.Min(trkVideoPanY.Maximum, (int)Math.Round(Settings.VideoPanY * 100.0)));
                 trkVideoZoom.Value = Math.Max(trkVideoZoom.Minimum, Math.Min(trkVideoZoom.Maximum, (int)Math.Round(Settings.VideoZoomExtra * 100.0)));
+                trkVideoSpeed.Value = Math.Max(trkVideoSpeed.Minimum, Math.Min(trkVideoSpeed.Maximum, (int)Math.Round(Settings.VideoSpeedPercent)));
             }
             else
             {
@@ -1200,7 +1204,7 @@ public partial class LayoutSettingsControl : UserControl
         {
             lblVideoPanX.Text = string.Format("{0} {1}", T("Pan X:"), FormatSignedPercent(trkVideoPanX.Value));
             lblVideoPanY.Text = string.Format("{0} {1}", T("Pan Y:"), FormatSignedPercent(trkVideoPanY.Value));
-            lblVideoZoom.Text = string.Format("{0} {1}", T("Zoom:"), FormatPercent(trkVideoZoom.Value));
+            lblVideoZoom.Text = string.Format("{0} {1}", T("Zoom:"), FormatSignedPercent(trkVideoZoom.Value));
         }
         else
         {
@@ -1208,6 +1212,10 @@ public partial class LayoutSettingsControl : UserControl
             lblVideoPanY.Text = T("Video Pan Y:");
             lblVideoZoom.Text = T("Video Zoom:");
         }
+
+        lblVideoSpeed.Text = videoBackground
+            ? string.Format("{0} {1}", T("Speed:"), FormatPercent(trkVideoSpeed.Value))
+            : T("Video Speed:");
 
         if (imageBackground || videoBackground)
         {
@@ -1278,6 +1286,7 @@ public partial class LayoutSettingsControl : UserControl
             Settings.VideoPanX = trkVideoPanX.Value / 100f;
             Settings.VideoPanY = trkVideoPanY.Value / 100f;
             Settings.VideoZoomExtra = trkVideoZoom.Value / 100f;
+            Settings.VideoSpeedPercent = trkVideoSpeed.Value;
         }
         else if (sel == "Image")
         {

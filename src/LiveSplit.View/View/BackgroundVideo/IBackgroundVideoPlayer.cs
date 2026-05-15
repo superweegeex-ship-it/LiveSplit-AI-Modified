@@ -31,6 +31,8 @@ internal interface IBackgroundVideoPlayer : IDisposable
 
     float VideoZoomExtra { get; set; }
 
+    float VideoSpeedPercent { get; set; }
+
     float VideoBlurScale { get; set; }
 
     BackgroundVideoBlurType VideoBlurType { get; set; }

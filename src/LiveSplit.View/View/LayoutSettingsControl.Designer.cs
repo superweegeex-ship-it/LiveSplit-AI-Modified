@@ -83,6 +83,8 @@ namespace LiveSplit.View
             this.trkVideoPanY = new System.Windows.Forms.TrackBar();
             this.lblVideoZoom = new System.Windows.Forms.Label();
             this.trkVideoZoom = new System.Windows.Forms.TrackBar();
+            this.lblVideoSpeed = new System.Windows.Forms.Label();
+            this.trkVideoSpeed = new System.Windows.Forms.TrackBar();
             this.cmbBackgroundType = new System.Windows.Forms.ComboBox();
             this.lblBackground = new System.Windows.Forms.Label();
             this.btnBackground2 = new System.Windows.Forms.Button();
@@ -122,6 +124,7 @@ namespace LiveSplit.View
             ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanX)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanY)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkVideoZoom)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoSpeed)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numVideoStartOffsetSeconds)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.numVideoVolumeReductionAfterRunCompletes)).BeginInit();
             this.grpVideoTimerSync.SuspendLayout();
@@ -752,7 +755,7 @@ namespace LiveSplit.View
             this.groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox3.Location = new System.Drawing.Point(3, 3);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(456, 165);
+            this.groupBox3.Size = new System.Drawing.Size(456, 194);
             this.groupBox3.TabIndex = 17;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Background";
@@ -768,30 +771,33 @@ namespace LiveSplit.View
             this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 133F));
             this.tableLayoutPanel3.AutoSize = true;
             this.tableLayoutPanel3.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.tableLayoutPanel3.Controls.Add(this.trkBlur, 5, 4);
-            this.tableLayoutPanel3.Controls.Add(this.trkImageOpacity, 1, 4);
-            this.tableLayoutPanel3.Controls.Add(this.cmbBackgroundType, 4, 3);
-            this.tableLayoutPanel3.Controls.Add(this.lblBackground, 0, 3);
-            this.tableLayoutPanel3.Controls.Add(this.btnBackground2, 3, 3);
-            this.tableLayoutPanel3.Controls.Add(this.btnBackground, 2, 3);
-            this.tableLayoutPanel3.Controls.Add(this.lblImageOpacity, 0, 4);
-            this.tableLayoutPanel3.Controls.Add(this.lblBlur, 4, 4);
+            this.tableLayoutPanel3.Controls.Add(this.trkBlur, 5, 5);
+            this.tableLayoutPanel3.Controls.Add(this.trkImageOpacity, 1, 5);
+            this.tableLayoutPanel3.Controls.Add(this.cmbBackgroundType, 4, 4);
+            this.tableLayoutPanel3.Controls.Add(this.lblBackground, 0, 4);
+            this.tableLayoutPanel3.Controls.Add(this.btnBackground2, 3, 4);
+            this.tableLayoutPanel3.Controls.Add(this.btnBackground, 2, 4);
+            this.tableLayoutPanel3.Controls.Add(this.lblImageOpacity, 0, 5);
+            this.tableLayoutPanel3.Controls.Add(this.lblBlur, 4, 5);
             this.tableLayoutPanel3.Controls.Add(this.lblVideoPanX, 0, 0);
             this.tableLayoutPanel3.Controls.Add(this.trkVideoPanX, 1, 0);
             this.tableLayoutPanel3.Controls.Add(this.lblVideoPanY, 0, 1);
             this.tableLayoutPanel3.Controls.Add(this.trkVideoPanY, 1, 1);
             this.tableLayoutPanel3.Controls.Add(this.lblVideoZoom, 0, 2);
             this.tableLayoutPanel3.Controls.Add(this.trkVideoZoom, 1, 2);
+            this.tableLayoutPanel3.Controls.Add(this.lblVideoSpeed, 0, 3);
+            this.tableLayoutPanel3.Controls.Add(this.trkVideoSpeed, 1, 3);
             this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel3.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel3.Name = "tableLayoutPanel3";
-            this.tableLayoutPanel3.RowCount = 5;
+            this.tableLayoutPanel3.RowCount = 6;
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(450, 145);
+            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.AutoSize));
+            this.tableLayoutPanel3.Size = new System.Drawing.Size(450, 174);
             this.tableLayoutPanel3.TabIndex = 0;
             // 
             // lblVideoPanX
@@ -859,16 +865,43 @@ namespace LiveSplit.View
             this.trkVideoZoom.Dock = System.Windows.Forms.DockStyle.Fill;
             this.trkVideoZoom.Location = new System.Drawing.Point(94, 61);
             this.trkVideoZoom.Maximum = 100;
+            this.trkVideoZoom.Minimum = -100;
             this.trkVideoZoom.Name = "trkVideoZoom";
             this.trkVideoZoom.Size = new System.Drawing.Size(353, 23);
             this.trkVideoZoom.TabIndex = 28;
             this.trkVideoZoom.TickStyle = System.Windows.Forms.TickStyle.None;
             this.trkVideoZoom.Visible = false;
+            //
+            // lblVideoSpeed
+            //
+            this.lblVideoSpeed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
+            this.lblVideoSpeed.AutoSize = true;
+            this.lblVideoSpeed.Location = new System.Drawing.Point(3, 95);
+            this.lblVideoSpeed.Name = "lblVideoSpeed";
+            this.lblVideoSpeed.Size = new System.Drawing.Size(85, 13);
+            this.lblVideoSpeed.TabIndex = 29;
+            this.lblVideoSpeed.Text = "Video Speed:";
+            this.lblVideoSpeed.Visible = false;
+            //
+            // trkVideoSpeed
+            //
+            this.tableLayoutPanel3.SetColumnSpan(this.trkVideoSpeed, 5);
+            this.trkVideoSpeed.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.trkVideoSpeed.Location = new System.Drawing.Point(94, 90);
+            this.trkVideoSpeed.Maximum = 400;
+            this.trkVideoSpeed.Minimum = 10;
+            this.trkVideoSpeed.Name = "trkVideoSpeed";
+            this.trkVideoSpeed.Size = new System.Drawing.Size(353, 23);
+            this.trkVideoSpeed.TabIndex = 30;
+            this.trkVideoSpeed.TickFrequency = 10;
+            this.trkVideoSpeed.TickStyle = System.Windows.Forms.TickStyle.None;
+            this.trkVideoSpeed.Value = 100;
+            this.trkVideoSpeed.Visible = false;
             // 
             // trkBlur
             // 
             this.trkBlur.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.trkBlur.Location = new System.Drawing.Point(320, 119);
+            this.trkBlur.Location = new System.Drawing.Point(320, 148);
             this.trkBlur.Maximum = 100;
             this.trkBlur.Name = "trkBlur";
             this.trkBlur.Size = new System.Drawing.Size(127, 24);
@@ -879,7 +912,7 @@ namespace LiveSplit.View
             // 
             this.tableLayoutPanel3.SetColumnSpan(this.trkImageOpacity, 3);
             this.trkImageOpacity.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.trkImageOpacity.Location = new System.Drawing.Point(94, 119);
+            this.trkImageOpacity.Location = new System.Drawing.Point(94, 148);
             this.trkImageOpacity.Maximum = 100;
             this.trkImageOpacity.Minimum = 5;
             this.trkImageOpacity.Name = "trkImageOpacity";
@@ -900,7 +933,7 @@ namespace LiveSplit.View
             "Horizontal Gradient",
             "Image",
             "Video"});
-            this.cmbBackgroundType.Location = new System.Drawing.Point(227, 90);
+            this.cmbBackgroundType.Location = new System.Drawing.Point(227, 119);
             this.cmbBackgroundType.Name = "cmbBackgroundType";
             this.cmbBackgroundType.Size = new System.Drawing.Size(220, 21);
             this.cmbBackgroundType.TabIndex = 2;
@@ -910,7 +943,7 @@ namespace LiveSplit.View
             // 
             this.lblBackground.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.lblBackground.AutoSize = true;
-            this.lblBackground.Location = new System.Drawing.Point(3, 95);
+            this.lblBackground.Location = new System.Drawing.Point(3, 124);
             this.lblBackground.Name = "lblBackground";
             this.lblBackground.Size = new System.Drawing.Size(85, 13);
             this.lblBackground.TabIndex = 19;
@@ -923,7 +956,7 @@ namespace LiveSplit.View
             | System.Windows.Forms.AnchorStyles.Right)));
             this.btnBackground2.BackgroundImageLayout = System.Windows.Forms.ImageLayout.Zoom;
             this.btnBackground2.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.btnBackground2.Location = new System.Drawing.Point(198, 90);
+            this.btnBackground2.Location = new System.Drawing.Point(198, 119);
             this.btnBackground2.Name = "btnBackground2";
             this.btnBackground2.Size = new System.Drawing.Size(23, 23);
             this.btnBackground2.TabIndex = 1;
@@ -936,7 +969,7 @@ namespace LiveSplit.View
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.btnBackground.FlatStyle = System.Windows.Forms.FlatStyle.Popup;
-            this.btnBackground.Location = new System.Drawing.Point(169, 90);
+            this.btnBackground.Location = new System.Drawing.Point(169, 119);
             this.btnBackground.Name = "btnBackground";
             this.btnBackground.Size = new System.Drawing.Size(23, 23);
             this.btnBackground.TabIndex = 0;
@@ -947,7 +980,7 @@ namespace LiveSplit.View
             // 
             this.lblImageOpacity.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.lblImageOpacity.AutoSize = true;
-            this.lblImageOpacity.Location = new System.Drawing.Point(3, 124);
+            this.lblImageOpacity.Location = new System.Drawing.Point(3, 153);
             this.lblImageOpacity.Name = "lblImageOpacity";
             this.lblImageOpacity.Size = new System.Drawing.Size(85, 13);
             this.lblImageOpacity.TabIndex = 20;
@@ -957,7 +990,7 @@ namespace LiveSplit.View
             // 
             this.lblBlur.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right)));
             this.lblBlur.AutoSize = true;
-            this.lblBlur.Location = new System.Drawing.Point(227, 124);
+            this.lblBlur.Location = new System.Drawing.Point(227, 153);
             this.lblBlur.Name = "lblBlur";
             this.lblBlur.Size = new System.Drawing.Size(87, 13);
             this.lblBlur.TabIndex = 22;
@@ -1267,6 +1300,7 @@ namespace LiveSplit.View
             ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanX)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkVideoPanY)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkVideoZoom)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.trkVideoSpeed)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numVideoStartOffsetSeconds)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.numVideoVolumeReductionAfterRunCompletes)).EndInit();
             this.ResumeLayout(false);
@@ -1333,6 +1367,8 @@ namespace LiveSplit.View
         private System.Windows.Forms.TrackBar trkVideoPanY;
         private System.Windows.Forms.Label lblVideoZoom;
         private System.Windows.Forms.TrackBar trkVideoZoom;
+        private System.Windows.Forms.Label lblVideoSpeed;
+        private System.Windows.Forms.TrackBar trkVideoSpeed;
         private System.Windows.Forms.Label lblImageOpacity;
         private System.Windows.Forms.TrackBar trkBlur;
         private System.Windows.Forms.Label lblBlur;
