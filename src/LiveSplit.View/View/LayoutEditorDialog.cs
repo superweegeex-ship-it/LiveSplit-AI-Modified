@@ -260,13 +260,19 @@ public partial class LayoutEditorDialog : Form
     private void ShowLayoutSettings(UI.Components.IComponent tabControl = null)
     {
         var oldSettings = (Options.LayoutSettings)Layout.Settings.Clone();
-        var settingsDialog = new LayoutSettingsDialog(Layout.Settings, Layout, tabControl);
+        using var settingsDialog = new LayoutSettingsDialog(Layout.Settings, Layout, tabControl);
         void ForwardLiveApply(object _, BackgroundVideoLiveApplyEventArgs e) =>
             Form?.InvokeIfRequired(() => LayoutSettingsLiveVideoApply?.Invoke(this, e));
         settingsDialog.LiveApplyRequested += ForwardLiveApply;
-        DialogResult result = settingsDialog.ShowDialog(this);
-        settingsDialog.LiveApplyRequested -= ForwardLiveApply;
-        //settingsDialog.Dispose();
+        DialogResult result;
+        try
+        {
+            result = settingsDialog.ShowDialog(this);
+        }
+        finally
+        {
+            settingsDialog.LiveApplyRequested -= ForwardLiveApply;
+        }
         if (result == DialogResult.OK)
         {
             if (oldSettings.BackgroundImage != null && oldSettings.BackgroundImage != Layout.Settings.BackgroundImage)

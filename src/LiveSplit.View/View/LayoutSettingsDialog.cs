@@ -31,16 +31,38 @@ public partial class LayoutSettingsDialog : Form
     private List<FontOverrides> _fontOverrideSnapshots;
     private List<LayoutComponent> _layoutComponents;
     private LayoutSettingsControl _layoutSettingsControl;
+    private readonly List<Action> _removeSettingsHandlers = [];
+    private readonly HashSet<Control> _borrowedSettingsControls = [];
 
     protected override void Dispose(bool disposing)
     {
         if (disposing)
         {
-            foreach (FontOverrides snapshot in _fontOverrideSnapshots)
+            // Components own and reuse their settings controls. Remove our callbacks
+            // before detaching them, then let the form dispose only its own UI.
+            foreach (Action removeHandler in _removeSettingsHandlers)
             {
-                snapshot?.Dispose();
+                removeHandler();
             }
 
+            _removeSettingsHandlers.Clear();
+            foreach (Control control in _borrowedSettingsControls)
+            {
+                control.Parent?.Controls.Remove(control);
+            }
+
+            _borrowedSettingsControls.Clear();
+            if (_fontOverrideSnapshots != null)
+            {
+                foreach (FontOverrides snapshot in _fontOverrideSnapshots)
+                {
+                    snapshot?.Dispose();
+                }
+
+                _fontOverrideSnapshots.Clear();
+            }
+
+            LiveApplyRequested = null;
             components?.Dispose();
         }
 
@@ -136,6 +158,10 @@ public partial class LayoutSettingsDialog : Form
         {
             IComponent component = layoutComponent.Component;
             Control settingsControl = component.GetSettingsControl(Layout.Mode);
+            if (settingsControl != null)
+            {
+                _borrowedSettingsControls.Add(settingsControl);
+            }
             var lc = layoutComponent as LayoutComponent;
 
             var fontAttr = component.GetType().GetCustomAttributes(typeof(GlobalFontConsumerAttribute), true);
@@ -227,7 +253,9 @@ public partial class LayoutSettingsDialog : Form
 
                     container.Resize += (_, _) => UpdateStackedSettingsHeight();
                     fontPanel.SizeChanged += (_, _) => UpdateStackedSettingsHeight();
-                    settingsControl.SizeChanged += (_, _) => UpdateStackedSettingsHeight();
+                    EventHandler settingsSizeChanged = (_, _) => UpdateStackedSettingsHeight();
+                    settingsControl.SizeChanged += settingsSizeChanged;
+                    _removeSettingsHandlers.Add(() => settingsControl.SizeChanged -= settingsSizeChanged);
                     container.Controls.Add(settingsControl);
                     container.Controls.Add(fontPanel);
                     UpdateStackedSettingsHeight();
@@ -354,9 +382,17 @@ public partial class LayoutSettingsDialog : Form
             }
         }
 
-        control.HandleCreated += (_, _) => ScheduleScrollExtentUpdate();
-        control.ControlAdded += (_, _) => ScheduleScrollExtentUpdate();
-        control.ControlRemoved += (_, _) => ScheduleScrollExtentUpdate();
+        EventHandler handleCreated = (_, _) => ScheduleScrollExtentUpdate();
+        ControlEventHandler childrenChanged = (_, _) => ScheduleScrollExtentUpdate();
+        control.HandleCreated += handleCreated;
+        control.ControlAdded += childrenChanged;
+        control.ControlRemoved += childrenChanged;
+        _removeSettingsHandlers.Add(() =>
+        {
+            control.HandleCreated -= handleCreated;
+            control.ControlAdded -= childrenChanged;
+            control.ControlRemoved -= childrenChanged;
+        });
         contentPanel.HandleCreated += (_, _) => ScheduleScrollExtentUpdate();
         contentPanel.ClientSizeChanged += (_, _) => ScheduleScrollExtentUpdate();
         tabControl.SelectedIndexChanged += (_, _) =>
