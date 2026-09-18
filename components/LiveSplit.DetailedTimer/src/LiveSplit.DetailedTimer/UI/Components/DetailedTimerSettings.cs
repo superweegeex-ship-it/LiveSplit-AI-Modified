@@ -45,6 +45,12 @@ public partial class DetailedTimerSettings : UserControl
     public Color SegmentTimerGradientTopColor { get; set; }
     public Color SegmentTimerGradientMiddleColor { get; set; }
     public Color SegmentTimerGradientBottomColor { get; set; }
+    public CurrentSplitOutlineWaveAxis TimerGradientAxis { get; set; }
+    public CurrentSplitOutlineWaveAxis SegmentTimerGradientAxis { get; set; }
+    public int TimerGradientSpeed { get; set; }
+    public int SegmentTimerGradientSpeed { get; set; }
+    public int TimerGradientBandSize { get; set; }
+    public int SegmentTimerGradientBandSize { get; set; }
 
     public Color BackgroundColor { get; set; }
     public Color BackgroundColor2 { get; set; }
@@ -128,6 +134,20 @@ public partial class DetailedTimerSettings : UserControl
     private Label lblSegmentTimerGradientTop;
     private Label lblSegmentTimerGradientMiddle;
     private Label lblSegmentTimerGradientBottom;
+    private Label lblTimerGradientDirection;
+    private Label lblSegmentTimerGradientDirection;
+    private Label lblTimerGradientSpeed;
+    private Label lblSegmentTimerGradientSpeed;
+    private RadioButton rdoTimerGradientHorizontal;
+    private RadioButton rdoTimerGradientVertical;
+    private RadioButton rdoSegmentTimerGradientHorizontal;
+    private RadioButton rdoSegmentTimerGradientVertical;
+    private TrackBar trkTimerGradientSpeed;
+    private TrackBar trkSegmentTimerGradientSpeed;
+    private Label lblTimerGradientBandSize;
+    private Label lblSegmentTimerGradientBandSize;
+    private TrackBar trkTimerGradientBandSize;
+    private TrackBar trkSegmentTimerGradientBandSize;
 
     public DetailedTimerSettings()
     {
@@ -155,6 +175,12 @@ public partial class DetailedTimerSettings : UserControl
         SegmentTimerGradientTopColor = Color.White;
         SegmentTimerGradientMiddleColor = SegmentTimerColor;
         SegmentTimerGradientBottomColor = Color.FromArgb(120, 120, 120);
+        TimerGradientAxis = CurrentSplitOutlineWaveAxis.Vertical;
+        SegmentTimerGradientAxis = CurrentSplitOutlineWaveAxis.Vertical;
+        TimerGradientSpeed = 0;
+        SegmentTimerGradientSpeed = 0;
+        TimerGradientBandSize = 100;
+        SegmentTimerGradientBandSize = 100;
 
         DigitsFormat = "1";
         Accuracy = ".23";
@@ -222,6 +248,18 @@ public partial class DetailedTimerSettings : UserControl
         btnSegmentTimerGradientTopColor.DataBindings.Add("BackColor", this, "SegmentTimerGradientTopColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnSegmentTimerGradientMiddleColor.DataBindings.Add("BackColor", this, "SegmentTimerGradientMiddleColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnSegmentTimerGradientBottomColor.DataBindings.Add("BackColor", this, "SegmentTimerGradientBottomColor", false, DataSourceUpdateMode.OnPropertyChanged);
+        trkTimerGradientSpeed.DataBindings.Add("Value", this, nameof(TimerGradientSpeed), false, DataSourceUpdateMode.OnPropertyChanged);
+        trkSegmentTimerGradientSpeed.DataBindings.Add("Value", this, nameof(SegmentTimerGradientSpeed), false, DataSourceUpdateMode.OnPropertyChanged);
+        trkTimerGradientBandSize.DataBindings.Add("Value", this, nameof(TimerGradientBandSize), false, DataSourceUpdateMode.OnPropertyChanged);
+        trkSegmentTimerGradientBandSize.DataBindings.Add("Value", this, nameof(SegmentTimerGradientBandSize), false, DataSourceUpdateMode.OnPropertyChanged);
+        rdoTimerGradientHorizontal.CheckedChanged += TimerGradientAxis_CheckedChanged;
+        rdoTimerGradientVertical.CheckedChanged += TimerGradientAxis_CheckedChanged;
+        rdoSegmentTimerGradientHorizontal.CheckedChanged += SegmentTimerGradientAxis_CheckedChanged;
+        rdoSegmentTimerGradientVertical.CheckedChanged += SegmentTimerGradientAxis_CheckedChanged;
+        trkTimerGradientSpeed.ValueChanged += GradientMotionSettingChanged;
+        trkSegmentTimerGradientSpeed.ValueChanged += GradientMotionSettingChanged;
+        trkTimerGradientBandSize.ValueChanged += GradientMotionSettingChanged;
+        trkSegmentTimerGradientBandSize.ValueChanged += GradientMotionSettingChanged;
         chkTimerMultiColorGradient.CheckedChanged += (_, _) => UpdateGradientControlStates();
         chkSegmentTimerMultiColorGradient.CheckedChanged += (_, _) => UpdateGradientControlStates();
         chkShowGradientTimer.CheckedChanged += (_, _) => UpdateGradientControlStates();
@@ -239,7 +277,7 @@ public partial class DetailedTimerSettings : UserControl
         };
         tableLayoutPanel3.Controls.Add(chkTimerMultiColorGradient, 0, 2);
         tableLayoutPanel3.SetColumnSpan(chkTimerMultiColorGradient, 2);
-        tableLayoutPanel3.RowCount = 6;
+        tableLayoutPanel3.RowCount = 9;
         tableLayoutPanel3.RowStyles.Clear();
         AddAutoRows(tableLayoutPanel3, tableLayoutPanel3.RowCount);
 
@@ -255,6 +293,7 @@ public partial class DetailedTimerSettings : UserControl
         tableLayoutPanel3.Controls.Add(btnTimerGradientMiddleColor, 1, 4);
         tableLayoutPanel3.Controls.Add(lblTimerGradientBottom, 0, 5);
         tableLayoutPanel3.Controls.Add(btnTimerGradientBottomColor, 1, 5);
+        AddGradientMotionControls(tableLayoutPanel3, 6, false);
 
         chkSegmentTimerMultiColorGradient = new CheckBox
         {
@@ -264,7 +303,7 @@ public partial class DetailedTimerSettings : UserControl
         };
         tableLayoutPanel4.Controls.Add(chkSegmentTimerMultiColorGradient, 0, 4);
         tableLayoutPanel4.SetColumnSpan(chkSegmentTimerMultiColorGradient, 3);
-        tableLayoutPanel4.RowCount = 8;
+        tableLayoutPanel4.RowCount = 11;
         tableLayoutPanel4.RowStyles.Clear();
         AddAutoRows(tableLayoutPanel4, tableLayoutPanel4.RowCount);
 
@@ -280,6 +319,115 @@ public partial class DetailedTimerSettings : UserControl
         tableLayoutPanel4.Controls.Add(btnSegmentTimerGradientMiddleColor, 1, 6);
         tableLayoutPanel4.Controls.Add(lblSegmentTimerGradientBottom, 0, 7);
         tableLayoutPanel4.Controls.Add(btnSegmentTimerGradientBottomColor, 1, 7);
+        AddGradientMotionControls(tableLayoutPanel4, 8, true);
+    }
+
+    private void AddGradientMotionControls(TableLayoutPanel table, int row, bool segmentTimer)
+    {
+        var directionLabel = CreateGradientLabel(T("Direction:"));
+        var directionPanel = new FlowLayoutPanel
+        {
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            FlowDirection = FlowDirection.LeftToRight,
+            WrapContents = false,
+            Dock = DockStyle.Fill,
+            Margin = Padding.Empty
+        };
+        var horizontal = new RadioButton { AutoSize = true, Text = T("Horizontal") };
+        var vertical = new RadioButton { AutoSize = true, Text = T("Vertical"), Checked = true };
+        directionPanel.Controls.Add(horizontal);
+        directionPanel.Controls.Add(vertical);
+
+        var speedLabel = CreateGradientLabel(T("Speed:"));
+        var speed = new TrackBar
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            Minimum = 0,
+            Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum,
+            TickFrequency = 5
+        };
+        table.Controls.Add(directionLabel, 0, row);
+        table.Controls.Add(directionPanel, 1, row);
+        table.Controls.Add(speedLabel, 0, row + 1);
+        table.Controls.Add(speed, 1, row + 1);
+        var bandSizeLabel = CreateGradientLabel(T("Color Band Size:"));
+        var bandSize = new TrackBar
+        {
+            Anchor = AnchorStyles.Left | AnchorStyles.Right,
+            Minimum = 25,
+            Maximum = 400,
+            TickFrequency = 25,
+            Value = 100
+        };
+        table.Controls.Add(bandSizeLabel, 0, row + 2);
+        table.Controls.Add(bandSize, 1, row + 2);
+
+        if (segmentTimer)
+        {
+            lblSegmentTimerGradientDirection = directionLabel;
+            rdoSegmentTimerGradientHorizontal = horizontal;
+            rdoSegmentTimerGradientVertical = vertical;
+            lblSegmentTimerGradientSpeed = speedLabel;
+            trkSegmentTimerGradientSpeed = speed;
+            lblSegmentTimerGradientBandSize = bandSizeLabel;
+            trkSegmentTimerGradientBandSize = bandSize;
+        }
+        else
+        {
+            lblTimerGradientDirection = directionLabel;
+            rdoTimerGradientHorizontal = horizontal;
+            rdoTimerGradientVertical = vertical;
+            lblTimerGradientSpeed = speedLabel;
+            trkTimerGradientSpeed = speed;
+            lblTimerGradientBandSize = bandSizeLabel;
+            trkTimerGradientBandSize = bandSize;
+        }
+    }
+
+    private void TimerGradientAxis_CheckedChanged(object sender, EventArgs e)
+    {
+        if (!((RadioButton)sender).Checked)
+        {
+            return;
+        }
+        TimerGradientAxis = rdoTimerGradientHorizontal.Checked
+            ? CurrentSplitOutlineWaveAxis.Horizontal
+            : CurrentSplitOutlineWaveAxis.Vertical;
+        MarkLayoutChanged();
+    }
+
+    private void SegmentTimerGradientAxis_CheckedChanged(object sender, EventArgs e)
+    {
+        if (!((RadioButton)sender).Checked)
+        {
+            return;
+        }
+        SegmentTimerGradientAxis = rdoSegmentTimerGradientHorizontal.Checked
+            ? CurrentSplitOutlineWaveAxis.Horizontal
+            : CurrentSplitOutlineWaveAxis.Vertical;
+        MarkLayoutChanged();
+    }
+
+    private void GradientMotionSettingChanged(object sender, EventArgs e)
+    {
+        MarkLayoutChanged();
+    }
+
+    private void MarkLayoutChanged()
+    {
+        if (CurrentState?.Layout != null)
+        {
+            CurrentState.Layout.HasChanged = true;
+        }
+    }
+
+    private void SyncGradientAxisControls()
+    {
+        rdoTimerGradientHorizontal.Checked = TimerGradientAxis == CurrentSplitOutlineWaveAxis.Horizontal;
+        rdoTimerGradientVertical.Checked = TimerGradientAxis == CurrentSplitOutlineWaveAxis.Vertical;
+        rdoSegmentTimerGradientHorizontal.Checked = SegmentTimerGradientAxis == CurrentSplitOutlineWaveAxis.Horizontal;
+        rdoSegmentTimerGradientVertical.Checked = SegmentTimerGradientAxis == CurrentSplitOutlineWaveAxis.Vertical;
     }
 
     private void FixLayoutSizing()
@@ -489,6 +637,14 @@ public partial class DetailedTimerSettings : UserControl
         SegmentTimerGradientTopColor = SettingsHelper.ParseColor(element["SegmentTimerGradientTopColor"], Color.White);
         SegmentTimerGradientMiddleColor = SettingsHelper.ParseColor(element["SegmentTimerGradientMiddleColor"], SegmentTimerColor);
         SegmentTimerGradientBottomColor = SettingsHelper.ParseColor(element["SegmentTimerGradientBottomColor"], Color.FromArgb(120, 120, 120));
+        TimerGradientAxis = SettingsHelper.ParseEnum(element["TimerGradientAxis"], CurrentSplitOutlineWaveAxis.Vertical);
+        SegmentTimerGradientAxis = SettingsHelper.ParseEnum(element["SegmentTimerGradientAxis"], CurrentSplitOutlineWaveAxis.Vertical);
+        TimerGradientSpeed = Math.Min(CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum,
+            Math.Max(0, SettingsHelper.ParseInt(element["TimerGradientSpeed"], 0)));
+        SegmentTimerGradientSpeed = Math.Min(CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum,
+            Math.Max(0, SettingsHelper.ParseInt(element["SegmentTimerGradientSpeed"], 0)));
+        TimerGradientBandSize = Math.Min(400, Math.Max(25, SettingsHelper.ParseInt(element["TimerGradientBandSize"], 100)));
+        SegmentTimerGradientBandSize = Math.Min(400, Math.Max(25, SettingsHelper.ParseInt(element["SegmentTimerGradientBandSize"], 100)));
         SegmentLabelsColor = SettingsHelper.ParseColor(element["SegmentLabelsColor"]);
         SegmentTimesColor = SettingsHelper.ParseColor(element["SegmentTimesColor"]);
         TimingMethod = SettingsHelper.ParseString(element["TimingMethod"], "Current Timing Method");
@@ -568,7 +724,7 @@ public partial class DetailedTimerSettings : UserControl
 
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
-        return SettingsHelper.CreateSetting(document, parent, "Version", "1.7") ^
+        return SettingsHelper.CreateSetting(document, parent, "Version", "1.9") ^
         SettingsHelper.CreateSetting(document, parent, "Height", Height) ^
         SettingsHelper.CreateSetting(document, parent, "Width", Width) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentTimerSizeRatio", SegmentTimerSizeRatio) ^
@@ -588,6 +744,12 @@ public partial class DetailedTimerSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "SegmentTimerGradientTopColor", SegmentTimerGradientTopColor) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentTimerGradientMiddleColor", SegmentTimerGradientMiddleColor) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentTimerGradientBottomColor", SegmentTimerGradientBottomColor) ^
+        SettingsHelper.CreateSetting(document, parent, "TimerGradientAxis", TimerGradientAxis) ^
+        SettingsHelper.CreateSetting(document, parent, "SegmentTimerGradientAxis", SegmentTimerGradientAxis) ^
+        SettingsHelper.CreateSetting(document, parent, "TimerGradientSpeed", TimerGradientSpeed) ^
+        SettingsHelper.CreateSetting(document, parent, "SegmentTimerGradientSpeed", SegmentTimerGradientSpeed) ^
+        SettingsHelper.CreateSetting(document, parent, "TimerGradientBandSize", TimerGradientBandSize) ^
+        SettingsHelper.CreateSetting(document, parent, "SegmentTimerGradientBandSize", SegmentTimerGradientBandSize) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentLabelsColor", SegmentLabelsColor) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentTimesColor", SegmentTimesColor) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentLabelsFont", SegmentLabelsFont) ^
@@ -621,6 +783,7 @@ public partial class DetailedTimerSettings : UserControl
         chkDisplayIcon_CheckedChanged(null, null);
         chkSplitName_CheckedChanged(null, null);
         UpdateGradientControlStates();
+        SyncGradientAxisControls();
         cmbComparison.Items.Clear();
         cmbComparison.Items.Add("Current Comparison");
         cmbComparison.Items.AddRange(CurrentState.Run.Comparisons.Where(x => x is not BestSplitTimesComparisonGenerator.ComparisonName and not NoneComparisonGenerator.ComparisonName).ToArray());
@@ -690,11 +853,19 @@ public partial class DetailedTimerSettings : UserControl
         lblTimerGradientTop.Enabled = btnTimerGradientTopColor.Enabled = timerMultiEnabled;
         lblTimerGradientMiddle.Enabled = btnTimerGradientMiddleColor.Enabled = timerMultiEnabled;
         lblTimerGradientBottom.Enabled = btnTimerGradientBottomColor.Enabled = timerMultiEnabled;
+        bool timerGradientEnabled = chkShowGradientTimer.Checked;
+        lblTimerGradientDirection.Enabled = rdoTimerGradientHorizontal.Enabled = rdoTimerGradientVertical.Enabled = timerGradientEnabled;
+        lblTimerGradientSpeed.Enabled = trkTimerGradientSpeed.Enabled = timerGradientEnabled;
+        lblTimerGradientBandSize.Enabled = trkTimerGradientBandSize.Enabled = timerGradientEnabled;
 
         chkSegmentTimerMultiColorGradient.Enabled = chkShowGradientSegmentTimer.Checked;
         bool segmentMultiEnabled = chkShowGradientSegmentTimer.Checked && chkSegmentTimerMultiColorGradient.Checked;
         lblSegmentTimerGradientTop.Enabled = btnSegmentTimerGradientTopColor.Enabled = segmentMultiEnabled;
         lblSegmentTimerGradientMiddle.Enabled = btnSegmentTimerGradientMiddleColor.Enabled = segmentMultiEnabled;
         lblSegmentTimerGradientBottom.Enabled = btnSegmentTimerGradientBottomColor.Enabled = segmentMultiEnabled;
+        bool segmentGradientEnabled = chkShowGradientSegmentTimer.Checked;
+        lblSegmentTimerGradientDirection.Enabled = rdoSegmentTimerGradientHorizontal.Enabled = rdoSegmentTimerGradientVertical.Enabled = segmentGradientEnabled;
+        lblSegmentTimerGradientSpeed.Enabled = trkSegmentTimerGradientSpeed.Enabled = segmentGradientEnabled;
+        lblSegmentTimerGradientBandSize.Enabled = trkSegmentTimerGradientBandSize.Enabled = segmentGradientEnabled;
     }
 }

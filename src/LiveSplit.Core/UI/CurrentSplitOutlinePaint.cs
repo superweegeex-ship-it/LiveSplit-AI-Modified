@@ -130,6 +130,51 @@ public static class CurrentSplitOutlinePaint
         return CreateTwoPointGradient(width, height, alpha255, topColor, bottomColor, rowGradientHorizontal);
     }
 
+    /// <summary>
+    /// Creates a seamless first-to-center-to-last text gradient. The requested axis controls both the color strip
+    /// and its motion; color names from callers do not imply a vertical orientation.
+    /// </summary>
+    public static Brush CreateThreeColorWaveBrush(
+        float width,
+        float height,
+        bool horizontal,
+        int waveSpeed,
+        int bandScalePercent,
+        Color firstColor,
+        Color centerColor,
+        Color lastColor)
+    {
+        int visibleLength = Math.Max(2, (int)Math.Ceiling(horizontal ? width : height));
+        float scale = Math.Max(25, Math.Min(400, bandScalePercent)) / 100f;
+        int tile = Math.Max(4, (int)Math.Ceiling(visibleLength * 2f * scale));
+        int band = Math.Max(2, (int)Math.Ceiling(horizontal ? height : width));
+        var brush = new LinearGradientBrush(
+            new Rectangle(0, 0, tile, band),
+            firstColor,
+            lastColor,
+            LinearGradientMode.Horizontal)
+        {
+            GammaCorrection = true,
+            WrapMode = WrapMode.Tile
+        };
+        brush.InterpolationColors = new ColorBlend
+        {
+            Positions = new[] { 0f, 0.25f, 0.5f, 0.75f, 1f },
+            Colors = new[] { firstColor, centerColor, lastColor, centerColor, firstColor }
+        };
+
+        float offset = WrappedPhaseOffset(waveSpeed, tile);
+        brush.ResetTransform();
+        brush.TranslateTransform(-offset, 0f, MatrixOrder.Append);
+        if (!horizontal)
+        {
+            brush.RotateTransform(90f, MatrixOrder.Append);
+            brush.TranslateTransform(0f, band, MatrixOrder.Append);
+        }
+
+        return brush;
+    }
+
     private static Brush CreateTwoPointGradient(
         float width,
         float height,

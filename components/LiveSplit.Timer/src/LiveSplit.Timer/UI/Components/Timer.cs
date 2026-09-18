@@ -205,27 +205,13 @@ public class Timer : IComponent
                 bottomColor = Settings.TextGradientBottomColor;
             }
 
-            var bigTimerGradiantBrush = new LinearGradientBrush(
-                new PointF(BigTextLabel.X, BigTextLabel.Y),
-                new PointF(BigTextLabel.X, BigTextLabel.Y + ascent + descent),
-                topColor,
-                bottomColor);
-            var smallTimerGradiantBrush = new LinearGradientBrush(
-                new PointF(SmallTextLabel.X, SmallTextLabel.Y),
-                new PointF(SmallTextLabel.X, SmallTextLabel.Y + ascent + descent + smallFont.Size - bigFont.Size),
-                topColor,
-                bottomColor);
-
-            if (Settings.UseMultiColorTextGradient)
-            {
-                var blend = new ColorBlend
-                {
-                    Colors = new[] { topColor, middleColor, bottomColor },
-                    Positions = new[] { 0f, 0.5f, 1f },
-                };
-                bigTimerGradiantBrush.InterpolationColors = blend;
-                smallTimerGradiantBrush.InterpolationColors = blend;
-            }
+            bool horizontalGradient = Settings.TextGradientAxis == CurrentSplitOutlineWaveAxis.Horizontal;
+            var bigTimerGradiantBrush = (LinearGradientBrush)CurrentSplitOutlinePaint.CreateThreeColorWaveBrush(
+                width, height, horizontalGradient, Settings.TextGradientSpeed, Settings.TextGradientBandSize,
+                topColor, middleColor, bottomColor);
+            var smallTimerGradiantBrush = (LinearGradientBrush)CurrentSplitOutlinePaint.CreateThreeColorWaveBrush(
+                width, height, horizontalGradient, Settings.TextGradientSpeed, Settings.TextGradientBandSize,
+                topColor, middleColor, bottomColor);
 
             BigTextLabel.Brush = bigTimerGradiantBrush;
             SmallTextLabel.Brush = smallTimerGradiantBrush;
@@ -404,7 +390,7 @@ public class Timer : IComponent
             Cache["TimerColor"] = BigTextLabel.ForeColor.ToArgb();
         }
 
-        if (invalidator != null && Cache.HasChanged)
+        if (invalidator != null && (Cache.HasChanged || (Settings.ShowGradient && Settings.TextGradientSpeed > 0)))
         {
             invalidator.Invalidate(0, 0, width, height);
         }

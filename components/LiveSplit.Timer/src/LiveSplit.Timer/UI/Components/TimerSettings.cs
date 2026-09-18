@@ -50,6 +50,9 @@ public partial class TimerSettings : UserControl
     public Color TextGradientTopColor { get; set; }
     public Color TextGradientMiddleColor { get; set; }
     public Color TextGradientBottomColor { get; set; }
+    public CurrentSplitOutlineWaveAxis TextGradientAxis { get; set; }
+    public int TextGradientSpeed { get; set; }
+    public int TextGradientBandSize { get; set; }
 
     public string TimingMethod { get; set; }
 
@@ -77,6 +80,9 @@ public partial class TimerSettings : UserControl
         TextGradientTopColor = Color.White;
         TextGradientMiddleColor = TimerColor;
         TextGradientBottomColor = Color.FromArgb(120, 120, 120);
+        TextGradientAxis = CurrentSplitOutlineWaveAxis.Vertical;
+        TextGradientSpeed = 0;
+        TextGradientBandSize = 100;
         BackgroundColor = Color.Transparent;
         BackgroundColor2 = Color.Transparent;
         BackgroundGradient = DeltasGradientType.Plain;

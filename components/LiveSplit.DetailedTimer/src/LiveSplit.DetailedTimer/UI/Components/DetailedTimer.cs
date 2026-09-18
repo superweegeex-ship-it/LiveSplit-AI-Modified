@@ -144,6 +144,9 @@ public class DetailedTimer : IComponent
         InternalComponent.Settings.TextGradientTopColor = Settings.TimerGradientTopColor;
         InternalComponent.Settings.TextGradientMiddleColor = Settings.TimerGradientMiddleColor;
         InternalComponent.Settings.TextGradientBottomColor = Settings.TimerGradientBottomColor;
+        InternalComponent.Settings.TextGradientAxis = Settings.TimerGradientAxis;
+        InternalComponent.Settings.TextGradientSpeed = Settings.TimerGradientSpeed;
+        InternalComponent.Settings.TextGradientBandSize = Settings.TimerGradientBandSize;
         SegmentTimer.Settings.ShowGradient = Settings.SegmentTimerShowGradient;
         SegmentTimer.Settings.OverrideSplitColors = true;
         SegmentTimer.Settings.TimerColor = Settings.SegmentTimerColor;
@@ -154,6 +157,9 @@ public class DetailedTimer : IComponent
         SegmentTimer.Settings.TextGradientTopColor = Settings.SegmentTimerGradientTopColor;
         SegmentTimer.Settings.TextGradientMiddleColor = Settings.SegmentTimerGradientMiddleColor;
         SegmentTimer.Settings.TextGradientBottomColor = Settings.SegmentTimerGradientBottomColor;
+        SegmentTimer.Settings.TextGradientAxis = Settings.SegmentTimerGradientAxis;
+        SegmentTimer.Settings.TextGradientSpeed = Settings.SegmentTimerGradientSpeed;
+        SegmentTimer.Settings.TextGradientBandSize = Settings.SegmentTimerGradientBandSize;
 
         if (state.CurrentSplitIndex >= 0)
         {
@@ -478,6 +484,12 @@ public class DetailedTimer : IComponent
         Cache["BestSegmentTime"] = BestSegmentTime.Text;
         Cache["SegmentTimerText"] = SegmentTimer.BigTextLabel.Text + SegmentTimer.SmallTextLabel.Text;
         Cache["InternalComponentText"] = InternalComponent.BigTextLabel.Text + InternalComponent.SmallTextLabel.Text;
+        Cache["TimerGradientAxis"] = Settings.TimerGradientAxis;
+        Cache["SegmentTimerGradientAxis"] = Settings.SegmentTimerGradientAxis;
+        Cache["TimerGradientSpeed"] = Settings.TimerGradientSpeed;
+        Cache["SegmentTimerGradientSpeed"] = Settings.SegmentTimerGradientSpeed;
+        Cache["TimerGradientBandSize"] = Settings.TimerGradientBandSize;
+        Cache["SegmentTimerGradientBandSize"] = Settings.SegmentTimerGradientBandSize;
         Cache["IconShadows"] = Settings.IconShadows;
         Cache["LayoutShadowsColor"] = state.LayoutSettings.ShadowsColor.ToArgb();
         Cache["LayoutIconShadowOffset"] = state.LayoutSettings.IconShadowOffset;
@@ -495,7 +507,9 @@ public class DetailedTimer : IComponent
             }
         }
 
-        if (invalidator != null && (Cache.HasChanged || FrameCount > 1))
+        bool gradientAnimating = (Settings.TimerShowGradient && Settings.TimerGradientSpeed > 0)
+            || (Settings.SegmentTimerShowGradient && Settings.SegmentTimerGradientSpeed > 0);
+        if (invalidator != null && (Cache.HasChanged || FrameCount > 1 || gradientAnimating))
         {
             invalidator.Invalidate(0, 0, width, height);
         }
