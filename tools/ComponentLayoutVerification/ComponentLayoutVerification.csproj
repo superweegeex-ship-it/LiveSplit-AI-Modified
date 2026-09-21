@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net481</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../VerifyComponentLayout.cs" />
+    <ProjectReference Include="../../src/LiveSplit.Core/LiveSplit.Core.csproj" />
+    <ProjectReference Include="../../components/LiveSplit.Splits/src/LiveSplit.Splits/LiveSplit.Splits.csproj" />
+    <ProjectReference Include="../../components/LiveSplit.Text/src/LiveSplit.Text/LiveSplit.Text.csproj" />
+    <ProjectReference Include="../../components/LiveSplit.WorldRecord/src/LiveSplit.WorldRecord/LiveSplit.WorldRecord.csproj" />
+  </ItemGroup>
+</Project>

@@ -15,6 +15,7 @@ public partial class WorldRecordSettings : UserControl
     private Label lblTextHorizontalOffsetValue;
     private Label lblIconHorizontalOffsetValue;
     private Label lblGameIconShadowOffsetValue;
+    private ComboBox cmbTextShortening;
 
     public Color TextColor { get; set; }
     public bool OverrideTextColor { get; set; }
@@ -33,6 +34,27 @@ public partial class WorldRecordSettings : UserControl
     public LiveSplitState CurrentState { get; set; }
     public bool Display2Rows { get; set; }
     public bool CenteredText { get; set; }
+    private WorldRecordTextShortening textShortening;
+    public WorldRecordTextShortening TextShortening
+    {
+        get => textShortening;
+        set
+        {
+            textShortening = Enum.IsDefined(typeof(WorldRecordTextShortening), value)
+                ? value : WorldRecordTextShortening.Automatic;
+            if (cmbTextShortening != null)
+            {
+                cmbTextShortening.SelectedIndex = (int)textShortening;
+            }
+        }
+    }
+
+    public int TextShorteningIndex
+    {
+        get => (int)TextShortening;
+        set => TextShortening = Enum.IsDefined(typeof(WorldRecordTextShortening), value)
+            ? (WorldRecordTextShortening)value : WorldRecordTextShortening.Automatic;
+    }
 
     public bool FilterVariables { get; set; }
     public bool FilterPlatform { get; set; }
@@ -66,6 +88,7 @@ public partial class WorldRecordSettings : UserControl
     public WorldRecordSettings()
     {
         InitializeComponent();
+        InitializeTextShorteningControl();
         EnsureOffsetValueLabels();
 
         TextColor = Color.FromArgb(255, 255, 255);
@@ -77,6 +100,7 @@ public partial class WorldRecordSettings : UserControl
         BackgroundGradient = GradientType.Plain;
         Display2Rows = false;
         CenteredText = true;
+        TextShortening = WorldRecordTextShortening.Automatic;
         FilterVariables = false;
         FilterPlatform = false;
         FilterRegion = false;
@@ -102,10 +126,57 @@ public partial class WorldRecordSettings : UserControl
         chkVariables.DataBindings.Add("Checked", this, "FilterVariables", false, DataSourceUpdateMode.OnPropertyChanged);
         chkSubcategories.DataBindings.Add("Checked", this, "FilterSubcategories", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbTimingMethod.DataBindings.Add("SelectedItem", this, "TimingMethod", false, DataSourceUpdateMode.OnPropertyChanged);
+        cmbTextShortening.DataBindings.Add("SelectedIndex", this, nameof(TextShorteningIndex), false, DataSourceUpdateMode.OnPropertyChanged);
         trkTextHorizontalOffset.ValueChanged += HorizontalOffsetTrackbars_ValueChanged;
         trkIconHorizontalOffset.ValueChanged += HorizontalOffsetTrackbars_ValueChanged;
         trkGameIconShadowOffset.ValueChanged += GameIconShadowOffsetTrackbar_ValueChanged;
         UpdateOffsetValueLabels();
+    }
+
+    private void InitializeTextShorteningControl()
+    {
+        tableLayoutPanel1.SuspendLayout();
+        tableLayoutPanel1.RowCount++;
+        tableLayoutPanel1.RowStyles.Insert(2, new RowStyle(SizeType.Absolute, 32f));
+        foreach (Control control in tableLayoutPanel1.Controls)
+        {
+            int row = tableLayoutPanel1.GetRow(control);
+            if (row >= 2)
+            {
+                tableLayoutPanel1.SetRow(control, row + 1);
+            }
+        }
+
+        var label = new Label
+        {
+            Text = "Text shortening:", AutoSize = true, Anchor = AnchorStyles.Left
+        };
+        cmbTextShortening = new ComboBox
+        {
+            Name = "cmbTextShortening", Dock = DockStyle.Fill,
+            DropDownStyle = ComboBoxStyle.DropDownList
+        };
+        cmbTextShortening.Items.AddRange(new object[]
+        {
+            "Automatic (fit available space)",
+            "World Record is [time] by [runner]",
+            "World Record: [time] by [runner]",
+            "WR: [time] by [runner]",
+            "WR is [time] by [runner]",
+            "[time] by [runner]",
+            "[time] only"
+        });
+        tableLayoutPanel1.Controls.Add(label, 0, 2);
+        tableLayoutPanel1.Controls.Add(cmbTextShortening, 1, 2);
+        tableLayoutPanel1.SetColumnSpan(cmbTextShortening, 3);
+        // Keep the precision row visible when the extra setting exceeds the page height.
+        groupBox4.MinimumSize = new Size(0, 74);
+        tableLayoutPanel1.AutoSize = true;
+        tableLayoutPanel1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
+        tableLayoutPanel1.Dock = DockStyle.Top;
+        AutoScroll = true;
+        Height += 32;
+        tableLayoutPanel1.ResumeLayout(true);
     }
 
     private void EnsureOffsetValueLabels()
@@ -246,6 +317,7 @@ public partial class WorldRecordSettings : UserControl
         GradientString = SettingsHelper.ParseString(element["BackgroundGradient"]);
         Display2Rows = SettingsHelper.ParseBool(element["Display2Rows"]);
         CenteredText = SettingsHelper.ParseBool(element["CenteredText"]);
+        TextShortening = SettingsHelper.ParseEnum(element["TextShortening"], WorldRecordTextShortening.Automatic);
         FilterRegion = SettingsHelper.ParseBool(element["FilterRegion"]);
         FilterPlatform = SettingsHelper.ParseBool(element["FilterPlatform"]);
         FilterVariables = SettingsHelper.ParseBool(element["FilterVariables"]);
@@ -284,6 +356,7 @@ public partial class WorldRecordSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "BackgroundGradient", BackgroundGradient) ^
         SettingsHelper.CreateSetting(document, parent, "Display2Rows", Display2Rows) ^
         SettingsHelper.CreateSetting(document, parent, "CenteredText", CenteredText) ^
+        SettingsHelper.CreateSetting(document, parent, "TextShortening", TextShortening) ^
         SettingsHelper.CreateSetting(document, parent, "FilterRegion", FilterRegion) ^
         SettingsHelper.CreateSetting(document, parent, "FilterPlatform", FilterPlatform) ^
         SettingsHelper.CreateSetting(document, parent, "FilterVariables", FilterVariables) ^
