@@ -865,7 +865,7 @@ public class SimpleLabel
                     g2.SmoothingMode = g.SmoothingMode;
                     g2.PixelOffsetMode = PixelOffsetMode.Half;
                     using var brush = new SolidBrush(tint);
-                    using var shadowPath = new GraphicsPath();
+                    using var shadowPath = new GraphicsPath(FillMode.Winding);
                     shadowPath.AddString(
                         text,
                         Font.FontFamily,
@@ -1158,7 +1158,7 @@ public class SimpleLabel
         if (g.TextRenderingHint == TextRenderingHint.AntiAlias && OutlineColor.A > 0)
         {
             float fontSize = GetFontSize(g);
-            using var gp = new GraphicsPath();
+            using var gp = new GraphicsPath(FillMode.Winding);
             using var outline = new Pen(OutlineColor, GetOutlineSize(fontSize)) { LineJoin = LineJoin.Round };
             if (HasShadow)
             {
@@ -1169,8 +1169,12 @@ public class SimpleLabel
                 }
             }
 
+            // Reset() in the sharp-shadow path restores Alternate fill mode.
+            // Font contours require nonzero winding: overlapping strokes are ink,
+            // while oppositely wound counters (e.g. the hole in 'O') remain holes.
+            gp.FillMode = FillMode.Winding;
             gp.AddString(text, Font.FontFamily, (int)Font.Style, fontSize, new RectangleF(x, y, width, height), format);
-            g.DrawPath(outline, gp);
+            DrawExteriorTextOutline(g, gp, outline);
             g.FillPath(Brush, gp);
         }
         else
@@ -1185,6 +1189,23 @@ public class SimpleLabel
             }
 
             g.DrawString(text, Font, Brush, new RectangleF(x, y, width, height), format);
+        }
+    }
+
+    internal static void DrawExteriorTextOutline(Graphics g, GraphicsPath path, Pen outline)
+    {
+        // Do not stroke internal contour seams. Filling over them only hides
+        // the problem for opaque text; translucent text still exposes the seams.
+        GraphicsState state = g.Save();
+        try
+        {
+            using var ink = new Region(path);
+            g.SetClip(ink, CombineMode.Exclude);
+            g.DrawPath(outline, path);
+        }
+        finally
+        {
+            g.Restore(state);
         }
     }
 
