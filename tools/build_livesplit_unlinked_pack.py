@@ -1,140 +1,112 @@
-"""
-Rebuild a LiveSplit-friendly Roboto pack from TTFs in a source folder.
+"""Build overlap-free static Roboto faces for GDI+/LiveSplit.
 
-Usage:
-  python tools/build_livesplit_unlinked_pack.py "C:\\path\\to\\Roboto Original"
-
-Output: <source>/Roboto_Original_FIXED_UNLINKED_FOR_LIVESPLIT/*.ttf
+Usage: python tools/build_livesplit_unlinked_pack.py SOURCE [--output DEST]
+SOURCE can be an extracted Google Fonts Roboto folder or its static subfolder.
+Requires fonttools and skia-pathops. Variable fonts are deliberately excluded:
+changing their contours without rebuilding variation deltas corrupts them.
 """
 from __future__ import annotations
 
-import sys
+import argparse
+import shutil
 from pathlib import Path
-
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.removeOverlaps import removeOverlaps
 
-
-def split_bucket_and_style(stem: str) -> tuple[str, str]:
-    if stem.startswith("Roboto_Condensed-"):
-        return "Roboto Condensed", stem[len("Roboto_Condensed-") :]
-    if stem.startswith("Roboto_SemiCondensed-"):
-        return "Roboto SemiCondensed", stem[len("Roboto_SemiCondensed-") :]
-    if stem.startswith("Roboto-"):
-        return "Roboto", stem[len("Roboto-") :]
-    raise ValueError(f"Unexpected filename stem: {stem}")
+BUCKETS = {
+    'Roboto_Condensed-': 'Roboto Cond LSFix',
+    'Roboto_SemiCondensed-': 'Roboto SemiC LSFix',
+    'Roboto-': 'Roboto LSFix',
+}
+WEIGHTS = {'Thin', 'ExtraLight', 'Light', 'Regular', 'Medium', 'SemiBold', 'Bold', 'ExtraBold', 'Black'}
 
 
-def parse_weight_and_italic(style_part: str) -> tuple[str, bool]:
-    italic = style_part.endswith("Italic")
-    core = style_part[:-6] if italic else style_part
-    if italic and core == "":
-        weight = "Regular"
-    else:
-        weight = core
-    return weight, italic
-
-
-def display_weight(weight: str) -> str:
-    return weight or "Regular"
-
-
-def build_family_and_ps_name(bucket: str, weight: str, italic: bool) -> tuple[str, str, str, str]:
-    w = display_weight(weight)
-    family = f"{bucket} LSFix {w}"
-    subfamily = "Italic" if italic else "Regular"
-    full = f"{family} {subfamily}"
-    b = bucket.replace(" ", "")
-    ps_weight = w.replace(" ", "")
-    ps = f"{b}LSFix-{ps_weight}"
-    if italic:
-        ps += "Italic"
-    if len(ps) > 63:
-        ps = ps[:63]
-    return family, subfamily, ps, full
-
-
-def set_names(font: TTFont, family: str, subfamily: str, ps_name: str, full_name: str) -> None:
-    name = font["name"]
-    for rec in name.names:
-        if rec.platformID != 3:
-            continue
-        if rec.nameID == 1:
-            rec.string = family.encode("utf-16-be")
-        elif rec.nameID == 2:
-            rec.string = subfamily.encode("utf-16-be")
-        elif rec.nameID == 4:
-            rec.string = full_name.encode("utf-16-be")
-        elif rec.nameID == 6:
-            rec.string = ps_name.encode("utf-16-be")
-        elif rec.nameID == 16:
-            rec.string = family.encode("utf-16-be")
-        elif rec.nameID == 17:
-            rec.string = subfamily.encode("utf-16-be")
-
-
-def set_style_bits(font: TTFont, italic: bool, boldish: bool) -> None:
-    if "head" in font:
-        h = font["head"]
-        h.macStyle.italic = italic
-        h.macStyle.bold = boldish
-    if "OS/2" in font:
-        os2 = font["OS/2"]
-        fs = os2.fsSelection
-        fs.italic = italic
-        fs.bold = boldish
-        if hasattr(fs, "oblique"):
-            fs.oblique = False
-
-
-def is_bold_weight(weight: str) -> bool:
-    return weight in {"SemiBold", "Bold", "ExtraBold", "Black"}
+def font_names(stem: str) -> tuple[str, str, str]:
+    for prefix, bucket in BUCKETS.items():
+        if stem.startswith(prefix):
+            style = stem[len(prefix):]
+            italic = style.endswith('Italic')
+            weight = (style[:-6] if italic else style) or 'Regular'
+            if weight not in WEIGHTS:
+                raise ValueError(f'Unsupported static face: {stem}')
+            family = f'{bucket} {weight}'
+            subfamily = 'Italic' if italic else 'Regular'
+            ps = family.replace(' ', '') + ('Italic' if italic else '')
+            assert len(family) <= 31, family  # GDI face-name limit
+            return family, subfamily, ps
+    raise ValueError(f'Unexpected font: {stem}')
 
 
 def process_font(src: Path, dst: Path) -> None:
-    stem = src.stem
-    bucket, style_part = split_bucket_and_style(stem)
-    weight, italic = parse_weight_and_italic(style_part)
-    family, subfamily, ps_name, full_name = build_family_and_ps_name(bucket, weight, italic)
-
-    font = TTFont(str(src), recalcBBoxes=True, recalcTimestamp=False)
-    _ = removeOverlaps(font, removeHinting=False, ignoreErrors=True)
-    if "maxp" in font:
-        font["maxp"].recalc(font)
-
-    set_names(font, family, subfamily, ps_name, full_name)
-    set_style_bits(font, italic, is_bold_weight(weight))
-
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    font.save(str(dst))
-    font.close()
+    family, subfamily, ps = font_names(src.stem)
+    with TTFont(src, recalcBBoxes=True, recalcTimestamp=False) as font:
+        if 'fvar' in font:
+            raise ValueError(f'Use static faces, not a variable font: {src}')
+        # Fail on any unsuccessful glyph; never ship a silently partial repair.
+        # Hint programs referencing changed point indices must not survive surgery.
+        horizontal_metrics = font['hmtx'].metrics.copy()
+        removeOverlaps(font, removeHinting=True, ignoreErrors=False)
+        font['hmtx'].metrics = horizontal_metrics
+        full = f'{family} {subfamily}'
+        names = {1: family, 2: subfamily, 3: f'LiveSplitFix-v2;{ps}',
+                 4: full, 6: ps, 16: family, 17: subfamily,
+                 21: family, 22: subfamily}
+        table = font['name']
+        for record in list(table.names):
+            if record.nameID in names:
+                table.setName(names[record.nameID], record.nameID,
+                              record.platformID, record.platEncID, record.langID)
+        for name_id, value in names.items():
+            table.setName(value, name_id, 3, 1, 0x409)
+        italic = subfamily == 'Italic'
+        # Each weight is its own Regular/Italic family, so Bold must stay clear.
+        font['head'].macStyle = (font['head'].macStyle & ~3) | (2 if italic else 0)
+        selection = font['OS/2'].fsSelection & ~((1 << 0) | (1 << 5) | (1 << 6) | (1 << 9))
+        font['OS/2'].fsSelection = selection | (1 if italic else 1 << 6)
+        font['maxp'].recalc(font)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        font.save(dst)
+    # Verify serialized data, including cmap and positioning metrics.
+    with TTFont(src) as original, TTFont(dst, checkChecksums=2) as fixed:
+        assert fixed.getBestCmap() == original.getBestCmap()
+        assert fixed['hmtx'].metrics == original['hmtx'].metrics
+        assert fixed.getGlyphOrder() == original.getGlyphOrder()
+        assert fixed['name'].getDebugName(1) == family
 
 
 def main() -> None:
-    here = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else Path(__file__).resolve().parent
-    out_dir = here / "Roboto_Original_FIXED_UNLINKED_FOR_LIVESPLIT"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for p in out_dir.glob("*.ttf"):
-        p.unlink()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('source', type=Path)
+    parser.add_argument('--output', type=Path)
+    args = parser.parse_args()
+    source = args.source.resolve()
+    static = source / 'static' if (source / 'static').is_dir() else source
+    output = args.output or source / 'Roboto_Original_FIXED_UNLINKED_FOR_LIVESPLIT'
+    output = output.resolve()
+    if output == static:
+        parser.error('Output must differ from the source folder')
+    files = sorted(static.glob('*.ttf'))
+    if not files:
+        parser.error(f'No static TTF files in {static}')
+    for src in files:
+        process_font(src, output / src.name)
+        print('OK', src.name, flush=True)
+    license_path = next((p for p in (source / 'OFL.txt', source.parent / 'OFL.txt') if p.exists()), None)
+    if license_path:
+        shutil.copy2(license_path, output / 'OFL.txt')
+    (output / 'README.txt').write_text(
+        'Roboto LSFix — overlap-free static fonts for LiveSplit\n\n'
+        'Modified from the supplied Roboto font family; licensed under OFL.txt.\n'
+        'Install the TTF files, restart LiveSplit, then select a Roboto LSFix,\n'
+        'Roboto Cond LSFix, or Roboto SemiC LSFix family in the font picker.\n'
+        'Each weight is a separate family with Regular and Italic styles.\n'
+        'Select the weight in the family name; do not enable synthetic Bold.\n'
+        'Contours were unioned, obsolete hinting removed, and names/style flags\n'
+        'made consistent. Character mappings and horizontal metrics are preserved.\n'
+        'Variable source fonts remain unchanged; this pack contains static faces.\n',
+        encoding='utf-8')
+    print(f'Done: {len(files)}/{len(files)} -> {output}')
 
-    sources = sorted(here.glob("*.ttf"))
-    if not sources:
-        raise SystemExit(f"No TTF files found in {here}")
 
-    ok = 0
-    for src in sources:
-        if src.parent == out_dir:
-            continue
-        dst = out_dir / src.name
-        try:
-            process_font(src, dst)
-            ok += 1
-            print("OK", src.name)
-        except Exception as ex:
-            print("FAIL", src.name, ex)
-
-    print(f"Done: {ok}/{len(sources)} -> {out_dir}")
-
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()
