@@ -194,6 +194,7 @@ public partial class TimerForm : Form
     private bool ShouldRefreshRaces = false;
 
     protected Task RefreshTask { get; set; }
+    private readonly ModalRefreshScheduler modalRefreshScheduler;
     protected bool InvalidationRequired { get; set; }
 
     public string BasePath { get; set; }
@@ -361,6 +362,8 @@ public partial class TimerForm : Form
     {
         BasePath = basePath;
         InitializeComponent();
+        modalRefreshScheduler = new ModalRefreshScheduler(components,
+            () => Settings?.RefreshRate ?? 60, () => TimerElapsed(fromModalTimer: true));
         Init(splitsPath, layoutPath);
     }
 
@@ -1658,7 +1661,11 @@ public partial class TimerForm : Form
         {
             int refreshRate = Math.Max(1, Math.Min(300, Settings.RefreshRate));
 
-            Thread.Sleep(1000 / refreshRate);
+            Thread.Sleep(modalRefreshScheduler.Active ? 50 : 1000 / refreshRate);
+            if (modalRefreshScheduler.Active)
+            {
+                continue;
+            }
             try
             {
                 TimerElapsed();
@@ -1667,7 +1674,7 @@ public partial class TimerForm : Form
         }
     }
 
-    private void TimerElapsed()
+    private void TimerElapsed(bool fromModalTimer = false)
     {
         try
         {
@@ -1675,6 +1682,13 @@ public partial class TimerForm : Form
             {
                 try
                 {
+                    // A worker refresh may already be queued when ShowDialog disables us.
+                    // Modal refreshes use WM_TIMER, so input can run before another update.
+                    if (!fromModalTimer && modalRefreshScheduler.Active)
+                    {
+                        return;
+                    }
+
                     Hook?.Poll();
 
                     if (CurrentState.Run.IsAutoSplitterActive())
@@ -3906,6 +3920,8 @@ public partial class TimerForm : Form
         if (m.Msg == (int)WM_ENABLE)
         {
             bool enabled = m.WParam.ToInt32() != 0;
+            // ShowDialog uses native EnableWindow; managed EnabledChanged is not sufficient.
+            modalRefreshScheduler?.SetActive(!enabled);
             // Modal dialogs disable the owner; keep layered-window / readback video state consistent.
             if (!enabled)
             {
