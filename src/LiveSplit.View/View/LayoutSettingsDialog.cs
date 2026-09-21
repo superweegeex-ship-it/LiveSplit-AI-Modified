@@ -28,6 +28,9 @@ public partial class LayoutSettingsDialog : Form
     public List<XmlNode> ComponentSettings { get; set; }
     public List<IComponent> Components { get; set; }
 
+    private readonly Dictionary<TabPage, Func<Control>> _pendingTabs = [];
+    private bool _buildingTabs = true;
+
     private List<FontOverrides> _fontOverrideSnapshots;
     private List<LayoutComponent> _layoutComponents;
     private LayoutSettingsControl _layoutSettingsControl;
@@ -46,6 +49,7 @@ public partial class LayoutSettingsDialog : Form
             }
 
             _removeSettingsHandlers.Clear();
+            _pendingTabs.Clear();
             foreach (Control control in _borrowedSettingsControls)
             {
                 control.Parent?.Controls.Remove(control);
@@ -84,12 +88,24 @@ public partial class LayoutSettingsDialog : Form
         tabControl.SuspendLayout();
         try
         {
-            _layoutSettingsControl = new LayoutSettingsControl(settings, layout);
-            _layoutSettingsControl.LiveApplyRequested += (_, e) => LiveApplyRequested?.Invoke(this, e);
-            AddNewTab("Layout", _layoutSettingsControl);
+            tabControl.SelectedIndexChanged += (_, _) =>
+            {
+                if (!_buildingTabs)
+                {
+                    EnsureSelectedTabLoaded();
+                }
+            };
+            AddDeferredTab("Layout", () =>
+            {
+                _layoutSettingsControl = new LayoutSettingsControl(settings, layout);
+                _layoutSettingsControl.LiveApplyRequested += (_, e) => LiveApplyRequested?.Invoke(this, e);
+                return _layoutSettingsControl;
+            });
             AddComponents(tabComponent);
+            EnsureSelectedTabLoaded();
             UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
             WinFormsTheme.Apply(this);
+            _buildingTabs = false;
         }
         finally
         {
@@ -181,99 +197,103 @@ public partial class LayoutSettingsDialog : Form
             // Create a tab if component has settings OR if it should show font overrides
             if (settingsControl != null || showFontPanel)
             {
-                Control tabContent;
-                if (settingsControl != null && showFontPanel)
+                Control CreateTabContent()
                 {
-                    // Both: stack font panel above settings
-                    var container = new Panel
+                    Control tabContent;
+                    if (settingsControl != null && showFontPanel)
                     {
-                        Dock = DockStyle.Top
-                    };
-                    var fontPanel = new FontOverridePanel();
-                    fontPanel.Bind(lc.FontOverrides, Layout.Settings, usedFonts);
-                    fontPanel.Location = Point.Empty;
-                    fontPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-                    settingsControl.AutoSize = false;
-                    settingsControl.Dock = DockStyle.None;
-                    settingsControl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
-                    bool updatingStackedSettingsHeight = false;
-
-                    void UpdateStackedSettingsHeight()
-                    {
-                        if (updatingStackedSettingsHeight || container.IsDisposed)
+                        // Both: stack font panel above settings
+                        var container = new Panel
                         {
-                            return;
-                        }
+                            Dock = DockStyle.Top
+                        };
+                        var fontPanel = new FontOverridePanel();
+                        fontPanel.Bind(lc.FontOverrides, Layout.Settings, usedFonts);
+                        fontPanel.Location = Point.Empty;
+                        fontPanel.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                        settingsControl.AutoSize = false;
+                        settingsControl.Dock = DockStyle.None;
+                        settingsControl.Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right;
+                        bool updatingStackedSettingsHeight = false;
 
-                        updatingStackedSettingsHeight = true;
-                        try
+                        void UpdateStackedSettingsHeight()
                         {
-                            int width = Math.Max(0, container.ClientSize.Width);
-                            if (width > 0)
+                            if (updatingStackedSettingsHeight || container.IsDisposed)
                             {
-                                if (fontPanel.Width != width)
+                                return;
+                            }
+
+                            updatingStackedSettingsHeight = true;
+                            try
+                            {
+                                int width = Math.Max(0, container.ClientSize.Width);
+                                if (width > 0)
                                 {
-                                    fontPanel.Width = width;
+                                    if (fontPanel.Width != width)
+                                    {
+                                        fontPanel.Width = width;
+                                    }
+
+                                    if (!settingsControl.AutoSize && settingsControl.Width != width)
+                                    {
+                                        settingsControl.Width = width;
+                                    }
                                 }
 
-                                if (!settingsControl.AutoSize && settingsControl.Width != width)
+                                if (settingsControl.Top != fontPanel.Bottom)
                                 {
-                                    settingsControl.Width = width;
+                                    settingsControl.Top = fontPanel.Bottom;
+                                }
+
+                                int settingsHeight = MeasureControlHeight(settingsControl, width);
+                                if (settingsControl.Height != settingsHeight)
+                                {
+                                    settingsControl.Height = settingsHeight;
+                                }
+
+                                int height = settingsControl.Bottom + settingsControl.Margin.Bottom;
+                                if (container.Height != height)
+                                {
+                                    container.Height = height;
+                                }
+
+                                if (container.MinimumSize.Height != height)
+                                {
+                                    container.MinimumSize = new Size(container.MinimumSize.Width, height);
                                 }
                             }
-
-                            if (settingsControl.Top != fontPanel.Bottom)
+                            finally
                             {
-                                settingsControl.Top = fontPanel.Bottom;
-                            }
-
-                            settingsControl.PerformLayout();
-                            int settingsHeight = MeasureControlHeight(settingsControl, width);
-                            if (settingsControl.Height != settingsHeight)
-                            {
-                                settingsControl.Height = settingsHeight;
-                            }
-
-                            int height = settingsControl.Bottom + settingsControl.Margin.Bottom;
-                            if (container.Height != height)
-                            {
-                                container.Height = height;
-                            }
-
-                            if (container.MinimumSize.Height != height)
-                            {
-                                container.MinimumSize = new Size(container.MinimumSize.Width, height);
+                                updatingStackedSettingsHeight = false;
                             }
                         }
-                        finally
-                        {
-                            updatingStackedSettingsHeight = false;
-                        }
+
+                        container.Resize += (_, _) => UpdateStackedSettingsHeight();
+                        fontPanel.SizeChanged += (_, _) => UpdateStackedSettingsHeight();
+                        EventHandler settingsSizeChanged = (_, _) => UpdateStackedSettingsHeight();
+                        settingsControl.SizeChanged += settingsSizeChanged;
+                        _removeSettingsHandlers.Add(() => settingsControl.SizeChanged -= settingsSizeChanged);
+                        container.Controls.Add(settingsControl);
+                        container.Controls.Add(fontPanel);
+                        UpdateStackedSettingsHeight();
+                        tabContent = container;
+                    }
+                    else if (showFontPanel)
+                    {
+                        // No settings control: show only font panel
+                        var fontPanel = new FontOverridePanel();
+                        fontPanel.Bind(lc.FontOverrides, Layout.Settings, usedFonts);
+                        tabContent = fontPanel;
+                    }
+                    else
+                    {
+                        tabContent = settingsControl;
                     }
 
-                    container.Resize += (_, _) => UpdateStackedSettingsHeight();
-                    fontPanel.SizeChanged += (_, _) => UpdateStackedSettingsHeight();
-                    EventHandler settingsSizeChanged = (_, _) => UpdateStackedSettingsHeight();
-                    settingsControl.SizeChanged += settingsSizeChanged;
-                    _removeSettingsHandlers.Add(() => settingsControl.SizeChanged -= settingsSizeChanged);
-                    container.Controls.Add(settingsControl);
-                    container.Controls.Add(fontPanel);
-                    UpdateStackedSettingsHeight();
-                    tabContent = container;
-                }
-                else if (showFontPanel)
-                {
-                    // No settings control: show only font panel
-                    var fontPanel = new FontOverridePanel();
-                    fontPanel.Bind(lc.FontOverrides, Layout.Settings, usedFonts);
-                    tabContent = fontPanel;
-                }
-                else
-                {
-                    tabContent = settingsControl;
+                    return tabContent;
                 }
 
-                AddNewTab(component.ComponentName, tabContent);
+                AddDeferredTab(component.ComponentName, CreateTabContent);
                 ComponentSettings.Add(component.GetSettings(new XmlDocument()));
                 Components.Add(component);
 
@@ -285,9 +305,49 @@ public partial class LayoutSettingsDialog : Form
         }
     }
 
+    private void AddDeferredTab(string name, Func<Control> createContent)
+    {
+        var page = new TabPage(name) { Name = name };
+        _pendingTabs.Add(page, createContent);
+        tabControl.TabPages.Add(page);
+    }
+
+    private void EnsureSelectedTabLoaded()
+    {
+        TabPage page = tabControl.SelectedTab;
+        if (page == null || !_pendingTabs.TryGetValue(page, out Func<Control> createContent))
+        {
+            return;
+        }
+
+        // Remove before parenting controls: handle/layout events can re-enter.
+        _pendingTabs.Remove(page);
+        page.SuspendLayout();
+        try
+        {
+            Control content = createContent();
+            PopulateTabPage(page, content);
+            if (!_buildingTabs)
+            {
+                UiLocalizer.Apply(this, LanguageResolver.ResolveCurrentCultureLanguage());
+                WinFormsTheme.Apply(page);
+            }
+        }
+        finally
+        {
+            page.ResumeLayout(true);
+        }
+    }
+
     protected void AddNewTab(string name, Control control)
     {
-        var page = new TabPage(name);
+        var page = new TabPage(name) { Name = name };
+        PopulateTabPage(page, control);
+        tabControl.TabPages.Add(page);
+    }
+
+    private void PopulateTabPage(TabPage page, Control control)
+    {
         var contentPanel = new Panel
         {
             Dock = DockStyle.Fill,
@@ -307,7 +367,8 @@ public partial class LayoutSettingsDialog : Form
 
         void UpdateScrollExtent()
         {
-            if (updatingScrollExtent || contentPanel.IsDisposed || control.IsDisposed)
+            if (tabControl.SelectedTab != page || updatingScrollExtent
+                || contentPanel.IsDisposed || control.IsDisposed)
             {
                 return;
             }
@@ -354,7 +415,7 @@ public partial class LayoutSettingsDialog : Form
 
         void ScheduleScrollExtentUpdate()
         {
-            if (updatingScrollExtent || scrollExtentUpdatePending
+            if (tabControl.SelectedTab != page || updatingScrollExtent || scrollExtentUpdatePending
                 || contentPanel.IsDisposed || control.IsDisposed)
             {
                 return;
@@ -403,9 +464,6 @@ public partial class LayoutSettingsDialog : Form
             }
         };
         page.Controls.Add(contentPanel);
-        page.Name = name;
-        tabControl.TabPages.Add(page);
-        WinFormsTheme.Apply(page);
         UpdateScrollExtent();
     }
 
@@ -416,7 +474,8 @@ public partial class LayoutSettingsDialog : Form
             return 0;
         }
 
-        control.PerformLayout();
+        // Width/child changes already trigger WinForms layout. Forcing it here
+        // repeats the entire layout while scroll/resize handlers are measuring it.
         Size preferredSize = control.GetPreferredSize(new Size(Math.Max(1, availableWidth), 0));
         int height = Math.Max(control.Height, preferredSize.Height);
         height = Math.Max(height, MeasureNestedControlHeight(control));
