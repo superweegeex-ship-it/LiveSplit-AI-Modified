@@ -33,6 +33,9 @@ public class SimpleLabel
     public bool HasShadow { get; set; }
     public bool IsMonospaced { get; set; }
 
+    /// <summary>Keep glyphs, outlines and shadows inside the assigned horizontal text band.</summary>
+    public bool ClipToWidth { get; set; }
+
     /// <summary>Shadow offset in pixels; positive moves south-east, negative moves north-west.</summary>
     public float TextShadowOffset { get; set; } = 2f;
 
@@ -119,14 +122,28 @@ public class SimpleLabel
         Format.Alignment = HorizontalAlignment;
         Format.LineAlignment = VerticalAlignment;
         CalculateAlternateText(g, layoutWidth);
-        return ActualWidth;
+        return Math.Min(Math.Max(0f, layoutWidth), ActualWidth);
     }
 
     public void Draw(Graphics g)
     {
+        // GDI+ can treat a zero-width layout rectangle as unconstrained text.
+        if (Width <= 0f || Height <= 0f)
+        {
+            return;
+        }
+
         long profilerStart = UiPaintProfiler.Begin();
+        GraphicsState clipState = null;
         try
         {
+            if (ClipToWidth)
+            {
+                clipState = g.Save();
+                RectangleF clip = g.ClipBounds;
+                g.SetClip(new RectangleF(X, clip.Top, Width, clip.Height), CombineMode.Intersect);
+            }
+
             Format.Alignment = HorizontalAlignment;
             Format.LineAlignment = VerticalAlignment;
 
@@ -178,6 +195,10 @@ public class SimpleLabel
         }
         finally
         {
+            if (clipState != null)
+            {
+                g.Restore(clipState);
+            }
             UiPaintProfiler.Record(UiPaintProfilerSection.Labels, profilerStart);
         }
     }

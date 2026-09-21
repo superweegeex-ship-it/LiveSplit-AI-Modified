@@ -54,9 +54,6 @@ public class WorldRecordComponent : IComponent
     private float _lastGameIconShadowTransparency = float.NaN;
     private float _lastGameIconShadowBlur = float.NaN;
 
-    /// <summary>Last layout height from <see cref="Update"/> used for icon sizing when drawing.</summary>
-    private float LastLayoutHeight { get; set; } = 31f;
-
     public string ComponentName => T("World Record");
 
     public float PaddingTop => InternalComponent.PaddingTop;
@@ -271,38 +268,7 @@ public class WorldRecordComponent : IComponent
                 tieCount = 1;
             }
 
-            if (centeredText)
-            {
-                var textList = new List<string>
-                {
-                    string.Format(T("World Record is {0} by {1}"), formatted, runners),
-                    string.Format(T("World Record: {0} by {1}"), formatted, runners),
-                    string.Format(T("WR: {0} by {1}"), formatted, runners),
-                    string.Format(T("WR is {0} by {1}"), formatted, runners)
-                };
-
-                if (tieCount > 1)
-                {
-                    textList.Add(string.Format(T("World Record is {0} ({1}-way tie)"), formatted, tieCount));
-                    textList.Add(string.Format(T("World Record: {0} ({1}-way tie)"), formatted, tieCount));
-                    textList.Add(string.Format(T("WR: {0} ({1}-way tie)"), formatted, tieCount));
-                    textList.Add(string.Format(T("WR is {0} ({1}-way tie)"), formatted, tieCount));
-                }
-
-                InternalComponent.InformationName = textList.First();
-                InternalComponent.AlternateNameText = textList;
-            }
-            else
-            {
-                if (tieCount > 1)
-                {
-                    InternalComponent.InformationValue = string.Format(T("{0} ({1}-way tie)"), formatted, tieCount);
-                }
-                else
-                {
-                    InternalComponent.InformationValue = string.Format(T("{0} by {1}"), formatted, runners);
-                }
-            }
+            SetRecordText(formatted, runners, tieCount, centeredText);
         }
         else if (IsLoading)
         {
@@ -332,6 +298,61 @@ public class WorldRecordComponent : IComponent
         catch (Exception ex)
         {
             Log.Error(ex);
+        }
+    }
+
+    private void SetRecordText(string formatted, string runners, int tieCount, bool centeredText)
+    {
+        if (centeredText)
+        {
+            var textList = new List<string>
+            {
+                string.Format(T("World Record is {0} by {1}"), formatted, runners),
+                string.Format(T("World Record: {0} by {1}"), formatted, runners),
+                string.Format(T("WR: {0} by {1}"), formatted, runners),
+                string.Format(T("WR is {0} by {1}"), formatted, runners)
+            };
+
+            if (tieCount > 1)
+            {
+                textList.Add(string.Format(T("World Record is {0} ({1}-way tie)"), formatted, tieCount));
+                textList.Add(string.Format(T("World Record: {0} ({1}-way tie)"), formatted, tieCount));
+                textList.Add(string.Format(T("WR: {0} ({1}-way tie)"), formatted, tieCount));
+                textList.Add(string.Format(T("WR is {0} ({1}-way tie)"), formatted, tieCount));
+            }
+
+            textList.Add(string.Format(T("{0} by {1}"), formatted, runners));
+            textList.Add(formatted);
+            if (Settings.TextShortening == WorldRecordTextShortening.Automatic)
+            {
+                InternalComponent.InformationName = textList.First();
+                InternalComponent.AlternateNameText = textList;
+            }
+            else
+            {
+                InternalComponent.InformationName = Settings.TextShortening switch
+                {
+                    WorldRecordTextShortening.TimeAndRunner => string.Format(T("{0} by {1}"), formatted, runners),
+                    WorldRecordTextShortening.TimeOnly => formatted,
+                    _ => textList[(int)Settings.TextShortening - 1]
+                };
+                InternalComponent.AlternateNameText = Array.Empty<string>();
+            }
+        }
+        else
+        {
+            if (Settings.TextShortening == WorldRecordTextShortening.TimeOnly)
+            {
+                InternalComponent.InformationValue = formatted;
+            }
+            else if (tieCount > 1)
+            {
+                InternalComponent.InformationValue = string.Format(T("{0} ({1}-way tie)"), formatted, tieCount);
+            }
+            else
+            {
+                InternalComponent.InformationValue = string.Format(T("{0} by {1}"), formatted, runners);
+            }
         }
     }
 
@@ -446,8 +467,6 @@ public class WorldRecordComponent : IComponent
         Cache["GameIconShadowTransparency"] = state.LayoutSettings.IconShadowTransparency;
         Cache["GameIconShadowBlur"] = state.LayoutSettings.IconShadowBlur;
 
-        LastLayoutHeight = Math.Max(18f, height);
-
         if (Cache.HasChanged)
         {
             lock (refreshSync)
@@ -495,6 +514,7 @@ public class WorldRecordComponent : IComponent
             }
 
             Cache["CenteredText"] = Settings.CenteredText && !Settings.Display2Rows && mode == LayoutMode.Vertical;
+            Cache["TextShortening"] = Settings.TextShortening;
             Cache["RealPBTime"] = GetPBTime(Model.TimingMethod.RealTime);
             Cache["GamePBTime"] = GetPBTime(Model.TimingMethod.GameTime);
 
@@ -504,43 +524,38 @@ public class WorldRecordComponent : IComponent
             }
         }
 
-        ApplyGameIconInsets(state, mode);
+        ApplyGameIconInsets(state, mode, mode == LayoutMode.Vertical ? VerticalHeight : height);
         InternalComponent.Update(invalidator, state, width, height, mode);
     }
 
-    private void ApplyGameIconInsets(LiveSplitState state, LayoutMode mode)
+    private const float IconTextGap = 3f;
+
+    private void ApplyGameIconInsets(LiveSplitState state, LayoutMode mode, float height)
     {
         InternalComponent.ContentInsetLeft = 0f;
         InternalComponent.ContentInsetRight = 0f;
-
         if (!Settings.DisplayGameIcon || state?.Run?.GameIcon == null)
         {
             return;
         }
 
-        Image icon = state.Run.GameIcon;
-        float boxOuter = mode == LayoutMode.Vertical && !Settings.Display2Rows
-            ? Math.Max(24f, Math.Min(LastLayoutHeight - 2f, 40f))
-            : Math.Max(20f, LastLayoutHeight - 4f);
-        boxOuter = Math.Max(boxOuter, 22f);
-        GetIconDrawSize(icon, boxOuter, out float drawW, out _);
-        float gap = Settings.GameIconPlacing == WorldRecordGameIconPlacing.WindowEdge ? 10f : 3f;
-        float inset = drawW + gap;
-
-        // Centered single-row: full width for text so it stays centered in the component; icon is drawn beside measured text when NextToText.
-        bool symmetricBand = Settings.CenteredText && !Settings.Display2Rows && mode == LayoutMode.Vertical;
-        if (symmetricBand)
+        GetIconDrawSize(state.Run.GameIcon, height, out float drawW, out _);
+        bool centered = Settings.CenteredText && !Settings.Display2Rows && mode == LayoutMode.Vertical;
+        float band = Math.Max(4f, height - 4f);
+        // Use the same icon geometry as painting, including portrait aspect ratios.
+        float inset = Math.Max(0f, 2f + (band + drawW) / 2f + IconTextGap
+            + (Settings.GameIconSide == WorldRecordGameIconSide.Left
+                ? Settings.IconHorizontalOffset : -Settings.IconHorizontalOffset));
+        if (centered && Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText)
         {
-            if (Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText)
-            {
-                InternalComponent.ContentInsetLeft = 0f;
-                InternalComponent.ContentInsetRight = 0f;
-            }
-            else
-            {
-                InternalComponent.ContentInsetLeft = inset;
-                InternalComponent.ContentInsetRight = inset;
-            }
+            inset = drawW + IconTextGap + Math.Abs(Settings.IconHorizontalOffset);
+        }
+
+        if (centered)
+        {
+            // Preserve centered text, but reserve enough room for the adjacent icon.
+            InternalComponent.ContentInsetLeft = inset;
+            InternalComponent.ContentInsetRight = inset;
         }
         else if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
         {
@@ -555,92 +570,94 @@ public class WorldRecordComponent : IComponent
     private static void GetIconDrawSize(Image icon, float boxOuter, out float drawW, out float drawH)
     {
         float inner = Math.Max(4f, boxOuter - 4f);
-        drawW = inner;
-        drawH = inner;
-        if (icon.Width > icon.Height)
-        {
-            float ratio = icon.Height / (float)icon.Width;
-            drawH *= ratio;
-        }
-        else
-        {
-            float ratio = icon.Width / (float)icon.Height;
-            drawW *= ratio;
-        }
+        float scale = inner / Math.Max(icon.Width, icon.Height);
+        drawW = icon.Width * scale;
+        drawH = icon.Height * scale;
     }
 
     private void ApplyWorldRecordHorizontalTextShift()
     {
-        float dx = Settings.TextHorizontalOffset;
-        InternalComponent.NameLabel.X += dx;
-        InternalComponent.ValueLabel.X += dx;
+        InternalComponent.NameLabel.X += Settings.TextHorizontalOffset;
+        InternalComponent.ValueLabel.X += Settings.TextHorizontalOffset;
     }
 
-    private void DrawWorldRecordGameIcon(Graphics g, LiveSplitState state, float width, float height, bool anchorIconToCenteredText)
+    private void ConstrainTextToIcon(float width, RectangleF iconBounds)
     {
-        if (!Settings.DisplayGameIcon || state?.Run?.GameIcon == null)
+        float left = 5f;
+        float right = Math.Max(left, width - 5f);
+        if (!iconBounds.IsEmpty)
         {
-            return;
+            if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
+            {
+                left = Math.Max(left, iconBounds.Right + IconTextGap);
+            }
+            else
+            {
+                right = Math.Min(right, iconBounds.Left - IconTextGap);
+            }
         }
 
-        float iconDx = Settings.IconHorizontalOffset;
-        Image icon = state.Run.GameIcon;
+        // Offsets must reduce available text space instead of moving text over an icon.
+        foreach (SimpleLabel label in new[] { InternalComponent.NameLabel, InternalComponent.ValueLabel })
+        {
+            float labelRight = Math.Min(right, label.X + label.Width);
+            label.X = Math.Max(left, label.X);
+            label.Width = Math.Max(0f, labelRight - label.X);
+        }
+    }
 
+    private RectangleF GetGameIconBounds(Graphics g, LiveSplitState state, float width, float height, bool anchorIconToCenteredText)
+    {
+        if (!Settings.DisplayGameIcon || state?.Run?.GameIcon == null || width <= 4f)
+        {
+            return RectangleF.Empty;
+        }
+
+        GetIconDrawSize(state.Run.GameIcon, height, out float drawW, out float drawH);
+        if (drawW > width - 4f)
+        {
+            drawH *= (width - 4f) / drawW;
+            drawW = width - 4f;
+        }
+        float band = Math.Max(4f, height - 4f);
+        float x;
+        if (anchorIconToCenteredText && Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText)
+        {
+            SimpleLabel name = InternalComponent.NameLabel;
+            float textWidth = name.MeasureDisplayedTextWidth(g, name.Width);
+            float textLeft = name.X + (name.Width - textWidth) / 2f;
+            x = Settings.GameIconSide == WorldRecordGameIconSide.Left
+                ? textLeft - IconTextGap - drawW
+                : textLeft + textWidth + IconTextGap;
+        }
+        else
+        {
+            x = Settings.GameIconSide == WorldRecordGameIconSide.Left
+                ? 7f + (band - drawW) / 2f
+                : width - 7f - (band + drawW) / 2f;
+        }
+
+        x = Math.Max(2f, Math.Min(width - 2f - drawW, x + Settings.IconHorizontalOffset));
+        return new RectangleF(x, 2f + (band - drawH) / 2f, drawW, drawH);
+    }
+
+    private RectangleF DrawWorldRecordGameIcon(Graphics g, LiveSplitState state, float width, float height, bool anchorIconToCenteredText)
+    {
+        RectangleF bounds = GetGameIconBounds(g, state, width, height, anchorIconToCenteredText);
+        if (bounds.IsEmpty)
+        {
+            return bounds;
+        }
+
+        Image icon = state.Run.GameIcon;
         if (OldGameIcon != icon)
         {
             ImageAnimator.Animate(icon, (_, _) => { });
             OldGameIcon = icon;
         }
-
-        GetIconDrawSize(icon, height, out float drawW, out float drawH);
         ImageAnimator.UpdateFrames(icon);
-
-        float band = Math.Max(4f, height - 4f);
-        float y = 2f + (band - drawH) / 2f;
-
-        if (anchorIconToCenteredText
-            && Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText)
-        {
-            var name = InternalComponent.NameLabel;
-            float tw = name.MeasureDisplayedTextWidth(g, name.Width);
-            float textLeft = name.X + (name.Width - tw) * 0.5f;
-            float textRight = textLeft + tw;
-            const float emojiGap = 2f;
-
-            if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
-            {
-                float x = textLeft - emojiGap - drawW;
-                if (x < 2f)
-                {
-                    x = 2f;
-                }
-
-                DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
-            }
-            else
-            {
-                float x = textRight + emojiGap;
-                if (x + drawW > width - 2f)
-                {
-                    x = width - 2f - drawW;
-                }
-
-                DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
-            }
-
-            return;
-        }
-
-        if (Settings.GameIconSide == WorldRecordGameIconSide.Left)
-        {
-            float x = 7f + (band - drawW) / 2f;
-            DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
-        }
-        else
-        {
-            float x = width - 7f - drawW - (band - drawW) / 2f;
-            DrawGameIconWithShadow(g, state, icon, x + iconDx, y, drawW, drawH);
-        }
+        DrawGameIconWithShadow(g, state, icon, bounds.X, bounds.Y, bounds.Width, bounds.Height);
+        return bounds;
     }
 
     private void DrawGameIconWithShadow(Graphics g, LiveSplitState state, Image icon, float x, float y, float width, float height)
@@ -745,11 +762,14 @@ public class WorldRecordComponent : IComponent
         }
         else
         {
-            InternalComponent.InformationName = T("World Record");
-            InternalComponent.AlternateNameText = new[]
+            InternalComponent.InformationName = Settings.TextShortening switch
             {
-                T("WR")
+                WorldRecordTextShortening.ShortLabel or WorldRecordTextShortening.ShortSentence => T("WR"),
+                WorldRecordTextShortening.TimeAndRunner or WorldRecordTextShortening.TimeOnly => "",
+                _ => T("World Record")
             };
+            InternalComponent.AlternateNameText = Settings.TextShortening == WorldRecordTextShortening.Automatic
+                ? new[] { T("WR") } : Array.Empty<string>();
             InternalComponent.NameLabel.HorizontalAlignment = StringAlignment.Near;
             InternalComponent.ValueLabel.HorizontalAlignment = StringAlignment.Far;
             InternalComponent.NameLabel.VerticalAlignment =
@@ -766,9 +786,11 @@ public class WorldRecordComponent : IComponent
     {
         DrawBackground(g, state, HorizontalWidth, height);
         PrepareDraw(state, LayoutMode.Horizontal);
+        ApplyGameIconInsets(state, LayoutMode.Horizontal, height);
         InternalComponent.ComputeHorizontalLayout(g, state, height);
         ApplyWorldRecordHorizontalTextShift();
-        DrawWorldRecordGameIcon(g, state, HorizontalWidth, height, anchorIconToCenteredText: false);
+        RectangleF iconBounds = DrawWorldRecordGameIcon(g, state, HorizontalWidth, height, anchorIconToCenteredText: false);
+        ConstrainTextToIcon(HorizontalWidth, iconBounds);
         InternalComponent.DrawHorizontalLabels(g);
     }
 
@@ -783,18 +805,14 @@ public class WorldRecordComponent : IComponent
             && state?.Run?.GameIcon != null
             && Settings.GameIconPlacing == WorldRecordGameIconPlacing.NextToText;
 
+        float iconRowHeight = Settings.Display2Rows
+            ? 1.8f * g.MeasureString("A", state.LayoutSettings.TextFont).Height : 31f;
+        ApplyGameIconInsets(state, LayoutMode.Vertical, iconRowHeight);
         InternalComponent.ComputeVerticalLayout(g, state, width);
-        float iconRowHeight = Settings.Display2Rows ? InternalComponent.VerticalHeight : 31f;
         ApplyWorldRecordHorizontalTextShift();
 
-        if (anchorToText)
-        {
-            DrawWorldRecordGameIcon(g, state, width, iconRowHeight, anchorIconToCenteredText: true);
-        }
-        else
-        {
-            DrawWorldRecordGameIcon(g, state, width, iconRowHeight, anchorIconToCenteredText: false);
-        }
+        RectangleF iconBounds = DrawWorldRecordGameIcon(g, state, width, iconRowHeight, anchorToText);
+        ConstrainTextToIcon(width, iconBounds);
 
         InternalComponent.DrawVerticalLabels(g);
     }

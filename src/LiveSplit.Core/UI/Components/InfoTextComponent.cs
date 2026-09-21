@@ -49,11 +49,13 @@ public class InfoTextComponent : IComponent
         Cache = new GraphicsCache();
         NameLabel = new SimpleLabel()
         {
+            ClipToWidth = true,
             HorizontalAlignment = StringAlignment.Near,
             Text = informationName
         };
         ValueLabel = new SimpleLabel()
         {
+            ClipToWidth = true,
             HorizontalAlignment = StringAlignment.Far,
             Text = informationValue
         };
@@ -88,12 +90,12 @@ public class InfoTextComponent : IComponent
     /// </summary>
     public void ComputeVerticalLayout(Graphics g, LiveSplitState state, float width)
     {
+        PrepareDraw(state, DisplayTwoRows ? LayoutMode.Horizontal : LayoutMode.Vertical);
         if (DisplayTwoRows)
         {
             VerticalHeight = 0.9f * (g.MeasureString("A", ValueLabel.Font).Height + g.MeasureString("A", NameLabel.Font).Height);
             PaddingTop = PaddingBottom = 0;
             LayoutTwoRows(g, state, width, VerticalHeight);
-            PrepareDraw(state, LayoutMode.Horizontal);
         }
         else
         {
@@ -111,17 +113,20 @@ public class InfoTextComponent : IComponent
 
             float leftPad = 5f + ContentInsetLeft;
             float rightPad = 5f + ContentInsetRight;
-            NameLabel.Width = width - ValueLabel.ActualWidth - leftPad - rightPad;
+            float availableWidth = Math.Max(0f, width - leftPad - rightPad);
+            float gap = string.IsNullOrEmpty(InformationName) || string.IsNullOrEmpty(InformationValue) ? 0f : 5f;
+            float valueWidth = string.IsNullOrEmpty(InformationName)
+                ? availableWidth
+                : Math.Min(availableWidth, ValueLabel.ActualWidth + (ValueLabel.IsMonospaced ? 2f : 0f));
+            NameLabel.Width = Math.Max(0f, availableWidth - valueWidth - gap);
             NameLabel.Height = VerticalHeight;
             NameLabel.X = leftPad;
             NameLabel.Y = 0;
 
-            ValueLabel.Width = ValueLabel.IsMonospaced ? width - leftPad - rightPad - 2 : width - leftPad - rightPad;
+            ValueLabel.Width = valueWidth;
             ValueLabel.Height = VerticalHeight;
             ValueLabel.Y = 0;
-            ValueLabel.X = leftPad;
-
-            PrepareDraw(state, LayoutMode.Vertical);
+            ValueLabel.X = leftPad + availableWidth - valueWidth;
         }
     }
 
@@ -139,8 +144,11 @@ public class InfoTextComponent : IComponent
 
     public void ComputeHorizontalLayout(Graphics g, LiveSplitState state, float height)
     {
-        LayoutTwoRows(g, state, HorizontalWidth, height);
         PrepareDraw(state, LayoutMode.Horizontal);
+        NameMeasureLabel.Text = LongestString;
+        NameMeasureLabel.SetActualWidth(g);
+        ValueLabel.SetActualWidth(g);
+        LayoutTwoRows(g, state, HorizontalWidth, height);
     }
 
     public void DrawHorizontalLabels(Graphics g)
@@ -167,18 +175,17 @@ public class InfoTextComponent : IComponent
         }
 
         NameMeasureLabel.Text = LongestString;
-        NameMeasureLabel.Font = state.LayoutSettings.TextFont;
         NameMeasureLabel.SetActualWidth(g);
 
         MinimumHeight = 0.85f * (g.MeasureString("A", ValueLabel.Font).Height + g.MeasureString("A", NameLabel.Font).Height);
         float leftPad = 5f + ContentInsetLeft;
         float rightPad = 5f + ContentInsetRight;
-        NameLabel.Width = width - leftPad - rightPad;
+        NameLabel.Width = Math.Max(0f, width - leftPad - rightPad);
         NameLabel.Height = height;
         NameLabel.X = leftPad;
         NameLabel.Y = 0;
 
-        ValueLabel.Width = ValueLabel.IsMonospaced ? width - leftPad - rightPad - 2 : width - leftPad - rightPad;
+        ValueLabel.Width = Math.Max(0f, width - leftPad - rightPad - (ValueLabel.IsMonospaced ? 2f : 0f));
         ValueLabel.Height = height;
         ValueLabel.Y = 0;
         ValueLabel.X = leftPad;
@@ -186,8 +193,8 @@ public class InfoTextComponent : IComponent
 
     protected void DrawTwoRows(Graphics g, LiveSplitState state, float width, float height)
     {
-        LayoutTwoRows(g, state, width, height);
         PrepareDraw(state, LayoutMode.Horizontal);
+        LayoutTwoRows(g, state, width, height);
         DrawHorizontalLabels(g);
     }
 

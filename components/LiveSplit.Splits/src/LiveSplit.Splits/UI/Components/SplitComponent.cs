@@ -33,7 +33,7 @@ public class SplitComponent : IComponent
     protected ITimeFormatter TimeFormatter { get; set; }
     protected ITimeFormatter DeltaTimeFormatter { get; set; }
 
-    protected int IconWidth => DisplayIcon ? (int)(Settings.IconSize + 7.5f) : 0;
+    protected int IconWidth => DisplayIcon && Split?.Icon != null ? (int)(Settings.IconSize + 7.5f) : 0;
 
     public bool DisplayIcon { get; set; }
 
