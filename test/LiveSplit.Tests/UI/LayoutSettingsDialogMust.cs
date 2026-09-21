@@ -23,9 +23,11 @@ namespace LiveSplit.Tests.UI;
 public class LayoutSettingsDialogMust
 {
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ReleaseDialogsAndKeepBorrowedControlsReusable(bool withFonts)
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ReleaseDialogsAndKeepBorrowedControlsReusable(bool withFonts, bool visitComponent)
     {
         OnStaThread(() =>
         {
@@ -37,7 +39,7 @@ public class LayoutSettingsDialogMust
             var windows = new List<WeakReference>();
             for (int i = 0; i < 20; i++)
             {
-                windows.Add(CreateAndDispose(layout));
+                windows.Add(CreateAndDispose(layout, visitComponent));
                 Assert.False(controls.IsDisposed);
                 Assert.Null(controls.Parent);
                 Assert.Equal(before, events.Select(name => HandlerCount(controls, name)).ToArray());
@@ -121,10 +123,54 @@ public class LayoutSettingsDialogMust
         });
     }
 
-    [MethodImpl(MethodImplOptions.NoInlining)]
-    private static WeakReference CreateAndDispose(Layout layout)
+    [Fact]
+    public void LoadOnlyTheSelectedTabAndKeepItsControlsOnRevisit()
     {
-        var dialog = new TestDialog(layout);
+        OnStaThread(() =>
+        {
+            using var first = new FontSettingsComponent();
+            using var second = new SettingsComponent();
+            var layout = CreateLayout(first);
+            layout.LayoutComponents.Add(new LayoutComponent("second", second));
+            using (var dialog = new TestDialog(layout, first))
+            {
+                var tabs = (TabControl)dialog.Controls.Find("tabControl", true)[0];
+                Assert.Equal(1, tabs.SelectedIndex);
+                Assert.Empty(tabs.TabPages[0].Controls);
+                Assert.Empty(tabs.TabPages[2].Controls);
+                Assert.NotNull(first.Settings.Parent);
+                Assert.Null(second.Settings.Parent);
+                dialog.Show();
+                Application.DoEvents();
+                Control originalParent = first.Settings.Parent;
+                tabs.SelectedIndex = 2;
+                Application.DoEvents();
+                Assert.NotNull(second.Settings.Parent);
+                tabs.SelectedIndex = 1;
+                Application.DoEvents();
+                Assert.Same(originalParent, first.Settings.Parent);
+                Assert.Single(tabs.TabPages[1].Controls.Cast<Control>());
+                var fonts = originalParent.Controls.OfType<FontOverridePanel>().Single();
+                Assert.True(first.Settings.Top >= fonts.Bottom);
+                tabs.SelectedIndex = 0;
+                Application.DoEvents();
+                Assert.Single(dialog.Controls.Find("chkTransparentBackgroundForCapture", true));
+                dialog.Close();
+            }
+
+            Assert.False(first.Settings.IsDisposed);
+            Assert.False(second.Settings.IsDisposed);
+            Assert.Null(first.Settings.Parent);
+            Assert.Null(second.Settings.Parent);
+            first.Settings.Dispose();
+            second.Settings.Dispose();
+        });
+    }
+
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static WeakReference CreateAndDispose(Layout layout, bool visitComponent)
+    {
+        var dialog = new TestDialog(layout, visitComponent ? layout.LayoutComponents[0].Component : null);
         var reference = new WeakReference(dialog);
         dialog.Dispose();
         dialog.Dispose(); // Cleanup must be idempotent.
@@ -165,7 +211,7 @@ public class LayoutSettingsDialogMust
 
     private sealed class TestDialog : LayoutSettingsDialog
     {
-        public TestDialog(Layout layout) : base(layout.Settings, layout)
+        public TestDialog(Layout layout, IComponent selected = null) : base(layout.Settings, layout, selected)
         {
             ShowInTaskbar = false;
             Opacity = 0;
