@@ -81,6 +81,7 @@ public class LayoutSettings : ICloneable
     public BackgroundType BackgroundType { get; set; }
 
     public Image BackgroundImage { get; set; }
+    public string BackgroundImagePath { get; set; } = string.Empty;
     public float ImageOpacity { get; set; }
     public float VideoOpacity { get; set; }
     public float ImageBlur { get; set; }
@@ -206,6 +207,7 @@ public class LayoutSettings : ICloneable
         TransparentBackgroundForCapture = settings.TransparentBackgroundForCapture;
         BackgroundType = settings.BackgroundType;
         BackgroundImage = settings.BackgroundImage;
+        BackgroundImagePath = settings.BackgroundImagePath;
         ImageOpacity = settings.ImageOpacity;
         VideoOpacity = settings.VideoOpacity;
         ImageBlur = settings.ImageBlur;

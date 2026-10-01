@@ -1340,6 +1340,7 @@ public partial class LayoutSettingsControl : UserControl
                     }
 
                     Settings.BackgroundImage = ((Button)sender).BackgroundImage = image;
+                    Settings.BackgroundImagePath = System.IO.Path.GetFullPath(dialog.FileName);
                 }
                 catch (Exception ex)
                 {

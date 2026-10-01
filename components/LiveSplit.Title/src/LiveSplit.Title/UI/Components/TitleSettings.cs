@@ -7,6 +7,25 @@ namespace LiveSplit.UI.Components;
 
 public partial class TitleSettings : UserControl
 {
+    private readonly ComponentIconOptions iconOptions;
+    // Preserve spacing from layouts saved by the earlier spacing-only build.
+    public int IconTextSpacing { get; set; } = 3;
+    private TrackBar textOffsetSlider;
+    private TrackBar iconOffsetSlider;
+    public int TextHorizontalOffset
+    {
+        get => textOffsetSlider.Value;
+        set => textOffsetSlider.Value = Math.Max(-100, Math.Min(100, value));
+    }
+    public int IconHorizontalOffset
+    {
+        get => iconOffsetSlider.Value;
+        set => iconOffsetSlider.Value = Math.Max(-100, Math.Min(100, value));
+    }
+
+    public Image ResolveIcon(Image gameIcon) => iconOptions.Resolve(gameIcon);
+    public int IconSizePercent { get => iconOptions.IconSizePercent; set => iconOptions.IconSizePercent = value; }
+    public void LoadCustomIcon(string path) => iconOptions.LoadFile(path);
     public bool ShowGameName { get; set; }
     public bool ShowCategoryName { get; set; }
     public bool ShowAttemptCount { get; set; }
@@ -39,6 +58,8 @@ public partial class TitleSettings : UserControl
     public TitleSettings()
     {
         InitializeComponent();
+        iconOptions = new ComponentIconOptions();
+        InitializeIconControls();
         ShowGameName = true;
         ShowCategoryName = true;
         ShowAttemptCount = true;
@@ -77,6 +98,36 @@ public partial class TitleSettings : UserControl
         cmbTextAlignment.SelectedIndex = (int)TextAlignment;
     }
 
+    private void InitializeIconControls()
+    {
+        // The old final row filled the remaining space; preserve its category controls
+        // now that additional rows follow it.
+        tableLayoutPanel1.RowStyles[6].Height = 79;
+        textOffsetSlider = AddPositionSlider("Text position:", "trkTextHorizontalOffset");
+        iconOffsetSlider = AddPositionSlider("Icon position:", "trkIconHorizontalOffset");
+        ComponentIconOptions.Append(this, tableLayoutPanel1, iconOptions, 106);
+    }
+
+    private TrackBar AddPositionSlider(string label, string name)
+    {
+        var row = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3 };
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 115));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50));
+        row.Controls.Add(new Label { Text = label, AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
+        var valueLabel = new Label { Text = "0 px", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight };
+        var slider = new TrackBar
+        {
+            Name = name, AccessibleName = label, Dock = DockStyle.Fill,
+            Minimum = -100, Maximum = 100, Value = 0, TickStyle = TickStyle.None
+        };
+        slider.ValueChanged += (_, _) => valueLabel.Text = slider.Value + " px";
+        row.Controls.Add(slider, 1, 0);
+        row.Controls.Add(valueLabel, 2, 0);
+        ComponentIconOptions.Append(this, tableLayoutPanel1, row, 36);
+        return slider;
+    }
+
     private void chkColor_CheckedChanged(object sender, EventArgs e)
     {
         label3.Enabled = btnColor.Enabled = chkColor.Checked;
@@ -100,6 +151,10 @@ public partial class TitleSettings : UserControl
         var element = (XmlElement)node;
         Version version = SettingsHelper.ParseVersion(element["Version"]);
         DisplayGameIcon = SettingsHelper.ParseBool(element["DisplayGameIcon"], true);
+        IconTextSpacing = SettingsHelper.ParseInt(element["IconTextSpacing"], 3);
+        TextHorizontalOffset = SettingsHelper.ParseInt(element["TextHorizontalOffset"], 0);
+        IconHorizontalOffset = SettingsHelper.ParseInt(element["IconHorizontalOffset"], 0);
+        iconOptions.Read(element);
 
         if (version >= new Version(1, 2))
         {
@@ -158,7 +213,11 @@ public partial class TitleSettings : UserControl
 
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
-        return SettingsHelper.CreateSetting(document, parent, "Version", "1.7.3") ^
+        return iconOptions.Write(document, parent) ^
+        SettingsHelper.CreateSetting(document, parent, "IconTextSpacing", IconTextSpacing) ^
+        SettingsHelper.CreateSetting(document, parent, "TextHorizontalOffset", TextHorizontalOffset) ^
+        SettingsHelper.CreateSetting(document, parent, "IconHorizontalOffset", IconHorizontalOffset) ^
+        SettingsHelper.CreateSetting(document, parent, "Version", "1.7.3") ^
         SettingsHelper.CreateSetting(document, parent, "ShowGameName", ShowGameName) ^
         SettingsHelper.CreateSetting(document, parent, "ShowCategoryName", ShowCategoryName) ^
         SettingsHelper.CreateSetting(document, parent, "ShowAttemptCount", ShowAttemptCount) ^

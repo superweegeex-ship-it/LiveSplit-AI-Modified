@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net481</TargetFramework><UseWindowsForms>true</UseWindowsForms><OutputType>Exe</OutputType><AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../src/LiveSplit.Core/LiveSplit.Core.csproj" /></ItemGroup>
+</Project>

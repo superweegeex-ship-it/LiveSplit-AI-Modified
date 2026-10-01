@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <PackageReference Include="PolySharp" Version="1.14.1" PrivateAssets="all" />
+    <Compile Include="../../../Shared/ComponentIconOptions.cs" Link="UI/Components/ComponentIconOptions.cs" />
   </ItemGroup>
 
 </Project>

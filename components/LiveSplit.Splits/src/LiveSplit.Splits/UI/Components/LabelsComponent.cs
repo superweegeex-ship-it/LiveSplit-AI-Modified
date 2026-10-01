@@ -79,9 +79,9 @@ public class LabelsComponent : IComponent
             {
                 float labelWidth = ColumnWidths[LabelsList.IndexOf(label)].width;
 
-                curX -= labelWidth + 5;
                 label.Width = labelWidth;
-                label.X = curX + 5;
+                label.X = curX - labelWidth;
+                curX -= labelWidth + Settings.ColumnSpacing;
 
                 label.Font = state.LayoutSettings.TextFont;
                 label.HasShadow = state.LayoutSettings.DropShadows;
@@ -167,6 +167,7 @@ public class LabelsComponent : IComponent
 
         Cache.Restart();
         Cache["ColumnsCount"] = ColumnsList.Count();
+        Cache["ColumnSpacing"] = Settings.ColumnSpacing;
         for (int index = 0; index < LabelsList.Count; index++)
         {
             SimpleLabel label = LabelsList[index];

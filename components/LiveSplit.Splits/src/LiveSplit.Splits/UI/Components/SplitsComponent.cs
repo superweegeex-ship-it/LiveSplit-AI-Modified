@@ -228,10 +228,9 @@ public class SplitsComponent : IComponent
             }
         }
 
-        bool iconsNotBlank = state.Run.Count(x => x.Icon != null) > 0;
         foreach (SplitComponent split in SplitComponents)
         {
-            split.DisplayIcon = iconsNotBlank && Settings.DisplayIcons;
+            split.DisplayIcon = Settings.DisplayIcons;
 
             if (split.Split != null && split.Split.Icon != null)
             {

@@ -60,7 +60,8 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "AntiAliasing", settings.AntiAliasing) ^
         SettingsHelper.CreateSetting(document, element, "DropShadows", settings.DropShadows) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundType", settings.BackgroundType) ^
-        SettingsHelper.CreateSetting(document, element, "BackgroundImage", settings.BackgroundImage) ^
+        SettingsHelper.CreateSetting(document, element, "BackgroundImagePath", settings.BackgroundImagePath ?? string.Empty) ^
+        SettingsHelper.CreateSetting(document, element, "BackgroundImage", string.IsNullOrEmpty(settings.BackgroundImagePath) ? settings.BackgroundImage : null) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundVideoPath", settings.BackgroundVideoPath) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundVideoSource", settings.BackgroundVideoSource) ^
         SettingsHelper.CreateSetting(document, element, "BackgroundVideoInputType", settings.BackgroundVideoInputType) ^

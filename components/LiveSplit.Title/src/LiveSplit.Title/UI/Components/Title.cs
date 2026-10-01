@@ -92,7 +92,7 @@ public class Title : IComponent
 
         MinimumHeight = g.MeasureString("A", TitleFont).Height * 1.7f;
         VerticalHeight = g.MeasureString("A", TitleFont).Height * 1.7f;
-        bool showGameIcon = state.Run.GameIcon != null && Settings.DisplayGameIcon;
+        bool showGameIcon = Settings.ResolveIcon(state.Run.GameIcon) != null && Settings.DisplayGameIcon;
         if (showGameIcon)
         {
             DrawGameIcon(g, state, height);
@@ -132,7 +132,7 @@ public class Title : IComponent
         categoryEndPadding = 5;
         if (showGameIcon)
         {
-            startPadding += height + 3;
+            startPadding += Math.Max(0, height + Settings.IconTextSpacing);
         }
 
         if (mode == LayoutMode.Vertical && Settings.ShowCount)
@@ -164,6 +164,7 @@ public class Title : IComponent
             CategoryNameLabel.Width = width - startPadding - categoryEndPadding;
         }
 
+        CategoryNameLabel.X += Settings.TextHorizontalOffset;
         CategoryNameLabel.Y = 0;
         CategoryNameLabel.HorizontalAlignment = StringAlignment.Near;
         CategoryNameLabel.VerticalAlignment = string.IsNullOrEmpty(GameNameLabel.Text) ? StringAlignment.Center : StringAlignment.Far;
@@ -211,6 +212,7 @@ public class Title : IComponent
             GameNameLabel.Width = width - startPadding - titleEndPadding;
         }
 
+        GameNameLabel.X += Settings.TextHorizontalOffset;
         GameNameLabel.HorizontalAlignment = StringAlignment.Near;
         GameNameLabel.VerticalAlignment = string.IsNullOrEmpty(CategoryNameLabel.Text) ? StringAlignment.Center : StringAlignment.Near;
         GameNameLabel.Y = 0;
@@ -225,7 +227,7 @@ public class Title : IComponent
 
     private void DrawGameIcon(Graphics g, LiveSplitState state, float height)
     {
-        Image icon = state.Run.GameIcon;
+        Image icon = Settings.ResolveIcon(state.Run.GameIcon);
 
         if (OldImage != icon)
         {
@@ -234,8 +236,8 @@ public class Title : IComponent
         }
 
         float aspectRatio = (float)icon.Width / icon.Height;
-        float drawWidth = height - 4;
-        float drawHeight = height - 4;
+        float drawWidth = Math.Max(1f, height - 4) * Settings.IconSizePercent / 100f;
+        float drawHeight = drawWidth;
         if (icon.Width > icon.Height)
         {
             float ratio = icon.Height / (float)icon.Width;
@@ -249,7 +251,7 @@ public class Title : IComponent
 
         ImageAnimator.UpdateFrames(icon);
 
-        float x = 7 + ((height - 4 - drawWidth) / 2);
+        float x = 7 + ((height - 4 - drawWidth) / 2) + Settings.IconHorizontalOffset;
         float y = 2 + ((height - 4 - drawHeight) / 2);
         DrawGameIconShadow(g, state, icon, x, y, drawWidth, drawHeight);
 
@@ -495,16 +497,17 @@ public class Title : IComponent
         }
 
         Cache.Restart();
-        Cache["GameIcon"] = state.Run.GameIcon;
+        Image icon = Settings.ResolveIcon(state.Run.GameIcon);
+        Cache["GameIcon"] = icon;
         if (Cache.HasChanged)
         {
-            if (state.Run.GameIcon == null)
+            if (icon == null)
             {
                 FrameCount = 0;
             }
             else
             {
-                FrameCount = state.Run.GameIcon.GetFrameCount(new FrameDimension(state.Run.GameIcon.FrameDimensionsList[0]));
+                FrameCount = icon.GetFrameCount(new FrameDimension(icon.FrameDimensionsList[0]));
             }
         }
 
@@ -513,6 +516,10 @@ public class Title : IComponent
         Cache["AttemptCountLabel"] = AttemptCountLabel.Text;
         Cache["TextAlignment"] = Settings.TextAlignment;
         Cache["GameIconDropShadows"] = state.LayoutSettings.DropShadows;
+        Cache["IconTextSpacing"] = Settings.IconTextSpacing;
+        Cache["TextHorizontalOffset"] = Settings.TextHorizontalOffset;
+        Cache["IconHorizontalOffset"] = Settings.IconHorizontalOffset;
+        Cache["IconSizePercent"] = Settings.IconSizePercent;
         Cache["GameIconShadowTint"] = state.LayoutSettings.ShadowsColor;
         Cache["GameIconShadowOffset"] = state.LayoutSettings.IconShadowOffset;
         Cache["GameIconShadowTransparency"] = state.LayoutSettings.IconShadowTransparency;
@@ -527,6 +534,7 @@ public class Title : IComponent
     public void Dispose()
     {
         ClearGameIconShadow();
+        Settings.Dispose();
     }
 
     public int GetSettingsHashCode()

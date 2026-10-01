@@ -18,6 +18,8 @@ public partial class DetailedTimerSettings : UserControl
     public new float Height { get; set; }
     public new float Width { get; set; }
     public float SegmentTimerSizeRatio { get; set; }
+    public bool SegmentTimerOnTop { get; set; }
+    public bool KeepLeftSideOrder { get; set; }
     public LiveSplitState CurrentState { get; set; }
 
     public bool TimerShowGradient { get; set; }
@@ -152,6 +154,30 @@ public partial class DetailedTimerSettings : UserControl
     public DetailedTimerSettings()
     {
         InitializeComponent();
+        var swap = new CheckBox { Name = "chkSegmentTimerOnTop", Text = "Segment timer on top", AutoSize = true, Anchor = AnchorStyles.Left };
+        swap.DataBindings.Add("Checked", this, "SegmentTimerOnTop", false, DataSourceUpdateMode.OnPropertyChanged);
+        foreach (Control control in tableLayoutPanel1.Controls)
+        {
+            int row = tableLayoutPanel1.GetRow(control);
+            if (row >= 5) tableLayoutPanel1.SetRow(control, row + 1);
+        }
+        tableLayoutPanel1.RowCount = Math.Max(tableLayoutPanel1.RowCount, 12);
+        tableLayoutPanel1.RowStyles.Insert(5, new RowStyle(SizeType.Absolute, 29));
+        tableLayoutPanel1.Controls.Add(swap, 0, 5);
+        tableLayoutPanel1.SetColumnSpan(swap, tableLayoutPanel1.ColumnCount);
+        var keepLeft = new CheckBox { Name = "chkKeepLeftSideOrder", Text = "Keep icon and comparison times in original positions", AutoSize = true, Anchor = AnchorStyles.Left };
+        keepLeft.DataBindings.Add("Checked", this, "KeepLeftSideOrder", false, DataSourceUpdateMode.OnPropertyChanged);
+        keepLeft.Enabled = swap.Checked;
+        swap.CheckedChanged += (_, _) => keepLeft.Enabled = swap.Checked;
+        foreach (Control control in tableLayoutPanel1.Controls)
+        {
+            int row = tableLayoutPanel1.GetRow(control);
+            if (row >= 6) tableLayoutPanel1.SetRow(control, row + 1);
+        }
+        tableLayoutPanel1.RowCount = Math.Max(tableLayoutPanel1.RowCount, 13);
+        tableLayoutPanel1.RowStyles.Insert(6, new RowStyle(SizeType.Absolute, 29));
+        tableLayoutPanel1.Controls.Add(keepLeft, 0, 6);
+        tableLayoutPanel1.SetColumnSpan(keepLeft, tableLayoutPanel1.ColumnCount);
 
         Height = 75;
         Width = 200;
@@ -625,6 +651,8 @@ public partial class DetailedTimerSettings : UserControl
         Height = SettingsHelper.ParseFloat(element["Height"]);
         Width = SettingsHelper.ParseFloat(element["Width"]);
         SegmentTimerSizeRatio = SettingsHelper.ParseFloat(element["SegmentTimerSizeRatio"]);
+        SegmentTimerOnTop = SettingsHelper.ParseBool(element["SegmentTimerOnTop"], false);
+        KeepLeftSideOrder = SettingsHelper.ParseBool(element["KeepLeftSideOrder"], false);
         TimerShowGradient = SettingsHelper.ParseBool(element["TimerShowGradient"]);
         SegmentTimerShowGradient = SettingsHelper.ParseBool(element["SegmentTimerShowGradient"]);
         TimerUseMultiColorGradient = SettingsHelper.ParseBool(element["TimerUseMultiColorGradient"], false);
@@ -728,6 +756,8 @@ public partial class DetailedTimerSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "Height", Height) ^
         SettingsHelper.CreateSetting(document, parent, "Width", Width) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentTimerSizeRatio", SegmentTimerSizeRatio) ^
+        SettingsHelper.CreateSetting(document, parent, "SegmentTimerOnTop", SegmentTimerOnTop) ^
+        SettingsHelper.CreateSetting(document, parent, "KeepLeftSideOrder", KeepLeftSideOrder) ^
         SettingsHelper.CreateSetting(document, parent, "TimerShowGradient", TimerShowGradient) ^
         SettingsHelper.CreateSetting(document, parent, "OverrideTimerColors", OverrideTimerColors) ^
         SettingsHelper.CreateSetting(document, parent, "SegmentTimerShowGradient", SegmentTimerShowGradient) ^

@@ -33,7 +33,11 @@ public class SplitComponent : IComponent
     protected ITimeFormatter TimeFormatter { get; set; }
     protected ITimeFormatter DeltaTimeFormatter { get; set; }
 
-    protected int IconWidth => DisplayIcon ? (int)(Settings.IconSize + 7.5f) : 0;
+    // The icon itself begins at x=7. Keep its text gap independently adjustable.
+    private bool hideCurrentIcon;
+    protected int IconWidth => DisplayIcon && !hideCurrentIcon && Split?.Icon != null
+        ? (int)(Settings.IconSize + 2 + Settings.IconTextSpacing)
+        : 0;
 
     public bool DisplayIcon { get; set; }
 
@@ -85,6 +89,7 @@ public class SplitComponent : IComponent
 
     private void DrawGeneral(Graphics g, LiveSplitState state, float width, float height, LayoutMode mode)
     {
+        hideCurrentIcon = Settings.HideCurrentSplitIcon && Split == state.CurrentSplit;
         if (NeedUpdateAll)
         {
             UpdateAll(state);
@@ -230,7 +235,7 @@ public class SplitComponent : IComponent
             }
 
             Image icon = Split.Icon;
-            if (DisplayIcon && icon != null)
+            if (DisplayIcon && !hideCurrentIcon && icon != null)
             {
                 Image shadow = ShadowImage;
 
@@ -263,7 +268,7 @@ public class SplitComponent : IComponent
                 {
                     g.DrawImage(
                         shadow,
-                        7 + (((Settings.IconSize * (5 / 4f)) - shadowWidth) / 2) - 0.7f,
+                        7 + Settings.IconHorizontalOffset + (((Settings.IconSize * (5 / 4f)) - shadowWidth) / 2) - 0.7f,
                         ((height - Settings.IconSize) / 2.0f) + (((Settings.IconSize * (5 / 4f)) - shadowHeight) / 2) - 0.7f,
                         shadowWidth,
                         shadowHeight);
@@ -273,7 +278,7 @@ public class SplitComponent : IComponent
 
                 g.DrawImage(
                     icon,
-                    7 + ((Settings.IconSize - drawWidth) / 2),
+                    7 + Settings.IconHorizontalOffset + ((Settings.IconSize - drawWidth) / 2),
                     ((height - Settings.IconSize) / 2.0f) + ((Settings.IconSize - drawHeight) / 2),
                     drawWidth,
                     drawHeight);
@@ -298,8 +303,7 @@ public class SplitComponent : IComponent
                     float labelWidth = ColumnWidths[i].width;
 
                     label.Width = labelWidth + 20;
-                    curX -= labelWidth + 5;
-                    label.X = curX - 15;
+                    label.X = curX - labelWidth - 20;
 
                     label.Font = state.LayoutSettings.TimesFont;
                     label.HasShadow = state.LayoutSettings.DropShadows;
@@ -308,12 +312,14 @@ public class SplitComponent : IComponent
 
                     if (!string.IsNullOrEmpty(label.Text))
                     {
-                        nameX = curX + labelWidth + 5 - label.ActualWidth;
+                        nameX = curX - label.ActualWidth;
                         if (ColumnWidths[i].exWidth < label.ActualWidth)
                         {
                             ColumnWidths[i] = (label.Text.Length, label.ActualWidth, labelWidth);
                         }
                     }
+
+                    curX -= labelWidth + Settings.ColumnSpacing;
                 }
 
                 NameLabel.Width = (mode == LayoutMode.Horizontal ? width - 10 : nameX) - IconWidth;
@@ -803,7 +809,8 @@ public class SplitComponent : IComponent
     {
         if (ColumnWidths != null)
         {
-            return ColumnWidths.Sum(e => e.width) + (5 * ColumnWidths.Count());
+            return ColumnWidths.Sum(e => e.width)
+                + (ColumnWidths.Count > 0 ? 5 + Settings.ColumnSpacing * (ColumnWidths.Count - 1) : 0);
         }
 
         return 0f;
@@ -877,6 +884,10 @@ public class SplitComponent : IComponent
             }
 
             Cache["DisplayIcon"] = DisplayIcon;
+            hideCurrentIcon = Settings.HideCurrentSplitIcon && Split == state.CurrentSplit;
+            Cache["HideCurrentIcon"] = hideCurrentIcon;
+            Cache["IconTextSpacing"] = Settings.IconTextSpacing;
+            Cache["IconHorizontalOffset"] = Settings.IconHorizontalOffset;
             Cache["SplitName"] = NameLabel.Text;
             Cache["IsActive"] = IsActive;
             Cache["CurrentSplitGradient"] = Settings.CurrentSplitGradient;
@@ -904,6 +915,7 @@ public class SplitComponent : IComponent
             Cache["CurrentSplitGradientFillWaveSpeed"] = Settings.CurrentSplitGradientFillWaveSpeed;
             Cache["NameColor"] = NameLabel.ForeColor.ToArgb();
             Cache["ColumnsCount"] = ColumnsList.Count();
+            Cache["ColumnSpacing"] = Settings.ColumnSpacing;
             for (int index = 0; index < LabelsList.Count; index++)
             {
                 SimpleLabel label = LabelsList[index];

@@ -166,14 +166,17 @@ public class DetailedTimer : IComponent
             var labelsFont = new Font(Settings.SegmentLabelsFont.FontFamily, Settings.SegmentLabelsFont.Size, Settings.SegmentLabelsFont.Style, Settings.SegmentLabelsFont.Unit);
             var timesFont = new Font(Settings.SegmentTimesFont.FontFamily, Settings.SegmentTimesFont.Size, Settings.SegmentTimesFont.Style, Settings.SegmentTimesFont.Unit);
 
-            float segmentLabelsAnchorY = height * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
+            bool flipLeft = Settings.SegmentTimerOnTop && !Settings.KeepLeftSideOrder;
+            float segmentLabelsAnchorY = flipLeft ? 0 : height * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
             const float iconGap = 4f;
             const float minIconTop = 2f;
             if (Settings.DisplayIcon && icon != null && drawWidth > 0f && drawHeight > 0f)
             {
                 // Left edge (same padded column as splits), directly above PB / comparison row — labels stay fixed.
                 float iconX = 7f + ((originalDrawSize - drawWidth) / 2f);
-                float iconY = Math.Max(minIconTop, segmentLabelsAnchorY - iconGap - drawHeight);
+                float iconY = flipLeft
+                    ? Math.Max(minIconTop, height - iconGap - drawHeight)
+                    : Math.Max(minIconTop, segmentLabelsAnchorY - iconGap - drawHeight);
                 float shadowWidth = originalDrawSize * (5 / 4f);
                 float shadowHeight = originalDrawSize * (5 / 4f);
                 if (icon.Width > icon.Height)
@@ -222,7 +225,7 @@ public class DetailedTimer : IComponent
 
             LabelBest.Font = labelsFont;
             LabelBest.X = 5;
-            LabelBest.Y = height * ((100f - (Settings.SegmentTimerSizeRatio / 2f)) / 100f);
+            LabelBest.Y = segmentLabelsAnchorY + height * Settings.SegmentTimerSizeRatio / 200f;
             LabelBest.Width = width - SegmentTimer.ActualWidth - 5;
             LabelBest.Height = height * (Settings.SegmentTimerSizeRatio / 200f);
             LabelBest.HorizontalAlignment = StringAlignment.Near;
@@ -259,7 +262,7 @@ public class DetailedTimer : IComponent
             {
                 BestSegmentTime.Font = timesFont;
                 BestSegmentTime.X = offset;
-                BestSegmentTime.Y = height * ((100f - (Settings.SegmentTimerSizeRatio / 2f)) / 100f);
+                BestSegmentTime.Y = segmentLabelsAnchorY + height * Settings.SegmentTimerSizeRatio / 200f;
                 BestSegmentTime.Width = width - SegmentTimer.ActualWidth - offset;
                 BestSegmentTime.Height = height * (Settings.SegmentTimerSizeRatio / 200f);
                 BestSegmentTime.HorizontalAlignment = StringAlignment.Near;
@@ -274,7 +277,7 @@ public class DetailedTimer : IComponent
 
             SplitName.Font = Settings.SplitNameFont;
             SplitName.X = 5;
-            SplitName.Y = 0;
+            SplitName.Y = flipLeft ? height * Settings.SegmentTimerSizeRatio / 100f : 0;
             SplitName.Width = width - InternalComponent.ActualWidth - 5;
             SplitName.Height = height * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
             SplitName.HorizontalAlignment = StringAlignment.Near;
@@ -295,9 +298,10 @@ public class DetailedTimer : IComponent
         DrawGeneral(g, state, width, VerticalHeight);
         Matrix oldMatrix = g.Transform;
         InternalComponent.Settings.TimerHeight = VerticalHeight * ((100f - Settings.SegmentTimerSizeRatio) / 100f);
+        if (Settings.SegmentTimerOnTop) g.TranslateTransform(0, VerticalHeight * Settings.SegmentTimerSizeRatio / 100f);
         InternalComponent.DrawVertical(g, state, width, clipRegion);
         g.Transform = oldMatrix;
-        g.TranslateTransform(0, VerticalHeight * ((100f - Settings.SegmentTimerSizeRatio) / 100f));
+        if (!Settings.SegmentTimerOnTop) g.TranslateTransform(0, VerticalHeight * ((100f - Settings.SegmentTimerSizeRatio) / 100f));
         SegmentTimer.Settings.TimerHeight = VerticalHeight * (Settings.SegmentTimerSizeRatio / 100f);
         SegmentTimer.DrawVertical(g, state, width, clipRegion);
         g.Transform = oldMatrix;
@@ -308,9 +312,10 @@ public class DetailedTimer : IComponent
         DrawGeneral(g, state, HorizontalWidth, height);
         Matrix oldMatrix = g.Transform;
         InternalComponent.Settings.TimerWidth = HorizontalWidth;
+        if (Settings.SegmentTimerOnTop) g.TranslateTransform(0, height * Settings.SegmentTimerSizeRatio / 100f);
         InternalComponent.DrawHorizontal(g, state, height * ((100f - Settings.SegmentTimerSizeRatio) / 100f), clipRegion);
         g.Transform = oldMatrix;
-        g.TranslateTransform(0, height * ((100f - Settings.SegmentTimerSizeRatio) / 100f));
+        if (!Settings.SegmentTimerOnTop) g.TranslateTransform(0, height * ((100f - Settings.SegmentTimerSizeRatio) / 100f));
         SegmentTimer.DrawHorizontal(g, state, height * (Settings.SegmentTimerSizeRatio / 100f), clipRegion);
         SegmentTimer.Settings.TimerWidth = HorizontalWidth;
         g.Transform = oldMatrix;
@@ -491,6 +496,8 @@ public class DetailedTimer : IComponent
         Cache["TimerGradientBandSize"] = Settings.TimerGradientBandSize;
         Cache["SegmentTimerGradientBandSize"] = Settings.SegmentTimerGradientBandSize;
         Cache["IconShadows"] = Settings.IconShadows;
+        Cache["SegmentTimerOnTop"] = Settings.SegmentTimerOnTop;
+        Cache["KeepLeftSideOrder"] = Settings.KeepLeftSideOrder;
         Cache["LayoutShadowsColor"] = state.LayoutSettings.ShadowsColor.ToArgb();
         Cache["LayoutIconShadowOffset"] = state.LayoutSettings.IconShadowOffset;
         Cache["LayoutIconShadowTransparency"] = state.LayoutSettings.IconShadowTransparency;
