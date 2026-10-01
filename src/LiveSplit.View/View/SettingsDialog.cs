@@ -25,6 +25,7 @@ public partial class SettingsDialog : Form
     private static string T(string source) => UiLocalizer.Translate(source, LanguageResolver.ResolveCurrentCultureLanguage());
     private Label lblAppTheme;
     private ComboBox cbxAppTheme;
+    private readonly TextBox txtConnectSpotify = new TextBox { ReadOnly = true, Dock = DockStyle.Fill, Name = "txtConnectSpotify" };
 
     public ISettings Settings { get; set; }
     public CompositeHook Hook { get; set; }
@@ -94,6 +95,17 @@ public partial class SettingsDialog : Form
     public SettingsDialog(CompositeHook hook, ISettings settings, string hotkeyProfile)
     {
         InitializeComponent();
+        foreach (Control control in tableLayoutPanel2.Controls)
+        {
+            int row = tableLayoutPanel2.GetRow(control);
+            if (row >= 8) tableLayoutPanel2.SetRow(control, row + 1);
+        }
+        tableLayoutPanel2.RowCount++;
+        tableLayoutPanel2.RowStyles.Insert(8, new RowStyle(SizeType.AutoSize));
+        tableLayoutPanel2.Controls.Add(new Label { Text = T("Connect Spotify:"), AutoSize = true, Anchor = AnchorStyles.Left }, 0, 8);
+        tableLayoutPanel2.Controls.Add(txtConnectSpotify, 1, 8);
+        tableLayoutPanel2.SetColumnSpan(txtConnectSpotify, 2);
+        txtConnectSpotify.Enter += (s, e) => SetHotkeyHandlers(txtConnectSpotify, key => Settings.HotkeyProfiles[SelectedHotkeyProfile].ConnectSpotify = key);
         ConfigureLayoutSizing();
         RestoreWindowBounds();
         Settings = settings;
@@ -142,9 +154,9 @@ public partial class SettingsDialog : Form
         groupBox1.AutoSizeMode = AutoSizeMode.GrowAndShrink;
         tableLayoutPanel2.AutoSize = true;
         tableLayoutPanel2.AutoSizeMode = AutoSizeMode.GrowAndShrink;
-        if (tableLayoutPanel2.RowStyles.Count > 12)
+        if (tableLayoutPanel2.RowStyles.Count > 13)
         {
-            tableLayoutPanel2.RowStyles[12].Height = 92F;
+            tableLayoutPanel2.RowStyles[13].Height = 92F;
         }
     }
 
@@ -280,6 +292,7 @@ public partial class SettingsDialog : Form
         txtPause.Text = PauseKey;
         txtToggle.Text = ToggleGlobalHotkeys;
         txtToggleVideoDebugOverlay.Text = ToggleVideoDebugOverlay;
+        txtConnectSpotify.Text = FormatKey(Settings.HotkeyProfiles[SelectedHotkeyProfile].ConnectSpotify);
         txtSwitchPrevious.Text = SwitchComparisonPrevious;
         txtSwitchNext.Text = SwitchComparisonNext;
 

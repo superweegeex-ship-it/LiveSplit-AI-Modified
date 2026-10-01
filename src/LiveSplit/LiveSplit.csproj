@@ -23,6 +23,7 @@
     <ProjectReference Include="$(SrcPath)\LiveSplit.Core\LiveSplit.Core.csproj" />
     <ProjectReference Include="$(SrcPath)\LiveSplit.View\LiveSplit.View.csproj" />
     <ProjectReference Include="$(LibPath)\WinForms Color Picker\WinFormsColor\WinFormsColor.csproj" />
+    <ProjectReference Include="$(ComponentsPath)\LiveSplit.Spotify\LiveSplit.Spotify.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -57,5 +58,11 @@
       if exist "$(OutputPath)\Components\System.Runtime.CompilerServices.Unsafe.dll" del "$(OutputPath)\Components\System.Runtime.CompilerServices.Unsafe.dll"
     </PostBuildEvent>
   </PropertyGroup>
+
+  <Target Name="CopySpotifyComponent" AfterTargets="Build">
+    <MakeDir Directories="$(OutputPath)Components" />
+    <Copy SourceFiles="$(BuildPath)\Components\LiveSplit.Spotify.dll"
+          DestinationFolder="$(OutputPath)Components" />
+  </Target>
 
 </Project>

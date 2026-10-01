@@ -18,6 +18,7 @@ public class HotkeyProfile : ICloneable
     public KeyOrButton PauseKey { get; set; }
     public KeyOrButton ToggleGlobalHotkeys { get; set; }
     public KeyOrButton ToggleVideoDebugOverlay { get; set; }
+    public KeyOrButton ConnectSpotify { get; set; }
     public KeyOrButton SwitchComparisonPrevious { get; set; }
     public KeyOrButton SwitchComparisonNext { get; set; }
 
@@ -96,6 +97,8 @@ public class HotkeyProfile : ICloneable
             }
 
             XmlElement keyToggleDebugOverlay = element["ToggleVideoDebugOverlay"];
+            string spotifyKey = element["ConnectSpotify"]?.InnerText;
+            hotkeyProfile.ConnectSpotify = string.IsNullOrEmpty(spotifyKey) ? null : new KeyOrButton(spotifyKey);
             if (!string.IsNullOrEmpty(keyToggleDebugOverlay?.InnerText))
             {
                 hotkeyProfile.ToggleVideoDebugOverlay = new KeyOrButton(keyToggleDebugOverlay.InnerText);
@@ -202,6 +205,9 @@ public class HotkeyProfile : ICloneable
         }
 
         parent.AppendChild(toggleDebugOverlayKey);
+        XmlElement spotifyKey = document.CreateElement("ConnectSpotify");
+        spotifyKey.InnerText = ConnectSpotify?.ToString() ?? "";
+        parent.AppendChild(spotifyKey);
 
         XmlElement switchComparisonPrevious = document.CreateElement("SwitchComparisonPrevious");
         if (SwitchComparisonPrevious != null)
@@ -239,6 +245,7 @@ public class HotkeyProfile : ICloneable
             PauseKey = PauseKey,
             ToggleGlobalHotkeys = ToggleGlobalHotkeys,
             ToggleVideoDebugOverlay = ToggleVideoDebugOverlay,
+            ConnectSpotify = ConnectSpotify,
             SwitchComparisonPrevious = SwitchComparisonPrevious,
             SwitchComparisonNext = SwitchComparisonNext,
             HotkeyDelay = HotkeyDelay,
@@ -259,6 +266,7 @@ public class HotkeyProfile : ICloneable
             PauseKey,
             ToggleGlobalHotkeys,
             ToggleVideoDebugOverlay,
+            ConnectSpotify,
             SwitchComparisonPrevious,
             SwitchComparisonNext
         };

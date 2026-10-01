@@ -248,6 +248,12 @@ public class Settings : ISettings
                 }
             }
 
+            if (hotkeyProfile.ConnectSpotify != null)
+            {
+                try { RegisterHotkey(hook, hotkeyProfile.ConnectSpotify, deactivateForOtherPrograms); }
+                catch (Exception e) { Log.Error(e); }
+            }
+
             if (hotkeyProfile.SwitchComparisonPrevious != null)
             {
                 try

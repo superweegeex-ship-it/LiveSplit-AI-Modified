@@ -1615,6 +1615,10 @@ public partial class TimerForm : Form
                 {
                     Model.SwitchComparisonNext();
                 }
+                else if (hotkeyProfile.ConnectSpotify == e)
+                {
+                    FindSpotifyConnectAction()?.Invoke();
+                }
             }
 
             if (hotkeyProfile.ToggleGlobalHotkeys == e)
@@ -5768,8 +5772,31 @@ public partial class TimerForm : Form
         }
     }
 
+    private ToolStripMenuItem spotifyConnectMenuItem;
+
+    private Action FindSpotifyConnectAction()
+    {
+        foreach (var component in Layout.Components)
+        {
+            if (component.GetType().FullName == "LiveSplit.UI.Components.SpotifyComponent"
+                && component.ContextMenuControls is { } controls
+                && controls.TryGetValue("Connect Spotify", out Action connect))
+            {
+                return connect;
+            }
+        }
+        return null;
+    }
+
     private void RightClickMenu_Opening(object sender, CancelEventArgs e)
     {
+        if (spotifyConnectMenuItem == null)
+        {
+            spotifyConnectMenuItem = new ToolStripMenuItem("Connect Spotify");
+            spotifyConnectMenuItem.Click += (s, args) => FindSpotifyConnectAction()?.Invoke();
+            RightClickMenu.Items.Insert(Math.Max(0, RightClickMenu.Items.IndexOf(controlMenuItem)), spotifyConnectMenuItem);
+        }
+        spotifyConnectMenuItem.Visible = FindSpotifyConnectAction() != null;
         RebuildControlMenu();
         RebuildComparisonsMenu();
         UpdateLanguageMenuChecks();
