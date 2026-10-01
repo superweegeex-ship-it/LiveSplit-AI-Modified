@@ -228,6 +228,32 @@ public class StandardFormatsRunFactory : IRunFactory
             throw new Exception("Run factory created a run without at least one segment");
         }
 
+        if (timerKind == "LiveSplit" && Stream.CanSeek)
+        {
+            long position = Stream.Position;
+            try
+            {
+                Stream.Position = 0;
+                var externalDocument = new XmlDocument();
+                externalDocument.Load(Stream);
+                string baseDirectory = string.IsNullOrEmpty(FilePath) ? Environment.CurrentDirectory
+                    : Path.GetDirectoryName(Path.GetFullPath(FilePath));
+                Image ReadExternal(XmlElement node)
+                {
+                    string path = node.GetAttribute("path");
+                    return LoadExternalImage(Path.IsPathRooted(path) ? path : Path.Combine(baseDirectory, path));
+                }
+                var game = externalDocument.SelectSingleNode("/Run/GameIcon[@path != '']") as XmlElement;
+                if (game != null) { run.GameIcon?.Dispose(); run.GameIcon = ReadExternal(game); }
+                XmlNodeList segments = externalDocument.SelectNodes("/Run/Segments/Segment");
+                for (int i = 0; i < Math.Min(run.Count, segments.Count); i++)
+                {
+                    var icon = segments[i].SelectSingleNode("Icon[@path != '']") as XmlElement;
+                    if (icon != null) { run[i].Icon?.Dispose(); run[i].Icon = ReadExternal(icon); }
+                }
+            }
+            finally { Stream.Position = position; }
+        }
         return run;
     }
 }

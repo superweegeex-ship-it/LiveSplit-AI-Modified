@@ -288,7 +288,17 @@ public class XMLLayoutFactory : ILayoutFactory
             }
         }
 
-        settings.BackgroundImage = SettingsHelper.GetImageFromElement(element["BackgroundImage"]);
+        settings.BackgroundImagePath = SettingsHelper.ParseString(element["BackgroundImagePath"], string.Empty);
+        if (!string.IsNullOrWhiteSpace(settings.BackgroundImagePath))
+        {
+            try { settings.BackgroundImage = Image.FromFile(settings.BackgroundImagePath); }
+            catch (Exception e) when (e is IOException || e is ArgumentException || e is OutOfMemoryException || e is UnauthorizedAccessException)
+            { Log.Error(e); }
+        }
+        else
+        {
+            settings.BackgroundImage = SettingsHelper.GetImageFromElement(element["BackgroundImage"]);
+        }
 
         return settings;
     }

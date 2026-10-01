@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><TargetFramework>net481</TargetFramework><UseWindowsForms>true</UseWindowsForms><OutputType>Exe</OutputType><AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects></PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/LiveSplit.Core/LiveSplit.Core.csproj" />
+    <ProjectReference Include="../../components/LiveSplit.DetailedTimer/src/LiveSplit.DetailedTimer/LiveSplit.DetailedTimer.csproj" />
+  </ItemGroup>
+</Project>

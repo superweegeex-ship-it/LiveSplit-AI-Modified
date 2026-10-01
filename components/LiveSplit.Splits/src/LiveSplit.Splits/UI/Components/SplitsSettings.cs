@@ -68,6 +68,23 @@ public partial class SplitsSettings : UserControl
     public float SplitHeight { get; set; }
     public float ScaledSplitHeight { get => SplitHeight * 10f; set => SplitHeight = value / 10f; }
     public float IconSize { get; set; }
+    private int iconHorizontalOffset;
+    private TrackBar iconPositionSlider;
+    private Label iconPositionValue;
+
+    public int IconHorizontalOffset
+    {
+        get => iconHorizontalOffset;
+        set
+        {
+            iconHorizontalOffset = Math.Max(-20, Math.Min(80, value));
+            if (iconPositionSlider != null)
+            {
+                iconPositionSlider.Value = iconHorizontalOffset;
+                iconPositionValue.Text = iconHorizontalOffset + " px";
+            }
+        }
+    }
 
     public bool Display2Rows { get; set; }
 
@@ -84,6 +101,7 @@ public partial class SplitsSettings : UserControl
     public LiveSplitState CurrentState { get; set; }
 
     public bool DisplayIcons { get; set; }
+    public bool HideCurrentSplitIcon { get; set; }
     public bool IconShadows { get; set; }
     public bool ShowThinSeparators { get; set; }
     public bool AlwaysShowLastSplit { get; set; }
@@ -97,8 +115,46 @@ public partial class SplitsSettings : UserControl
     public bool OverrideDeltasColor { get; set; }
     public Color DeltasColor { get; set; }
 
+    private int columnSpacing = 5;
+    private TrackBar columnSpacingSlider;
+    private Label columnSpacingValue;
+    private int iconTextSpacing = 5;
+    private TrackBar iconTextSpacingSlider;
+    private Label iconTextSpacingValue;
+
+    public int ColumnSpacing
+    {
+        get => columnSpacing;
+        set
+        {
+            columnSpacing = Math.Max(-20, Math.Min(80, value));
+            if (columnSpacingSlider != null)
+            {
+                columnSpacingSlider.Value = columnSpacing;
+                columnSpacingValue.Text = FormatColumnSpacing(columnSpacing);
+            }
+        }
+    }
+
     public bool ShowColumnLabels { get; set; }
     public Color LabelsColor { get; set; }
+
+    public int IconTextSpacing
+    {
+        get => iconTextSpacing;
+        set
+        {
+            iconTextSpacing = Math.Max(-20, Math.Min(80, value));
+            if (iconTextSpacingSlider != null)
+            {
+                iconTextSpacingSlider.Value = iconTextSpacing;
+                iconTextSpacingValue.Text = FormatColumnSpacing(iconTextSpacing);
+            }
+        }
+    }
+
+    private static string FormatColumnSpacing(int spacing)
+        => spacing + " px";
 
     public bool AutomaticAbbreviations { get; set; }
     public Color BeforeNamesColor { get; set; }
@@ -292,6 +348,7 @@ public partial class SplitsSettings : UserControl
     public SplitsSettings(LiveSplitState state)
     {
         InitializeComponent();
+        EnsureIconPositionControl();
         EnsureCurrentSplitImageLayoutControls();
         trkCurrentSplitOutlineWaveSpeed.Maximum = CurrentSplitOutlinePaint.OutlineWaveSpeedSliderMaximum;
         trkCurrentSplitOutlineWaveSpeed.TickFrequency = 5;
@@ -303,6 +360,7 @@ public partial class SplitsSettings : UserControl
         StartingSize = Size;
         StartingTableLayoutSize = tableColumns.Size;
         StartingGroupColumnsSize = groupColumns.Size;
+        EnsureColumnSpacingControl();
 
         VisualSplitCount = 8;
         SplitPreviewCount = 1;
@@ -918,6 +976,38 @@ public partial class SplitsSettings : UserControl
     private void chkDisplayIcons_CheckedChanged(object sender, EventArgs e)
     {
         trkIconSize.Enabled = label5.Enabled = chkIconShadows.Enabled = chkDisplayIcons.Checked;
+        if (iconPositionSlider != null)
+        {
+            iconPositionSlider.Enabled = iconPositionValue.Enabled = chkDisplayIcons.Checked;
+        }
+    }
+
+    private void EnsureIconPositionControl()
+    {
+        var panel = new Panel { Dock = DockStyle.Fill, Margin = Padding.Empty };
+        iconPositionValue = new Label
+        {
+            Name = "lblIconHorizontalOffset", Text = "0 px", Dock = DockStyle.Right,
+            Width = 42, TextAlign = ContentAlignment.MiddleRight
+        };
+        iconPositionSlider = new TrackBar
+        {
+            Name = "trkIconHorizontalOffset", AccessibleName = T("Icon horizontal position"),
+            Orientation = Orientation.Horizontal, Minimum = -20, Maximum = 80,
+            SmallChange = 1, LargeChange = 5, TickStyle = TickStyle.None, Dock = DockStyle.Fill
+        };
+        iconPositionSlider.ValueChanged += (_, _) => IconHorizontalOffset = iconPositionSlider.Value;
+        panel.Controls.Add(iconPositionSlider);
+        panel.Controls.Add(iconPositionValue);
+        tableLayoutPanel4.SetColumn(chkIconShadows, 2);
+        tableLayoutPanel4.Controls.Add(panel, 1, 0);
+        var hideCurrent = new CheckBox { Name = "chkHideCurrentSplitIcon", Text = T("Hide icon on current split"), AutoSize = true, Anchor = AnchorStyles.Left };
+        hideCurrent.DataBindings.Add("Checked", this, "HideCurrentSplitIcon", false, DataSourceUpdateMode.OnPropertyChanged);
+        tableLayoutPanel4.RowCount = 3;
+        tableLayoutPanel4.RowStyles.Add(new RowStyle(SizeType.Absolute, 29));
+        tableLayoutPanel4.Controls.Add(hideCurrent, 0, 2);
+        tableLayoutPanel4.SetColumnSpan(hideCurrent, tableLayoutPanel4.ColumnCount);
+        tableLayoutPanel1.RowStyles[tableLayoutPanel1.GetRow(groupBox3)].Height += 29;
     }
 
     private void chkOverrideTimesColor_CheckedChanged(object sender, EventArgs e)
@@ -1314,11 +1404,13 @@ public partial class SplitsSettings : UserControl
         VisualSplitCount = SettingsHelper.ParseInt(element["VisualSplitCount"]);
         SplitPreviewCount = SettingsHelper.ParseInt(element["SplitPreviewCount"]);
         DisplayIcons = SettingsHelper.ParseBool(element["DisplayIcons"]);
+        HideCurrentSplitIcon = SettingsHelper.ParseBool(element["HideCurrentSplitIcon"], false);
         ShowThinSeparators = SettingsHelper.ParseBool(element["ShowThinSeparators"]);
         AlwaysShowLastSplit = SettingsHelper.ParseBool(element["AlwaysShowLastSplit"]);
         SplitWidth = SettingsHelper.ParseFloat(element["SplitWidth"]);
         AutomaticAbbreviations = SettingsHelper.ParseBool(element["AutomaticAbbreviations"], false);
         ShowColumnLabels = SettingsHelper.ParseBool(element["ShowColumnLabels"], false);
+        ColumnSpacing = SettingsHelper.ParseInt(element["ColumnSpacing"], 5);
         LabelsColor = SettingsHelper.ParseColor(element["LabelsColor"], Color.FromArgb(255, 255, 255));
         OverrideTimesColor = SettingsHelper.ParseBool(element["OverrideTimesColor"], false);
         BeforeTimesColor = SettingsHelper.ParseColor(element["BeforeTimesColor"], Color.FromArgb(255, 255, 255));
@@ -1413,6 +1505,8 @@ public partial class SplitsSettings : UserControl
         ShowBlankSplits = SettingsHelper.ParseBool(element["ShowBlankSplits"], true);
         LockLastSplit = SettingsHelper.ParseBool(element["LockLastSplit"], false);
         IconSize = SettingsHelper.ParseFloat(element["IconSize"], 24f);
+        IconHorizontalOffset = SettingsHelper.ParseInt(element["IconHorizontalOffset"], 0);
+        IconTextSpacing = SettingsHelper.ParseInt(element["IconTextSpacing"], 5);
         IconShadows = SettingsHelper.ParseBool(element["IconShadows"], true);
 
         if (version >= new Version(1, 5))
@@ -1490,6 +1584,7 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "VisualSplitCount", VisualSplitCount) ^
         SettingsHelper.CreateSetting(document, parent, "SplitPreviewCount", SplitPreviewCount) ^
         SettingsHelper.CreateSetting(document, parent, "DisplayIcons", DisplayIcons) ^
+        SettingsHelper.CreateSetting(document, parent, "HideCurrentSplitIcon", HideCurrentSplitIcon) ^
         SettingsHelper.CreateSetting(document, parent, "ShowThinSeparators", ShowThinSeparators) ^
         SettingsHelper.CreateSetting(document, parent, "AlwaysShowLastSplit", AlwaysShowLastSplit) ^
         SettingsHelper.CreateSetting(document, parent, "SplitWidth", SplitWidth) ^
@@ -1506,6 +1601,8 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "ShowBlankSplits", ShowBlankSplits) ^
         SettingsHelper.CreateSetting(document, parent, "LockLastSplit", LockLastSplit) ^
         SettingsHelper.CreateSetting(document, parent, "IconSize", IconSize) ^
+        SettingsHelper.CreateSetting(document, parent, "IconHorizontalOffset", IconHorizontalOffset) ^
+        SettingsHelper.CreateSetting(document, parent, "IconTextSpacing", IconTextSpacing) ^
         SettingsHelper.CreateSetting(document, parent, "IconShadows", IconShadows) ^
         SettingsHelper.CreateSetting(document, parent, "SplitHeight", SplitHeight) ^
         SettingsHelper.CreateSetting(document, parent, "CurrentSplitGradient", CurrentSplitGradient) ^
@@ -1539,6 +1636,7 @@ public partial class SplitsSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "DeltasColor", DeltasColor) ^
         SettingsHelper.CreateSetting(document, parent, "Display2Rows", Display2Rows) ^
         SettingsHelper.CreateSetting(document, parent, "ShowColumnLabels", ShowColumnLabels) ^
+        SettingsHelper.CreateSetting(document, parent, "ColumnSpacing", ColumnSpacing) ^
         SettingsHelper.CreateSetting(document, parent, "LabelsColor", LabelsColor);
 
         XmlElement columnsElement = null;
@@ -1568,6 +1666,56 @@ public partial class SplitsSettings : UserControl
     private void ColorButtonClick(object sender, EventArgs e)
     {
         SettingsHelper.ColorButtonClick((Button)sender, this);
+    }
+
+    private void EnsureColumnSpacingControl()
+    {
+        var spacingPanel = new Panel { Width = 108, Dock = DockStyle.Left };
+        var columnLabel = new Label
+        {
+            Text = T("Columns"), AutoSize = false, TextAlign = ContentAlignment.MiddleCenter,
+            Location = new Point(0, 3), Size = new Size(54, 22)
+        };
+        columnSpacingValue = new Label
+        {
+            Name = "lblColumnSpacingValue", Text = FormatColumnSpacing(ColumnSpacing),
+            TextAlign = ContentAlignment.MiddleCenter, Location = new Point(0, 181), Size = new Size(54, 22)
+        };
+        columnSpacingSlider = new TrackBar
+        {
+            Name = "trkColumnSpacing", AccessibleName = T("Column spacing"),
+            Orientation = Orientation.Vertical, Minimum = -20, Maximum = 80,
+            TickFrequency = 10, SmallChange = 1, LargeChange = 5, Value = ColumnSpacing,
+            Location = new Point(5, 26), Size = new Size(45, 150)
+        };
+        columnSpacingSlider.ValueChanged += (_, _) => ColumnSpacing = columnSpacingSlider.Value;
+        var iconLabel = new Label
+        {
+            Text = T("Icon"), AutoSize = false, TextAlign = ContentAlignment.MiddleCenter,
+            Location = new Point(54, 3), Size = new Size(54, 22)
+        };
+        iconTextSpacingValue = new Label
+        {
+            Name = "lblIconTextSpacingValue", Text = FormatColumnSpacing(IconTextSpacing),
+            TextAlign = ContentAlignment.MiddleCenter, Location = new Point(54, 181), Size = new Size(54, 22)
+        };
+        iconTextSpacingSlider = new TrackBar
+        {
+            Name = "trkIconTextSpacing", AccessibleName = T("Icon text spacing"),
+            Orientation = Orientation.Vertical, Minimum = -20, Maximum = 80,
+            TickFrequency = 10, SmallChange = 1, LargeChange = 5, Value = IconTextSpacing,
+            Location = new Point(59, 26), Size = new Size(45, 150)
+        };
+        iconTextSpacingSlider.ValueChanged += (_, _) => IconTextSpacing = iconTextSpacingSlider.Value;
+        spacingPanel.Controls.Add(columnLabel);
+        spacingPanel.Controls.Add(columnSpacingSlider);
+        spacingPanel.Controls.Add(columnSpacingValue);
+        spacingPanel.Controls.Add(iconLabel);
+        spacingPanel.Controls.Add(iconTextSpacingSlider);
+        spacingPanel.Controls.Add(iconTextSpacingValue);
+        groupColumns.Controls.Add(spacingPanel);
+        // Dock the left strip before the fill panel so the column editor stays beside it.
+        groupColumns.Controls.SetChildIndex(tableColumns, 0);
     }
 
     private void ResetColumns()
@@ -1666,7 +1814,7 @@ public partial class SplitsSettings : UserControl
             .Where(rowStyle => rowStyle.SizeType == SizeType.Absolute)
             .Sum(rowStyle => (int)Math.Ceiling(rowStyle.Height));
         desiredTableHeight = Math.Max(StartingTableLayoutSize.Height, desiredTableHeight);
-        int desiredGroupHeight = desiredTableHeight + groupChromeHeight;
+        int desiredGroupHeight = Math.Max(210, desiredTableHeight) + groupChromeHeight;
         if (tableColumns.MinimumSize.Height != desiredTableHeight)
         {
             tableColumns.MinimumSize = new Size(tableColumns.MinimumSize.Width, desiredTableHeight);

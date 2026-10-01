@@ -1,4 +1,4 @@
-﻿namespace LiveSplit.UI.Components;
+namespace LiveSplit.UI.Components;
 
 public class TextTextComponent : InfoTextComponent
 {
@@ -15,5 +15,7 @@ public class TextTextComponent : InfoTextComponent
         NameMeasureLabel.Font = Settings.OverrideFont1 ? Settings.Font1 : state.LayoutSettings.TextFont;
         ValueLabel.Font = Settings.OverrideFont2 ? Settings.Font2 : state.LayoutSettings.TextFont;
         NameLabel.Font = Settings.OverrideFont1 ? Settings.Font1 : state.LayoutSettings.TextFont;
+        state.LayoutSettings.ApplyTextShadowTo(NameLabel);
+        state.LayoutSettings.ApplyTextShadowTo(ValueLabel);
     }
 }

@@ -15,6 +15,22 @@ namespace LiveSplit.UI;
 
 public class SettingsHelper
 {
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<Image, ExternalImagePath> ExternalImages = new();
+    private sealed class ExternalImagePath { public string Path; }
+
+    public static Image LoadExternalImage(string path)
+    {
+        Image image;
+        try { image = Image.FromFile(path); }
+        catch (Exception e) when (e is IOException || e is ArgumentException || e is OutOfMemoryException || e is UnauthorizedAccessException)
+        {
+            Log.Error(e);
+            // Retain the reference on save even if the external file is temporarily absent.
+            image = new Bitmap(1, 1);
+        }
+        ExternalImages.Add(image, new ExternalImagePath { Path = path });
+        return image;
+    }
     public static CustomFontDialog.FontDialog GetFontDialog(Font previousFont, int minSize, int maxSize)
     {
         var dialog = new CustomFontDialog.FontDialog
@@ -112,7 +128,11 @@ public class SettingsHelper
         {
             XmlElement element = document.CreateElement(elementName);
 
-            if (image != null)
+            if (image != null && ExternalImages.TryGetValue(image, out ExternalImagePath external))
+            {
+                element.SetAttribute("path", external.Path);
+            }
+            else if (image != null)
             {
                 using var ms = new MemoryStream();
                 var bf = new BinaryFormatter();
@@ -131,7 +151,7 @@ public class SettingsHelper
 
     public static Image GetImageFromElement(XmlElement element)
     {
-        if (element != null && !element.IsEmpty)
+        if (element != null && !string.IsNullOrWhiteSpace(element.InnerText))
         {
             var bf = new BinaryFormatter();
 

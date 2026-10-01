@@ -14,6 +14,88 @@ public class TextComponent : IComponent
 {
     protected TextTextComponent InternalComponent { get; set; }
     public TextComponentSettings Settings { get; set; }
+    private readonly GraphicsCache iconCache = new();
+    private Image shadow;
+    private Image shadowSource;
+    private int shadowKey;
+    private Image animatedIcon;
+    private static readonly EventHandler AnimationFrame = (_, _) => { };
+
+    private RectangleF IconBounds(LiveSplitState state, float width, float height)
+    {
+        Image icon = Settings.ResolveIcon(state.Run.GameIcon);
+        if (!Settings.DisplayGameIcon || icon == null || width <= 4) return RectangleF.Empty;
+        float scale = Math.Max(1f, height - 4) * Settings.IconSizePercent / 100f / Math.Max(icon.Width, icon.Height);
+        float w = icon.Width * scale, h = icon.Height * scale;
+        if (w > width - 4) { h *= (width - 4) / w; w = width - 4; }
+        float x = Settings.IconOnRight ? width - 7 - w : 7;
+        x = Math.Max(2, Math.Min(width - 2 - w, x + Settings.IconHorizontalOffset));
+        return new RectangleF(x, (height - h) / 2, w, h);
+    }
+
+    private void DrawContent(Graphics g, LiveSplitState state, float width, float height, LayoutMode mode)
+    {
+        PrepareDraw(state, mode);
+        InternalComponent.ContentInsetLeft = InternalComponent.ContentInsetRight = 0;
+        if (mode == LayoutMode.Vertical) InternalComponent.ComputeVerticalLayout(g, state, width);
+        else InternalComponent.ComputeHorizontalLayout(g, state, height);
+        if (mode == LayoutMode.Vertical) height = VerticalHeight;
+        else width = HorizontalWidth;
+        RectangleF bounds = IconBounds(state, width, height);
+        if (!bounds.IsEmpty)
+        {
+            if (Settings.IconOnRight) InternalComponent.ContentInsetRight = Math.Max(0, width - bounds.Left - 2);
+            else InternalComponent.ContentInsetLeft = Math.Max(0, bounds.Right - 2);
+            if (mode == LayoutMode.Vertical) InternalComponent.ComputeVerticalLayout(g, state, width);
+            else InternalComponent.ComputeHorizontalLayout(g, state, height);
+            if (mode == LayoutMode.Horizontal)
+            {
+                width = HorizontalWidth;
+                bounds = IconBounds(state, width, height);
+            }
+        }
+        float left = bounds.IsEmpty || Settings.IconOnRight ? 5 : bounds.Right + 3;
+        float right = bounds.IsEmpty || !Settings.IconOnRight ? width - 5 : bounds.Left - 3;
+        foreach (SimpleLabel label in new[] { InternalComponent.NameLabel, InternalComponent.ValueLabel })
+        {
+            label.X += Settings.TextHorizontalOffset;
+            float end = Math.Min(right, label.X + label.Width);
+            label.X = Math.Max(left, label.X);
+            label.Width = Math.Max(0, end - label.X);
+        }
+        InternalComponent.DrawVerticalLabels(g);
+        if (!bounds.IsEmpty) DrawIcon(g, state, bounds);
+    }
+
+    private void DrawIcon(Graphics g, LiveSplitState state, RectangleF bounds)
+    {
+        Image icon = Settings.ResolveIcon(state.Run.GameIcon);
+        if (animatedIcon != icon)
+        {
+            if (animatedIcon != null) ImageAnimator.StopAnimate(animatedIcon, AnimationFrame);
+            animatedIcon = icon;
+            ImageAnimator.Animate(icon, AnimationFrame);
+        }
+        var layout = state.LayoutSettings;
+        if (layout.DropShadows)
+        {
+            int key = layout.ShadowsColor.GetHashCode() ^ layout.IconShadowOffset.GetHashCode()
+                ^ layout.IconShadowTransparency.GetHashCode() ^ layout.IconShadowBlur.GetHashCode();
+            if (shadowSource != icon || shadowKey != key || shadow == null)
+            {
+                shadow?.Dispose();
+                shadow = IconShadow.Generate(icon, layout.ShadowsColor, layout.IconShadowOffset, layout.IconShadowTransparency, layout.IconShadowBlur);
+                shadowSource = icon; shadowKey = key;
+            }
+            if (shadow != null)
+            {
+                ImageAnimator.UpdateFrames(shadow);
+                g.DrawImage(shadow, bounds.X - bounds.Width / 8 - .7f, bounds.Y - bounds.Height / 8 - .7f, bounds.Width * 1.25f, bounds.Height * 1.25f);
+            }
+        }
+        ImageAnimator.UpdateFrames(icon);
+        g.DrawImage(icon, bounds);
+    }
 
     public float PaddingTop => InternalComponent.PaddingTop;
     public float PaddingLeft => InternalComponent.PaddingLeft;
@@ -82,15 +164,13 @@ public class TextComponent : IComponent
     public void DrawVertical(Graphics g, LiveSplitState state, float width, Region clipRegion)
     {
         DrawBackground(g, state, width, VerticalHeight);
-        PrepareDraw(state, LayoutMode.Vertical);
-        InternalComponent.DrawVertical(g, state, width, clipRegion);
+        DrawContent(g, state, width, VerticalHeight, LayoutMode.Vertical);
     }
 
     public void DrawHorizontal(Graphics g, LiveSplitState state, float height, Region clipRegion)
     {
         DrawBackground(g, state, HorizontalWidth, height);
-        PrepareDraw(state, LayoutMode.Horizontal);
-        InternalComponent.DrawHorizontal(g, state, height, clipRegion);
+        DrawContent(g, state, HorizontalWidth, height, LayoutMode.Horizontal);
     }
 
     public float VerticalHeight => InternalComponent.VerticalHeight;
@@ -141,10 +221,18 @@ public class TextComponent : IComponent
             : text2Value;
 
         InternalComponent.Update(invalidator, state, width, height, mode);
+        iconCache.Restart();
+        iconCache["Settings"] = Settings.GetSettingsHashCode();
+        iconCache["Icon"] = Settings.ResolveIcon(state.Run.GameIcon);
+        if (iconCache.HasChanged || (Settings.DisplayGameIcon && ImageAnimator.CanAnimate(Settings.ResolveIcon(state.Run.GameIcon))))
+            invalidator?.Invalidate(0, 0, width, height);
     }
 
     public void Dispose()
     {
+        shadow?.Dispose();
+        if (animatedIcon != null) ImageAnimator.StopAnimate(animatedIcon, AnimationFrame);
+        Settings.Dispose();
     }
 
     public int GetSettingsHashCode()

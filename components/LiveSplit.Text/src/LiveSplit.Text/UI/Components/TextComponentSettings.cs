@@ -9,6 +9,16 @@ namespace LiveSplit.UI.Components;
 
 public partial class TextComponentSettings : UserControl
 {
+    private readonly ComponentIconOptions iconOptions;
+    private TrackBar textPosition;
+    private TrackBar iconPosition;
+    public bool DisplayGameIcon { get; set; }
+    public bool IconOnRight { get; set; }
+    public int TextHorizontalOffset { get => textPosition.Value; set => textPosition.Value = Math.Max(-100, Math.Min(100, value)); }
+    public int IconHorizontalOffset { get => iconPosition.Value; set => iconPosition.Value = Math.Max(-100, Math.Min(100, value)); }
+    public int IconSizePercent { get => iconOptions.IconSizePercent; set => iconOptions.IconSizePercent = value; }
+    public Image ResolveIcon(Image gameIcon) => iconOptions.Resolve(gameIcon);
+    public void LoadCustomIcon(string path) => iconOptions.LoadFile(path);
     public Color TextColor { get; set; }
     public bool OverrideTextColor { get; set; }
     public Color TimeColor { get; set; }
@@ -41,6 +51,17 @@ public partial class TextComponentSettings : UserControl
     public TextComponentSettings()
     {
         InitializeComponent();
+        iconOptions = new ComponentIconOptions();
+        var show = new CheckBox { Name = "chkDisplayGameIcon", Text = "Show icon", AutoSize = true };
+        show.DataBindings.Add("Checked", this, "DisplayGameIcon", false, DataSourceUpdateMode.OnPropertyChanged);
+        var right = new CheckBox { Name = "chkIconOnRight", Text = "Icon on right", AutoSize = true };
+        right.DataBindings.Add("Checked", this, "IconOnRight", false, DataSourceUpdateMode.OnPropertyChanged);
+        var toggles = new FlowLayoutPanel { Dock = DockStyle.Fill };
+        toggles.Controls.Add(show); toggles.Controls.Add(right);
+        ComponentIconOptions.Append(this, tableLayoutPanel1, toggles, 30);
+        textPosition = AddPositionSlider("Text position:", "trkTextHorizontalOffset");
+        iconPosition = AddPositionSlider("Icon position:", "trkIconHorizontalOffset");
+        ComponentIconOptions.Append(this, tableLayoutPanel1, iconOptions, 106);
 
         TextColor = Color.FromArgb(255, 255, 255);
         OverrideTextColor = false;
@@ -70,6 +91,21 @@ public partial class TextComponentSettings : UserControl
     private void chkOverrideTimeColor_CheckedChanged(object sender, EventArgs e)
     {
         label2.Enabled = btnTimeColor.Enabled = chkOverrideTimeColor.Checked;
+    }
+
+    private TrackBar AddPositionSlider(string label, string name)
+    {
+        var row = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3 };
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 100));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
+        row.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 50));
+        var slider = new TrackBar { Name = name, AccessibleName = label, Dock = DockStyle.Fill, Minimum = -100, Maximum = 100, TickStyle = TickStyle.None };
+        var valueLabel = new Label { Text = "0 px", Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleRight };
+        slider.ValueChanged += (_, _) => valueLabel.Text = slider.Value + " px";
+        row.Controls.Add(new Label { Text = label, AutoSize = true, Anchor = AnchorStyles.Left }, 0, 0);
+        row.Controls.Add(slider, 1, 0); row.Controls.Add(valueLabel, 2, 0);
+        ComponentIconOptions.Append(this, tableLayoutPanel1, row, 36);
+        return slider;
     }
 
     private void chkOverrideTextColor_CheckedChanged(object sender, EventArgs e)
@@ -113,6 +149,11 @@ public partial class TextComponentSettings : UserControl
     public void SetSettings(XmlNode node)
     {
         var element = (XmlElement)node;
+        iconOptions.Read(element);
+        DisplayGameIcon = SettingsHelper.ParseBool(element["DisplayGameIcon"], false);
+        IconOnRight = SettingsHelper.ParseBool(element["IconOnRight"], false);
+        TextHorizontalOffset = SettingsHelper.ParseInt(element["TextHorizontalOffset"], 0);
+        IconHorizontalOffset = SettingsHelper.ParseInt(element["IconHorizontalOffset"], 0);
         TextColor = SettingsHelper.ParseColor(element["TextColor"]);
         OverrideTextColor = SettingsHelper.ParseBool(element["OverrideTextColor"]);
         TimeColor = SettingsHelper.ParseColor(element["TimeColor"]);
@@ -144,7 +185,12 @@ public partial class TextComponentSettings : UserControl
 
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
-        return SettingsHelper.CreateSetting(document, parent, "Version", "1.5") ^
+        return iconOptions.Write(document, parent) ^
+        SettingsHelper.CreateSetting(document, parent, "DisplayGameIcon", DisplayGameIcon) ^
+        SettingsHelper.CreateSetting(document, parent, "IconOnRight", IconOnRight) ^
+        SettingsHelper.CreateSetting(document, parent, "TextHorizontalOffset", TextHorizontalOffset) ^
+        SettingsHelper.CreateSetting(document, parent, "IconHorizontalOffset", IconHorizontalOffset) ^
+        SettingsHelper.CreateSetting(document, parent, "Version", "1.5") ^
         SettingsHelper.CreateSetting(document, parent, "TextColor", TextColor) ^
         SettingsHelper.CreateSetting(document, parent, "OverrideTextColor", OverrideTextColor) ^
         SettingsHelper.CreateSetting(document, parent, "TimeColor", TimeColor) ^
