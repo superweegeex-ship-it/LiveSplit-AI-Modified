@@ -585,7 +585,10 @@ public static class WinFormsTheme
     {
         bool preservesExplicitColor = PreservesExplicitColor(button);
         button.UseVisualStyleBackColor = false;
-        button.FlatStyle = FlatStyle.Flat;
+        if (button.FlatStyle != FlatStyle.Popup)
+        {
+            button.FlatStyle = FlatStyle.Flat;
+        }
         button.FlatAppearance.BorderColor = button.Enabled ? DarkBorderColor : DarkDisabledButtonBorderColor;
         button.FlatAppearance.MouseOverBackColor = DarkSelectionColor;
         button.FlatAppearance.MouseDownBackColor = Color.FromArgb(64, 64, 64);
@@ -632,7 +635,10 @@ public static class WinFormsTheme
         {
             button.EnabledChanged -= DarkButton_EnabledChanged;
             button.Paint -= DarkDisabledButton_Paint;
-            button.FlatStyle = FlatStyle.Standard;
+            if (button.FlatStyle != FlatStyle.Popup)
+            {
+                button.FlatStyle = FlatStyle.Standard;
+            }
             button.FlatAppearance.BorderColor = SystemColors.ControlDark;
             if (!PreservesExplicitColor(button))
             {

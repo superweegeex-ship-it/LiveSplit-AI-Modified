@@ -24,6 +24,7 @@
     <ProjectReference Include="$(SrcPath)\LiveSplit.View\LiveSplit.View.csproj" />
     <ProjectReference Include="$(LibPath)\WinForms Color Picker\WinFormsColor\WinFormsColor.csproj" />
     <ProjectReference Include="$(ComponentsPath)\LiveSplit.Spotify\LiveSplit.Spotify.csproj" ReferenceOutputAssembly="false" />
+    <ProjectReference Include="$(ComponentsPath)\LiveSplit.N64Input\LiveSplit.N64Input.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,6 +63,14 @@
   <Target Name="CopySpotifyComponent" AfterTargets="Build">
     <MakeDir Directories="$(OutputPath)Components" />
     <Copy SourceFiles="$(BuildPath)\Components\LiveSplit.Spotify.dll"
+          DestinationFolder="$(OutputPath)Components" />
+  </Target>
+
+  <Target Name="CopyN64InputComponent" AfterTargets="Build">
+    <MakeDir Directories="$(OutputPath)Components" />
+    <Copy SourceFiles="$(BuildPath)\Components\LiveSplit.N64Input.dll"
+          DestinationFolder="$(OutputPath)Components" />
+    <Copy SourceFiles="$(ComponentsPath)\LiveSplit.N64Input\LICENSE-GPL-3.0;$(ComponentsPath)\LiveSplit.N64Input\README.md"
           DestinationFolder="$(OutputPath)Components" />
   </Target>
 

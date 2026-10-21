@@ -89,6 +89,7 @@ public partial class TimerForm : Form
     private Image blurredBackground { get; set; }
     private Image bakedBackground { get; set; }
     private Bitmap componentOverlayBitmap;
+    private Bitmap windowCaptureTransparencyBackgroundBitmap;
     private bool componentOverlayDirty = true;
     private Region componentOverlayDirtyRegion;
     private int componentOverlayWidth;
@@ -99,6 +100,7 @@ public partial class TimerForm : Form
     private int lastComponentOverlayRefreshTick;
     private IBackgroundVideoPlayer backgroundVideoPlayer;
     private bool windowCaptureTransparencyMediaSuspended;
+    private bool renderingWindowCaptureTransparencyBackground;
     private bool isRenderingScreenshot;
     private int lastThrottledVideoUiUpdateTick;
     private string loadedBackgroundVideoSource;
@@ -173,7 +175,6 @@ public partial class TimerForm : Form
     private const uint WindowCaptureDibRgbColors = 0;
     private const byte AC_SRC_OVER = 0x00;
     private const byte AC_SRC_ALPHA = 0x01;
-    private const byte WindowCaptureInputAlpha = 1;
 
     protected override CreateParams CreateParams
     {
@@ -1807,7 +1808,8 @@ public partial class TimerForm : Form
     {
         return EnableExperimentalBackgroundVideo
             && !backgroundVideoDisabledForSession
-            && !ShouldUseWindowCaptureTransparency()
+            && (!ShouldUseWindowCaptureTransparency()
+                || Layout?.Settings?.TransparentBackgroundCaptureBackgroundOpacity > 0f)
             && Layout?.Settings?.BackgroundType == BackgroundType.Video
             && backgroundVideoPlayer?.IsLoaded == true;
     }
@@ -2043,6 +2045,8 @@ public partial class TimerForm : Form
     {
         windowCaptureTransparencySurface?.Dispose();
         windowCaptureTransparencySurface = null;
+        windowCaptureTransparencyBackgroundBitmap?.Dispose();
+        windowCaptureTransparencyBackgroundBitmap = null;
     }
 
     private void SyncVideoBackgroundPoolTimer()
@@ -2660,7 +2664,6 @@ public partial class TimerForm : Form
 
         EnsureWindowCaptureTransparencyPresentTimer();
         RaiseWindowCaptureTransparencyTimerResolution();
-        SuspendBackgroundMediaForTransparentCapture();
         if (!windowCaptureTransparencyPresenting)
         {
             RequestWindowCaptureTransparencyPresent();
@@ -2935,11 +2938,73 @@ public partial class TimerForm : Form
         graphics.ResetClip();
         graphics.ResetTransform();
         graphics.CompositingMode = CompositingMode.SourceCopy;
-        graphics.Clear(Color.FromArgb(WindowCaptureInputAlpha, 0, 0, 0));
+        graphics.Clear(Color.Transparent);
         graphics.CompositingMode = CompositingMode.SourceOver;
         ConfigureComponentGraphics(graphics);
+
+        float backgroundOpacity = Math.Max(0f, Math.Min(1f, Layout?.Settings?.TransparentBackgroundCaptureBackgroundOpacity ?? 0f));
+        if (backgroundOpacity > 0f && EnsureWindowCaptureTransparencyBackgroundSurface(width, height))
+        {
+            using (Graphics backgroundGraphics = Graphics.FromImage(windowCaptureTransparencyBackgroundBitmap))
+            {
+                backgroundGraphics.CompositingMode = CompositingMode.SourceCopy;
+                backgroundGraphics.Clear(Color.Transparent);
+                backgroundGraphics.CompositingMode = CompositingMode.SourceOver;
+                ConfigureComponentGraphics(backgroundGraphics);
+
+                Region previousUpdateRegion = UpdateRegion;
+                bool previousCaptureRendering = renderingWindowCaptureTransparencyBackground;
+                try
+                {
+                    UpdateRegion = new Region(new Rectangle(0, 0, width, height));
+                    renderingWindowCaptureTransparencyBackground = true;
+                    windowCaptureTransparencyMediaSuspended = false;
+                    DrawBackground(backgroundGraphics, isVideoPresentPaint: true);
+                }
+                finally
+                {
+                    renderingWindowCaptureTransparencyBackground = previousCaptureRendering;
+                    UpdateRegion?.Dispose();
+                    UpdateRegion = previousUpdateRegion;
+                }
+            }
+
+            using var attributes = new ImageAttributes();
+            attributes.SetColorMatrix(new ColorMatrix { Matrix33 = backgroundOpacity }, ColorMatrixFlag.Default, ColorAdjustType.Bitmap);
+            graphics.DrawImage(windowCaptureTransparencyBackgroundBitmap,
+                new Rectangle(0, 0, width, height), 0, 0, width, height, GraphicsUnit.Pixel, attributes);
+        }
+        else if (Layout?.Settings?.BackgroundType == BackgroundType.Video)
+        {
+            SuspendBackgroundMediaForTransparentCapture();
+        }
+
         using var fullRegion = new Region(new Rectangle(0, 0, width, height));
         RenderComponentsDirect(graphics, fullRegion, scaleFactor);
+    }
+
+    private bool EnsureWindowCaptureTransparencyBackgroundSurface(int width, int height)
+    {
+        if (windowCaptureTransparencyBackgroundBitmap != null
+            && windowCaptureTransparencyBackgroundBitmap.Width == width
+            && windowCaptureTransparencyBackgroundBitmap.Height == height)
+        {
+            return true;
+        }
+
+        windowCaptureTransparencyBackgroundBitmap?.Dispose();
+        try
+        {
+            windowCaptureTransparencyBackgroundBitmap = new Bitmap(width, height, System.Drawing.Imaging.PixelFormat.Format32bppPArgb);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Log.Error(ex);
+            windowCaptureTransparencyBackgroundBitmap?.Dispose();
+            windowCaptureTransparencyBackgroundBitmap = null;
+            return false;
+        }
     }
 
     private void UpdatePerPixelAlphaWindow(WindowCaptureTransparencySurface surface)
@@ -2957,7 +3022,7 @@ public partial class TimerForm : Form
             {
                 BlendOp = AC_SRC_OVER,
                 BlendFlags = 0,
-                SourceConstantAlpha = GetWindowCaptureOpacityByte(),
+                SourceConstantAlpha = byte.MaxValue,
                 AlphaFormat = AC_SRC_ALPHA
             };
 
@@ -2973,12 +3038,6 @@ public partial class TimerForm : Form
                 ReleaseDC(IntPtr.Zero, screenDc);
             }
         }
-    }
-
-    private byte GetWindowCaptureOpacityByte()
-    {
-        double opacity = Math.Max(0.0, Math.Min(1.0, Layout?.Settings?.Opacity ?? 1.0));
-        return (byte)Math.Round(opacity * byte.MaxValue);
     }
 
     private void TimerForm_Paint(object sender, PaintEventArgs e)
@@ -3324,7 +3383,7 @@ public partial class TimerForm : Form
     {
         try
         {
-        if (ShouldUseWindowCaptureTransparency())
+        if (ShouldUseWindowCaptureTransparency() && !renderingWindowCaptureTransparencyBackground)
         {
             SuspendBackgroundMediaForTransparentCapture();
             return;
@@ -5773,6 +5832,63 @@ public partial class TimerForm : Form
     }
 
     private ToolStripMenuItem spotifyConnectMenuItem;
+    private ToolStripMenuItem autoSplit64MenuItem;
+
+    private string FindAutoSplit64Executable()
+    {
+        string baseDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        string desktopDirectory = Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory);
+        string[] candidates =
+        [
+            Path.Combine(baseDirectory, "AutoSplit64plus", "AutoSplit64plus.exe"),
+            Path.Combine(baseDirectory, "..", "AutoSplit64plus", "AutoSplit64plus.exe"),
+            Path.Combine(desktopDirectory, "AutoSplit64plus", "AutoSplit64plus.exe")
+        ];
+
+        return candidates.Select(Path.GetFullPath).FirstOrDefault(File.Exists);
+    }
+
+    private void LaunchAutoSplit64()
+    {
+        string executable = FindAutoSplit64Executable();
+        if (executable == null)
+        {
+            MessageBox.Show(this,
+                "AutoSplit64+ was not found. Place AutoSplit64plus.exe in an AutoSplit64plus folder beside LiveSplit or on your Desktop.",
+                "AutoSplit64+", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            return;
+        }
+
+        try
+        {
+            bool alreadyRunning = Process.GetProcessesByName(Path.GetFileNameWithoutExtension(executable))
+                .Any(process =>
+                {
+                    using (process)
+                    {
+                        try { return string.Equals(process.MainModule?.FileName, executable, StringComparison.OrdinalIgnoreCase); }
+                        catch { return false; }
+                    }
+                });
+
+            if (alreadyRunning)
+            {
+                MessageBox.Show(this, "AutoSplit64+ is already running.", "AutoSplit64+", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                return;
+            }
+
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = executable,
+                WorkingDirectory = Path.GetDirectoryName(executable),
+                UseShellExecute = true
+            });
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show(this, "AutoSplit64+ could not be started:\n" + ex.Message, "AutoSplit64+", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
+    }
 
     private Action FindSpotifyConnectAction()
     {
@@ -5790,6 +5906,14 @@ public partial class TimerForm : Form
 
     private void RightClickMenu_Opening(object sender, CancelEventArgs e)
     {
+        if (autoSplit64MenuItem == null)
+        {
+            autoSplit64MenuItem = new ToolStripMenuItem("Launch AutoSplit64+");
+            autoSplit64MenuItem.Click += (s, args) => LaunchAutoSplit64();
+            RightClickMenu.Items.Insert(Math.Max(0, RightClickMenu.Items.IndexOf(controlMenuItem)), autoSplit64MenuItem);
+        }
+        autoSplit64MenuItem.Visible = FindAutoSplit64Executable() != null;
+
         if (spotifyConnectMenuItem == null)
         {
             spotifyConnectMenuItem = new ToolStripMenuItem("Connect Spotify");

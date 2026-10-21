@@ -55,6 +55,8 @@ public partial class LayoutSettingsControl : UserControl
     private bool updatingBackgroundSettingsUi;
     private bool liveApplyHooksReady;
     private CheckBox chkTransparentBackgroundForCapture;
+    private Label lblCaptureOpacity;
+    private TrackBar trkCaptureOpacity;
     private Label lblThinSeparatorThickness;
     private NumericUpDown numThinSeparatorThickness;
     private Label lblSeparatorThickness;
@@ -101,6 +103,11 @@ public partial class LayoutSettingsControl : UserControl
     public string SplitNamesFont => SettingsHelper.FormatFont(Settings.TextFont);
 
     public float Opacity { get => Settings.Opacity * 100f; set => Settings.Opacity = value / 100f; }
+    public float TransparentBackgroundCaptureBackgroundOpacity
+    {
+        get => Settings.TransparentBackgroundCaptureBackgroundOpacity * 100f;
+        set => Settings.TransparentBackgroundCaptureBackgroundOpacity = Math.Max(0f, Math.Min(1f, value / 100f));
+    }
     public float ImageOpacity { get => Settings.ImageOpacity * 100f; set => Settings.ImageOpacity = value / 100f; }
     public float VideoOpacity { get => Settings.VideoOpacity * 100f; set => Settings.VideoOpacity = value / 100f; }
     public float ImageBlur { get => Settings.ImageBlur * 100f; set => Settings.ImageBlur = value / 100f; }
@@ -175,6 +182,8 @@ public partial class LayoutSettingsControl : UserControl
             chkMousePassThroughWhileRunning.DataBindings.Add("Checked", Settings, "MousePassThroughWhileRunning", false, DataSourceUpdateMode.OnPropertyChanged);
             chkTransparentBackgroundForCapture.DataBindings.Add("Checked", Settings, "TransparentBackgroundForCapture", false, DataSourceUpdateMode.OnPropertyChanged);
             chkTransparentBackgroundForCapture.CheckedChanged += TransparentBackgroundForCapture_Changed;
+            trkCaptureOpacity.DataBindings.Add("Value", this, nameof(TransparentBackgroundCaptureBackgroundOpacity), false, DataSourceUpdateMode.OnPropertyChanged);
+            trkCaptureOpacity.ValueChanged += CaptureOpacity_Changed;
             chkAllowResizing.DataBindings.Add("Checked", Settings, "AllowResizing", false, DataSourceUpdateMode.OnPropertyChanged);
             chkAllowMoving.DataBindings.Add("Checked", Settings, "AllowMoving", false, DataSourceUpdateMode.OnPropertyChanged);
             chkUseHardwareVideoDecoding.DataBindings.Add("Checked", Settings, "UseHardwareVideoDecoding", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -218,6 +227,7 @@ public partial class LayoutSettingsControl : UserControl
             cmbGradientType_SelectedIndexChanged(null, EventArgs.Empty);
             EnsureLayoutShadowControls();
             liveApplyHooksReady = true;
+            UpdateCaptureOpacityControlsEnabled();
         }
         finally
         {
@@ -270,6 +280,36 @@ public partial class LayoutSettingsControl : UserControl
 
             tableLayoutPanel5.Controls.Add(chkTransparentBackgroundForCapture, 0, 6);
             tableLayoutPanel5.SetColumnSpan(chkTransparentBackgroundForCapture, 3);
+
+            tableLayoutPanel5.RowCount += 1;
+            tableLayoutPanel5.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+            foreach (Control control in tableLayoutPanel5.Controls)
+            {
+                int row = tableLayoutPanel5.GetRow(control);
+                if (row >= 7) tableLayoutPanel5.SetRow(control, row + 1);
+            }
+
+            lblCaptureOpacity = new Label
+            {
+                Anchor = AnchorStyles.Left | AnchorStyles.Right,
+                AutoSize = true,
+                Margin = new Padding(3, 3, 3, 3),
+                Name = "lblCaptureOpacity",
+                Text = T("Capture background opacity:"),
+                AccessibleDescription = T("Controls the opacity of the solid-color, image, or video layout background in OBS and window captures. Timer components remain unchanged.")
+            };
+            trkCaptureOpacity = new TrackBar
+            {
+                Dock = DockStyle.Fill,
+                Maximum = 100,
+                Minimum = 0,
+                Name = "trkCaptureOpacity",
+                TickStyle = TickStyle.None,
+                Value = 100
+            };
+            tableLayoutPanel5.Controls.Add(lblCaptureOpacity, 0, 7);
+            tableLayoutPanel5.Controls.Add(trkCaptureOpacity, 1, 7);
+            tableLayoutPanel5.SetColumnSpan(trkCaptureOpacity, 2);
         }
         finally
         {
@@ -279,7 +319,19 @@ public partial class LayoutSettingsControl : UserControl
 
     private void TransparentBackgroundForCapture_Changed(object sender, EventArgs e)
     {
+        UpdateCaptureOpacityControlsEnabled();
         NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.WindowTransparencyOnly);
+    }
+
+    private void CaptureOpacity_Changed(object sender, EventArgs e)
+    {
+        NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope.WindowTransparencyOnly);
+    }
+
+    private void UpdateCaptureOpacityControlsEnabled()
+    {
+        if (chkTransparentBackgroundForCapture == null || trkCaptureOpacity == null || lblCaptureOpacity == null) return;
+        lblCaptureOpacity.Enabled = trkCaptureOpacity.Enabled = chkTransparentBackgroundForCapture.Checked;
     }
 
     private void NotifyLiveApplyRequested(BackgroundVideoLiveApplyScope scope = BackgroundVideoLiveApplyScope.FullLayoutVideo)
@@ -549,6 +601,7 @@ public partial class LayoutSettingsControl : UserControl
         trkOpacity.Enabled = true;
         label13.Visible = true;
         trkOpacity.Visible = true;
+        UpdateCaptureOpacityControlsEnabled();
     }
 
     private void EnsureSeparatorThicknessControls()

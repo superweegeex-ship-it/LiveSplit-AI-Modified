@@ -90,6 +90,7 @@ public class XMLLayoutSaver : ILayoutSaver
         SettingsHelper.CreateSetting(document, element, "Opacity", settings.Opacity) ^
         SettingsHelper.CreateSetting(document, element, "MousePassThroughWhileRunning", settings.MousePassThroughWhileRunning) ^
         SettingsHelper.CreateSetting(document, element, "TransparentBackgroundForCapture", settings.TransparentBackgroundForCapture) ^
+        SettingsHelper.CreateSetting(document, element, "TransparentBackgroundCaptureBackgroundOpacity", settings.TransparentBackgroundCaptureBackgroundOpacity) ^
         SettingsHelper.CreateSetting(document, element, "AllowResizing", settings.AllowResizing) ^
         SettingsHelper.CreateSetting(document, element, "AllowMoving", settings.AllowMoving);
     }

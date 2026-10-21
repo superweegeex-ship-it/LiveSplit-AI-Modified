@@ -117,6 +117,7 @@ public class XMLLayoutFactory : ILayoutFactory
             Opacity = SettingsHelper.ParseFloat(element["Opacity"], 1),
             MousePassThroughWhileRunning = SettingsHelper.ParseBool(element["MousePassThroughWhileRunning"]),
             TransparentBackgroundForCapture = SettingsHelper.ParseBool(element["TransparentBackgroundForCapture"], false),
+            TransparentBackgroundCaptureBackgroundOpacity = Math.Max(0f, Math.Min(1f, SettingsHelper.ParseFloat(element["TransparentBackgroundCaptureBackgroundOpacity"], 0f))),
             AllowResizing = SettingsHelper.ParseBool(element["AllowResizing"], true),
             AllowMoving = SettingsHelper.ParseBool(element["AllowMoving"], true),
             TextOutlineColor = SettingsHelper.ParseColor(element["TextOutlineColor"], Color.FromArgb(0, 0, 0, 0)),

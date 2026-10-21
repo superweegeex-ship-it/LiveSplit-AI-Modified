@@ -73,6 +73,7 @@ public class StandardLayoutSettingsFactory : ILayoutSettingsFactory
             Opacity = 1,
             MousePassThroughWhileRunning = false,
             TransparentBackgroundForCapture = false,
+            TransparentBackgroundCaptureBackgroundOpacity = 0f,
             AllowResizing = true,
             AllowMoving = true,
             SeparatorFillMode = CurrentSplitOutlineFillMode.Solid,

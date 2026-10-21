@@ -144,6 +144,8 @@ public class LayoutSettings : ICloneable
     public float Opacity { get; set; }
     public bool MousePassThroughWhileRunning { get; set; }
     public bool TransparentBackgroundForCapture { get; set; }
+    /// <summary>0–1 alpha for the black clear color used behind components in transparent capture mode.</summary>
+    public float TransparentBackgroundCaptureBackgroundOpacity { get; set; }
     public bool AllowResizing { get; set; }
     public bool AllowMoving { get; set; }
 
@@ -205,6 +207,7 @@ public class LayoutSettings : ICloneable
         Opacity = settings.Opacity;
         MousePassThroughWhileRunning = settings.MousePassThroughWhileRunning;
         TransparentBackgroundForCapture = settings.TransparentBackgroundForCapture;
+        TransparentBackgroundCaptureBackgroundOpacity = settings.TransparentBackgroundCaptureBackgroundOpacity;
         BackgroundType = settings.BackgroundType;
         BackgroundImage = settings.BackgroundImage;
         BackgroundImagePath = settings.BackgroundImagePath;
