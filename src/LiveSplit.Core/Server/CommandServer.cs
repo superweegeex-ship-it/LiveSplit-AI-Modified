@@ -445,6 +445,11 @@ public class CommandServer
                 response = State.CurrentPhase.ToString();
                 break;
             }
+            case "getsplitspath":
+            {
+                response = string.IsNullOrEmpty(State.Run.FilePath) ? "-" : State.Run.FilePath;
+                break;
+            }
             case "setcomparison":
             {
                 State.CurrentComparison = args[1];
