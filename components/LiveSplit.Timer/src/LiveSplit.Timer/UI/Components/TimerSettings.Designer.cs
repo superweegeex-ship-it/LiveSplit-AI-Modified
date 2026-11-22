@@ -1,4 +1,4 @@
-﻿namespace LiveSplit.UI.Components
+namespace LiveSplit.UI.Components
 {
     partial class TimerSettings
     {
@@ -43,6 +43,7 @@
             this.btnColor2 = new System.Windows.Forms.Button();
             this.label11 = new System.Windows.Forms.Label();
             this.chkCenterTimer = new System.Windows.Forms.CheckBox();
+            this.chkDisplayIcon = new System.Windows.Forms.CheckBox();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.cmbDigitsFormat = new System.Windows.Forms.ComboBox();
@@ -74,6 +75,8 @@
             this.tableLayoutPanel1.Controls.Add(this.btnColor2, 2, 0);
             this.tableLayoutPanel1.Controls.Add(this.label11, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this.chkCenterTimer, 0, 5);
+            this.tableLayoutPanel1.Controls.Add(this.chkDisplayIcon, 1, 5);
+            this.tableLayoutPanel1.SetColumnSpan(this.chkDisplayIcon, 4);
             this.tableLayoutPanel1.Controls.Add(this.label2, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.label3, 0, 6);
             this.tableLayoutPanel1.Controls.Add(this.cmbDigitsFormat, 1, 6);
@@ -355,8 +358,17 @@
             this.cmbGradientType.TabIndex = 2;
             this.cmbGradientType.SelectedIndexChanged += new System.EventHandler(this.cmbGradientType_SelectedIndexChanged);
             // 
-            // TimerSettings
+            // chkDisplayIcon
             // 
+            this.chkDisplayIcon.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.chkDisplayIcon.AutoSize = true;
+            this.chkDisplayIcon.Name = "chkDisplayIcon";
+            this.chkDisplayIcon.TabIndex = 13;
+            this.chkDisplayIcon.Text = "Display Icon";
+            this.chkDisplayIcon.UseVisualStyleBackColor = true;
+            //
+            // TimerSettings
+            //
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.Controls.Add(this.tableLayoutPanel1);
@@ -391,6 +403,7 @@
         private System.Windows.Forms.Button btnColor2;
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.CheckBox chkCenterTimer;
+        private System.Windows.Forms.CheckBox chkDisplayIcon;
         private System.Windows.Forms.ComboBox cmbTimingMethod;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.ComboBox cmbDigitsFormat;

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Drawing;
 using System.Windows.Forms;
 using System.Xml;
@@ -44,6 +44,7 @@ public partial class TimerSettings : UserControl
     public bool OverrideSplitColors { get; set; }
 
     public bool CenterTimer { get; set; }
+    public bool DisplayIcon { get; set; }
 
     public bool ShowGradient { get; set; }
     public bool UseMultiColorTextGradient { get; set; }
@@ -97,6 +98,7 @@ public partial class TimerSettings : UserControl
         btnColor1.DataBindings.Add("BackColor", this, "BackgroundColor", false, DataSourceUpdateMode.OnPropertyChanged);
         btnColor2.DataBindings.Add("BackColor", this, "BackgroundColor2", false, DataSourceUpdateMode.OnPropertyChanged);
         chkCenterTimer.DataBindings.Add("Checked", this, "CenterTimer", false, DataSourceUpdateMode.OnPropertyChanged);
+        chkDisplayIcon.DataBindings.Add("Checked", this, nameof(DisplayIcon), false, DataSourceUpdateMode.OnPropertyChanged);
         cmbTimingMethod.DataBindings.Add("SelectedItem", this, "TimingMethod", false, DataSourceUpdateMode.OnPropertyChanged);
         trkDecimalsSize.DataBindings.Add("Value", this, "DecimalsSize", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbDigitsFormat.DataBindings.Add("SelectedItem", this, "DigitsFormat", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -186,6 +188,7 @@ public partial class TimerSettings : UserControl
         BackgroundColor2 = SettingsHelper.ParseColor(element["BackgroundColor2"], Color.Transparent);
         GradientString = SettingsHelper.ParseString(element["BackgroundGradient"], DeltasGradientType.Plain.ToString());
         CenterTimer = SettingsHelper.ParseBool(element["CenterTimer"], false);
+        DisplayIcon = SettingsHelper.ParseBool(element["DisplayIcon"], false);
         TimingMethod = SettingsHelper.ParseString(element["TimingMethod"], "Current Timing Method");
 
         if (version >= new Version(1, 3))
@@ -257,6 +260,7 @@ public partial class TimerSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "BackgroundColor2", BackgroundColor2) ^
         SettingsHelper.CreateSetting(document, parent, "BackgroundGradient", BackgroundGradient) ^
         SettingsHelper.CreateSetting(document, parent, "CenterTimer", CenterTimer) ^
+        SettingsHelper.CreateSetting(document, parent, "DisplayIcon", DisplayIcon) ^
         SettingsHelper.CreateSetting(document, parent, "TimingMethod", TimingMethod) ^
         SettingsHelper.CreateSetting(document, parent, "DecimalsSize", DecimalsSize);
     }

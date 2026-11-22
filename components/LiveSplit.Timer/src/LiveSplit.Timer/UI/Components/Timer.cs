@@ -14,6 +14,9 @@ namespace LiveSplit.UI.Components;
 [GlobalFontConsumer(GlobalFont.TimerFont)]
 public class Timer : IComponent
 {
+    private Image _splitIcon;
+    private bool _animateSplitIcon;
+
     public SimpleLabel BigTextLabel { get; set; }
     public SimpleLabel SmallTextLabel { get; set; }
     protected SimpleLabel BigMeasureLabel { get; set; }
@@ -129,6 +132,19 @@ public class Timer : IComponent
     {
         DrawBackground(g, TimerColor, Settings.BackgroundColor, Settings.BackgroundColor2, width, height, Settings.BackgroundGradient);
 
+        float timerLeft = 0f;
+        if (_splitIcon != null && width > 21f && height > 4f)
+        {
+            float iconSize = Math.Min(height - 4f, (width - 21f) / 2f);
+            float iconScale = iconSize / Math.Max(_splitIcon.Width, _splitIcon.Height);
+            float iconWidth = _splitIcon.Width * iconScale;
+            float iconHeight = _splitIcon.Height * iconScale;
+            ImageAnimator.UpdateFrames(_splitIcon);
+            g.DrawImage(_splitIcon, PaddingLeft, (height - iconHeight) / 2f, iconWidth, iconHeight);
+            timerLeft = PaddingLeft + iconWidth;
+            width -= timerLeft;
+        }
+
         if (state.LayoutSettings.TimerFont != TimerFont || Settings.DecimalsSize != PreviousDecimalsSize)
         {
             TimerFont = state.LayoutSettings.TimerFont;
@@ -142,14 +158,14 @@ public class Timer : IComponent
         BigMeasureLabel.SetActualWidth(g);
         SmallTextLabel.SetActualWidth(g);
 
-        Matrix oldMatrix = g.Transform;
+        using Matrix oldMatrix = g.Transform;
         float unscaledWidth = Math.Max(10, BigMeasureLabel.ActualWidth + SmallTextLabel.ActualWidth + 11);
         float unscaledHeight = 45f;
         float widthFactor = (width - 14) / (unscaledWidth - 14);
         float heightFactor = height / unscaledHeight;
         float adjustValue = !Settings.CenterTimer ? 7f : 0f;
         float scale = Math.Min(widthFactor, heightFactor);
-        g.TranslateTransform(width - adjustValue, height / 2);
+        g.TranslateTransform(timerLeft + width - adjustValue, height / 2);
         g.ScaleTransform(scale, scale);
         g.TranslateTransform(-unscaledWidth + adjustValue, -0.5f * unscaledHeight);
         if (Settings.CenterTimer)
@@ -300,6 +316,12 @@ public class Timer : IComponent
     {
         Cache.Restart();
 
+        Image icon = Settings.DisplayIcon
+            ? (state.CurrentPhase == TimerPhase.Ended ? state.Run.LastOrDefault() : state.CurrentSplit)?.Icon
+            : null;
+        SetSplitIcon(icon);
+        Cache["SplitIcon"] = icon;
+
         TimingMethod timingMethod = state.CurrentTimingMethod;
         if (Settings.TimingMethod == "Real Time")
         {
@@ -390,7 +412,7 @@ public class Timer : IComponent
             Cache["TimerColor"] = BigTextLabel.ForeColor.ToArgb();
         }
 
-        if (invalidator != null && (Cache.HasChanged || (Settings.ShowGradient && Settings.TextGradientSpeed > 0)))
+        if (invalidator != null && (Cache.HasChanged || _animateSplitIcon || (Settings.ShowGradient && Settings.TextGradientSpeed > 0)))
         {
             invalidator.Invalidate(0, 0, width, height);
         }
@@ -398,6 +420,32 @@ public class Timer : IComponent
 
     public void Dispose()
     {
+        SetSplitIcon(null);
+    }
+
+    private void SetSplitIcon(Image icon)
+    {
+        if (ReferenceEquals(_splitIcon, icon))
+        {
+            return;
+        }
+
+        if (_animateSplitIcon)
+        {
+            ImageAnimator.StopAnimate(_splitIcon, OnIconFrameChanged);
+        }
+
+        _splitIcon = icon;
+        _animateSplitIcon = icon != null && ImageAnimator.CanAnimate(icon);
+        if (_animateSplitIcon)
+        {
+            ImageAnimator.Animate(icon, OnIconFrameChanged);
+        }
+    }
+
+    private void OnIconFrameChanged(object sender, EventArgs e)
+    {
+        // The component update loop handles invalidation on the UI thread.
     }
 
     public int GetSettingsHashCode()
