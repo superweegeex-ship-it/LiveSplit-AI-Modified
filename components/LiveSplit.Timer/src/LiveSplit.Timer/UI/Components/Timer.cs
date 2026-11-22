@@ -132,7 +132,6 @@ public class Timer : IComponent
     {
         DrawBackground(g, TimerColor, Settings.BackgroundColor, Settings.BackgroundColor2, width, height, Settings.BackgroundGradient);
 
-        float timerLeft = 0f;
         if (_splitIcon != null && width > 21f && height > 4f)
         {
             float iconSize = Math.Min(height - 4f, (width - 21f) / 2f) * (Settings.IconSizePercent / 100f);
@@ -142,18 +141,6 @@ public class Timer : IComponent
             ImageAnimator.UpdateFrames(_splitIcon);
             float iconX = PaddingLeft + (width - PaddingLeft - PaddingRight - iconWidth) * (Settings.IconHorizontalPosition / 100f);
             g.DrawImage(_splitIcon, iconX, (height - iconHeight) / 2f, iconWidth, iconHeight);
-
-            // Fit the digits in the wider space beside the icon.
-            float rightStart = iconX + iconWidth;
-            if (iconX > width - rightStart)
-            {
-                width = iconX;
-            }
-            else
-            {
-                timerLeft = rightStart;
-                width -= timerLeft;
-            }
         }
 
         if (state.LayoutSettings.TimerFont != TimerFont || Settings.DecimalsSize != PreviousDecimalsSize)
@@ -172,11 +159,11 @@ public class Timer : IComponent
         using Matrix oldMatrix = g.Transform;
         float unscaledWidth = Math.Max(10, BigMeasureLabel.ActualWidth + SmallTextLabel.ActualWidth + 11);
         float unscaledHeight = 45f;
-        float widthFactor = Math.Max(1f, width - 14) / (unscaledWidth - 14);
+        float widthFactor = (width - 14) / (unscaledWidth - 14);
         float heightFactor = height / unscaledHeight;
         float adjustValue = !Settings.CenterTimer ? 7f : 0f;
         float scale = Math.Min(widthFactor, heightFactor);
-        g.TranslateTransform(timerLeft + width - adjustValue, height / 2);
+        g.TranslateTransform(width - adjustValue, height / 2);
         g.ScaleTransform(scale, scale);
         g.TranslateTransform(-unscaledWidth + adjustValue, -0.5f * unscaledHeight);
         if (Settings.CenterTimer)
