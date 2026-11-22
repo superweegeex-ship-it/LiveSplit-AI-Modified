@@ -135,14 +135,25 @@ public class Timer : IComponent
         float timerLeft = 0f;
         if (_splitIcon != null && width > 21f && height > 4f)
         {
-            float iconSize = Math.Min(height - 4f, (width - 21f) / 2f);
+            float iconSize = Math.Min(height - 4f, (width - 21f) / 2f) * (Settings.IconSizePercent / 100f);
             float iconScale = iconSize / Math.Max(_splitIcon.Width, _splitIcon.Height);
             float iconWidth = _splitIcon.Width * iconScale;
             float iconHeight = _splitIcon.Height * iconScale;
             ImageAnimator.UpdateFrames(_splitIcon);
-            g.DrawImage(_splitIcon, PaddingLeft, (height - iconHeight) / 2f, iconWidth, iconHeight);
-            timerLeft = PaddingLeft + iconWidth;
-            width -= timerLeft;
+            float iconX = PaddingLeft + (width - PaddingLeft - PaddingRight - iconWidth) * (Settings.IconHorizontalPosition / 100f);
+            g.DrawImage(_splitIcon, iconX, (height - iconHeight) / 2f, iconWidth, iconHeight);
+
+            // Fit the digits in the wider space beside the icon.
+            float rightStart = iconX + iconWidth;
+            if (iconX > width - rightStart)
+            {
+                width = iconX;
+            }
+            else
+            {
+                timerLeft = rightStart;
+                width -= timerLeft;
+            }
         }
 
         if (state.LayoutSettings.TimerFont != TimerFont || Settings.DecimalsSize != PreviousDecimalsSize)
@@ -161,7 +172,7 @@ public class Timer : IComponent
         using Matrix oldMatrix = g.Transform;
         float unscaledWidth = Math.Max(10, BigMeasureLabel.ActualWidth + SmallTextLabel.ActualWidth + 11);
         float unscaledHeight = 45f;
-        float widthFactor = (width - 14) / (unscaledWidth - 14);
+        float widthFactor = Math.Max(1f, width - 14) / (unscaledWidth - 14);
         float heightFactor = height / unscaledHeight;
         float adjustValue = !Settings.CenterTimer ? 7f : 0f;
         float scale = Math.Min(widthFactor, heightFactor);
@@ -321,6 +332,8 @@ public class Timer : IComponent
             : null;
         SetSplitIcon(icon);
         Cache["SplitIcon"] = icon;
+        Cache["IconSizePercent"] = Settings.IconSizePercent;
+        Cache["IconHorizontalPosition"] = Settings.IconHorizontalPosition;
 
         TimingMethod timingMethod = state.CurrentTimingMethod;
         if (Settings.TimingMethod == "Real Time")

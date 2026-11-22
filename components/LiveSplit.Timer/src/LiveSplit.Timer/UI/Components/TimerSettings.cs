@@ -45,6 +45,8 @@ public partial class TimerSettings : UserControl
 
     public bool CenterTimer { get; set; }
     public bool DisplayIcon { get; set; }
+    public int IconSizePercent { get; set; } = 100;
+    public int IconHorizontalPosition { get; set; }
 
     public bool ShowGradient { get; set; }
     public bool UseMultiColorTextGradient { get; set; }
@@ -99,6 +101,8 @@ public partial class TimerSettings : UserControl
         btnColor2.DataBindings.Add("BackColor", this, "BackgroundColor2", false, DataSourceUpdateMode.OnPropertyChanged);
         chkCenterTimer.DataBindings.Add("Checked", this, "CenterTimer", false, DataSourceUpdateMode.OnPropertyChanged);
         chkDisplayIcon.DataBindings.Add("Checked", this, nameof(DisplayIcon), false, DataSourceUpdateMode.OnPropertyChanged);
+        nudIconSize.DataBindings.Add("Value", this, nameof(IconSizePercent), false, DataSourceUpdateMode.OnPropertyChanged);
+        nudIconPosition.DataBindings.Add("Value", this, nameof(IconHorizontalPosition), false, DataSourceUpdateMode.OnPropertyChanged);
         cmbTimingMethod.DataBindings.Add("SelectedItem", this, "TimingMethod", false, DataSourceUpdateMode.OnPropertyChanged);
         trkDecimalsSize.DataBindings.Add("Value", this, "DecimalsSize", false, DataSourceUpdateMode.OnPropertyChanged);
         cmbDigitsFormat.DataBindings.Add("SelectedItem", this, "DigitsFormat", false, DataSourceUpdateMode.OnPropertyChanged);
@@ -189,6 +193,8 @@ public partial class TimerSettings : UserControl
         GradientString = SettingsHelper.ParseString(element["BackgroundGradient"], DeltasGradientType.Plain.ToString());
         CenterTimer = SettingsHelper.ParseBool(element["CenterTimer"], false);
         DisplayIcon = SettingsHelper.ParseBool(element["DisplayIcon"], false);
+        IconSizePercent = Math.Max(10, Math.Min(100, SettingsHelper.ParseInt(element["IconSizePercent"], 100)));
+        IconHorizontalPosition = Math.Max(0, Math.Min(100, SettingsHelper.ParseInt(element["IconHorizontalPosition"], 0)));
         TimingMethod = SettingsHelper.ParseString(element["TimingMethod"], "Current Timing Method");
 
         if (version >= new Version(1, 3))
@@ -261,6 +267,8 @@ public partial class TimerSettings : UserControl
         SettingsHelper.CreateSetting(document, parent, "BackgroundGradient", BackgroundGradient) ^
         SettingsHelper.CreateSetting(document, parent, "CenterTimer", CenterTimer) ^
         SettingsHelper.CreateSetting(document, parent, "DisplayIcon", DisplayIcon) ^
+        SettingsHelper.CreateSetting(document, parent, "IconSizePercent", IconSizePercent) ^
+        SettingsHelper.CreateSetting(document, parent, "IconHorizontalPosition", IconHorizontalPosition) ^
         SettingsHelper.CreateSetting(document, parent, "TimingMethod", TimingMethod) ^
         SettingsHelper.CreateSetting(document, parent, "DecimalsSize", DecimalsSize);
     }

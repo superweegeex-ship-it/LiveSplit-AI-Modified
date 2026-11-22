@@ -44,6 +44,10 @@ namespace LiveSplit.UI.Components
             this.label11 = new System.Windows.Forms.Label();
             this.chkCenterTimer = new System.Windows.Forms.CheckBox();
             this.chkDisplayIcon = new System.Windows.Forms.CheckBox();
+            this.lblIconSize = new System.Windows.Forms.Label();
+            this.nudIconSize = new System.Windows.Forms.NumericUpDown();
+            this.lblIconPosition = new System.Windows.Forms.Label();
+            this.nudIconPosition = new System.Windows.Forms.NumericUpDown();
             this.label2 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.cmbDigitsFormat = new System.Windows.Forms.ComboBox();
@@ -51,6 +55,8 @@ namespace LiveSplit.UI.Components
             this.trkDecimalsSize = new System.Windows.Forms.TrackBar();
             this.cmbGradientType = new System.Windows.Forms.ComboBox();
             this.tableLayoutPanel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.nudIconSize)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudIconPosition)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.trkSize)).BeginInit();
             this.groupBox2.SuspendLayout();
             this.tableLayoutPanel3.SuspendLayout();
@@ -83,10 +89,16 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanel1.Controls.Add(this.label4, 0, 7);
             this.tableLayoutPanel1.Controls.Add(this.trkDecimalsSize, 1, 7);
             this.tableLayoutPanel1.Controls.Add(this.cmbGradientType, 3, 0);
+            this.tableLayoutPanel1.Controls.Add(this.lblIconSize, 0, 8);
+            this.tableLayoutPanel1.Controls.Add(this.nudIconSize, 1, 8);
+            this.tableLayoutPanel1.SetColumnSpan(this.nudIconSize, 4);
+            this.tableLayoutPanel1.Controls.Add(this.lblIconPosition, 0, 9);
+            this.tableLayoutPanel1.Controls.Add(this.nudIconPosition, 1, 9);
+            this.tableLayoutPanel1.SetColumnSpan(this.nudIconPosition, 4);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(7, 7);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 8;
+            this.tableLayoutPanel1.RowCount = 10;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
@@ -95,8 +107,9 @@ namespace LiveSplit.UI.Components
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
-            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(462, 287);
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(462, 345);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // cmbAccuracy
@@ -359,13 +372,47 @@ namespace LiveSplit.UI.Components
             this.cmbGradientType.SelectedIndexChanged += new System.EventHandler(this.cmbGradientType_SelectedIndexChanged);
             // 
             // chkDisplayIcon
-            // 
+            //
             this.chkDisplayIcon.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.chkDisplayIcon.AutoSize = true;
             this.chkDisplayIcon.Name = "chkDisplayIcon";
             this.chkDisplayIcon.TabIndex = 13;
             this.chkDisplayIcon.Text = "Display Icon";
             this.chkDisplayIcon.UseVisualStyleBackColor = true;
+            //
+            // lblIconSize
+            //
+            this.lblIconSize.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.lblIconSize.AutoSize = true;
+            this.lblIconSize.Name = "lblIconSize";
+            this.lblIconSize.Text = "Icon Size (%):";
+            //
+            // nudIconSize
+            //
+            this.nudIconSize.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.nudIconSize.Name = "nudIconSize";
+            this.nudIconSize.Minimum = 10;
+            this.nudIconSize.Maximum = 100;
+            this.nudIconSize.Value = 100;
+            this.nudIconSize.Size = new System.Drawing.Size(64, 20);
+            this.nudIconSize.TabIndex = 14;
+            //
+            // lblIconPosition
+            //
+            this.lblIconPosition.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.lblIconPosition.AutoSize = true;
+            this.lblIconPosition.Name = "lblIconPosition";
+            this.lblIconPosition.Text = "Icon Horizontal Position (%):";
+            //
+            // nudIconPosition
+            //
+            this.nudIconPosition.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.nudIconPosition.Name = "nudIconPosition";
+            this.nudIconPosition.Minimum = 0;
+            this.nudIconPosition.Maximum = 100;
+            this.nudIconPosition.Value = 0;
+            this.nudIconPosition.Size = new System.Drawing.Size(64, 20);
+            this.nudIconPosition.TabIndex = 15;
             //
             // TimerSettings
             //
@@ -374,9 +421,11 @@ namespace LiveSplit.UI.Components
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "TimerSettings";
             this.Padding = new System.Windows.Forms.Padding(7);
-            this.Size = new System.Drawing.Size(476, 301);
+            this.Size = new System.Drawing.Size(476, 359);
             this.Load += new System.EventHandler(this.TimerSettings_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.nudIconSize)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.nudIconPosition)).EndInit();
             this.tableLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.trkSize)).EndInit();
             this.groupBox2.ResumeLayout(false);
@@ -404,6 +453,10 @@ namespace LiveSplit.UI.Components
         private System.Windows.Forms.Label label11;
         private System.Windows.Forms.CheckBox chkCenterTimer;
         private System.Windows.Forms.CheckBox chkDisplayIcon;
+        private System.Windows.Forms.Label lblIconSize;
+        private System.Windows.Forms.NumericUpDown nudIconSize;
+        private System.Windows.Forms.Label lblIconPosition;
+        private System.Windows.Forms.NumericUpDown nudIconPosition;
         private System.Windows.Forms.ComboBox cmbTimingMethod;
         private System.Windows.Forms.Label label2;
         private System.Windows.Forms.ComboBox cmbDigitsFormat;
