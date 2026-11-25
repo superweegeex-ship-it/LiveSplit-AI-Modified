@@ -182,15 +182,20 @@ public class RunPrediction : IComponent
             comparison = state.CurrentComparison;
         }
 
-        InternalComponent.InformationName = InternalComponent.LongestString = GetDisplayedName(comparison);
-
-        if (InternalComponent.InformationName != PreviousInformationName)
+        string defaultLabel = GetDisplayedName(comparison);
+        bool hasCustomLabel = !string.IsNullOrWhiteSpace(Settings.CustomLabel);
+        InternalComponent.InformationName = InternalComponent.LongestString = hasCustomLabel ? Settings.CustomLabel : defaultLabel;
+        if (hasCustomLabel)
+        {
+            InternalComponent.AlternateNameText = Array.Empty<string>();
+        }
+        else if (defaultLabel != PreviousInformationName || InternalComponent.AlternateNameText.Count == 0)
         {
             SetAlternateText(comparison);
-            PreviousInformationName = InternalComponent.InformationName;
+            PreviousInformationName = defaultLabel;
         }
 
-        if (InternalComponent.InformationName.StartsWith(T("Current Pace")) && state.CurrentPhase == TimerPhase.NotRunning)
+        if (defaultLabel.StartsWith(T("Current Pace")) && state.CurrentPhase == TimerPhase.NotRunning)
         {
             InternalComponent.TimeValue = null;
         }

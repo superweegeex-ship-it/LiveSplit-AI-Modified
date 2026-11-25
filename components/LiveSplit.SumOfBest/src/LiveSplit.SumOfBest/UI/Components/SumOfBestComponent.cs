@@ -12,6 +12,8 @@ namespace LiveSplit.UI.Components;
 [GlobalFontConsumer(GlobalFont.TimesFont | GlobalFont.TextFont)]
 public class SumOfBestComponent : IComponent
 {
+    private static readonly string[] DefaultAlternateLabels = ["Sum of Best", "SoB"];
+
     protected InfoTimeComponent InternalComponent { get; set; }
     public SumOfBestSettings Settings { get; set; }
     protected LiveSplitState CurrentState { get; set; }
@@ -35,11 +37,7 @@ public class SumOfBestComponent : IComponent
         Formatter = new SplitTimeFormatter();
         InternalComponent = new InfoTimeComponent("Sum of Best Segments", null, Formatter)
         {
-            AlternateNameText = new string[]
-            {
-                "Sum of Best",
-                "SoB"
-            }
+            AlternateNameText = DefaultAlternateLabels
         };
         Settings = new SumOfBestSettings();
         state.OnSplit += state_OnSplit;
@@ -178,6 +176,10 @@ public class SumOfBestComponent : IComponent
             UpdateSumOfBestValue(state);
         }
 
+        bool hasCustomLabel = !string.IsNullOrWhiteSpace(Settings.CustomLabel);
+        InternalComponent.InformationName = hasCustomLabel ? Settings.CustomLabel : "Sum of Best Segments";
+        InternalComponent.LongestString = hasCustomLabel ? Settings.CustomLabel : "";
+        InternalComponent.AlternateNameText = hasCustomLabel ? Array.Empty<string>() : DefaultAlternateLabels;
         InternalComponent.TimeValue = SumOfBestValue;
 
         InternalComponent.Update(invalidator, state, width, height, mode);

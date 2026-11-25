@@ -12,6 +12,8 @@ namespace LiveSplit.UI.Components;
 
 public partial class RunPredictionSettings : UserControl
 {
+    public string CustomLabel { get; set; } = "";
+
     public Color TextColor { get; set; }
     public bool OverrideTextColor { get; set; }
     public Color TimeColor { get; set; }
@@ -36,6 +38,7 @@ public partial class RunPredictionSettings : UserControl
     public RunPredictionSettings()
     {
         InitializeComponent();
+        txtCustomLabel.DataBindings.Add("Text", this, nameof(CustomLabel), false, DataSourceUpdateMode.OnPropertyChanged);
 
         TextColor = Color.FromArgb(255, 255, 255);
         OverrideTextColor = false;
@@ -157,6 +160,8 @@ public partial class RunPredictionSettings : UserControl
     public void SetSettings(XmlNode node)
     {
         var element = (XmlElement)node;
+        CustomLabel = SettingsHelper.ParseString(element["CustomLabel"], "");
+        txtCustomLabel.DataBindings["Text"].ReadValue();
         TextColor = SettingsHelper.ParseColor(element["TextColor"]);
         OverrideTextColor = SettingsHelper.ParseBool(element["OverrideTextColor"]);
         TimeColor = SettingsHelper.ParseColor(element["TimeColor"]);
@@ -184,6 +189,7 @@ public partial class RunPredictionSettings : UserControl
     private int CreateSettingsNode(XmlDocument document, XmlElement parent)
     {
         return SettingsHelper.CreateSetting(document, parent, "Version", "1.4") ^
+        SettingsHelper.CreateSetting(document, parent, "CustomLabel", CustomLabel) ^
         SettingsHelper.CreateSetting(document, parent, "TextColor", TextColor) ^
         SettingsHelper.CreateSetting(document, parent, "OverrideTextColor", OverrideTextColor) ^
         SettingsHelper.CreateSetting(document, parent, "TimeColor", TimeColor) ^

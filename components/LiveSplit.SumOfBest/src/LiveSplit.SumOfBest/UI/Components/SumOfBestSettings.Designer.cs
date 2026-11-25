@@ -53,6 +53,8 @@
             this.chkTwoRows = new System.Windows.Forms.CheckBox();
             this.rdoMilliseconds = new System.Windows.Forms.RadioButton();
             this.tableLayoutPanel1.SuspendLayout();
+            this.lblCustomLabel = new System.Windows.Forms.Label();
+            this.txtCustomLabel = new System.Windows.Forms.TextBox();
             this.groupBox1.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             this.groupBox2.SuspendLayout();
@@ -78,14 +80,18 @@
             this.tableLayoutPanel1.Controls.Add(this.label11, 0, 0);
             this.tableLayoutPanel1.Controls.Add(this.chkTwoRows, 0, 1);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel1.Controls.Add(this.lblCustomLabel, 0, 4);
+            this.tableLayoutPanel1.Controls.Add(this.txtCustomLabel, 1, 4);
+            this.tableLayoutPanel1.SetColumnSpan(this.txtCustomLabel, 4);
             this.tableLayoutPanel1.Location = new System.Drawing.Point(7, 7);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 4;
+            this.tableLayoutPanel1.RowCount = 5;
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 83F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 108F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(462, 299);
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 29F));
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(462, 328);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // groupBox1
@@ -400,7 +406,14 @@
             this.Controls.Add(this.tableLayoutPanel1);
             this.Name = "SumOfBestSettings";
             this.Padding = new System.Windows.Forms.Padding(7);
-            this.Size = new System.Drawing.Size(476, 313);
+            this.lblCustomLabel.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.lblCustomLabel.AutoSize = true;
+            this.lblCustomLabel.Name = "lblCustomLabel";
+            this.lblCustomLabel.Text = "Custom Label (optional)";
+            this.txtCustomLabel.Anchor = System.Windows.Forms.AnchorStyles.Left | System.Windows.Forms.AnchorStyles.Right;
+            this.txtCustomLabel.Name = "txtCustomLabel";
+            this.txtCustomLabel.TabIndex = 7;
+            this.Size = new System.Drawing.Size(476, 342);
             this.Load += new System.EventHandler(this.SumOfBestSettings_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             this.tableLayoutPanel1.PerformLayout();
@@ -422,6 +435,8 @@
         #endregion
 
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
+        private System.Windows.Forms.Label lblCustomLabel;
+        private System.Windows.Forms.TextBox txtCustomLabel;
         private System.Windows.Forms.GroupBox groupBox1;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.Button btnTextColor;
